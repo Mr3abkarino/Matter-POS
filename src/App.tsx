@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { POSView } from './features/pos/POSView';
 import { MenuManagementView } from './features/menu/MenuManagementView';
 import { ReportsView } from './features/reports/ReportsView';
-import { Utensils, ShoppingCart, LogOut, ShieldAlert, UserCheck, TrendingUp } from 'lucide-react';
+import { SettingsView } from './features/settings/SettingsView';
+import { 
+  Utensils, 
+  ShoppingCart, 
+  LogOut, 
+  ShieldAlert, 
+  UserCheck, 
+  TrendingUp, 
+  Settings 
+} from 'lucide-react';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'cashier'>('cashier');
-  const [currentTab, setCurrentTab] = useState<'pos' | 'reports' | 'menu'>('pos');
+  const [currentTab, setCurrentTab] = useState<'pos' | 'reports' | 'menu' | 'settings'>('pos');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
@@ -48,7 +57,7 @@ export default function App() {
     localStorage.removeItem('dc_user_role');
   };
 
-  // 🔒 شاشة تسجيل الدخول المحمية (بدون عرض الأكواد)
+  // 🔒 شاشة تسجيل الدخول المحمية
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 dir-rtl font-sans">
@@ -86,9 +95,10 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden dir-rtl font-sans">
-      {/* الشريط الجانبي */}
+      {/* 📌 الشريط الجانبي (Sidebar) */}
       <aside className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col justify-between p-4 shadow-xl">
         <div>
+          {/* اللوجو والمعلومات */}
           <div className="flex items-center gap-3 mb-8 px-2">
             <div className="bg-indigo-600 p-2.5 rounded-2xl">
               <Utensils size={24} />
@@ -102,7 +112,9 @@ export default function App() {
             </div>
           </div>
 
+          {/* أزرار التنقل */}
           <nav className="flex flex-col gap-2">
+            {/* الكاشير - متاح للجميع */}
             <button
               onClick={() => setCurrentTab('pos')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -135,11 +147,22 @@ export default function App() {
                   <Utensils size={20} />
                   <span className="hidden lg:block">إدارة المنيو</span>
                 </button>
+
+                <button
+                  onClick={() => setCurrentTab('settings')}
+                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
+                    currentTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
+                  }`}
+                >
+                  <Settings size={20} />
+                  <span className="hidden lg:block">الإعدادات والطابعة</span>
+                </button>
               </>
             )}
           </nav>
         </div>
 
+        {/* زر تسجيل الخروج */}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 p-3 text-rose-400 hover:bg-rose-500/10 rounded-2xl font-bold text-xs transition-all"
@@ -149,14 +172,16 @@ export default function App() {
         </button>
       </aside>
 
-      {/* الشاشات */}
+      {/* 🖥️ منطقة عرض الشاشات الرئيسية */}
       <main className="flex-1 flex overflow-hidden">
         {currentTab === 'pos' ? (
           <POSView />
         ) : currentTab === 'reports' ? (
           <ReportsView />
-        ) : (
+        ) : currentTab === 'menu' ? (
           <MenuManagementView />
+        ) : (
+          <SettingsView />
         )}
       </main>
     </div>
