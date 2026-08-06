@@ -10,8 +10,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 
-/* ---------------- 📌 VERSION CONTROL & CACHE BUSTING ---------------- */
-const APP_VERSION = "2.9.0"; // تحديث لتفعيل تعديل الأصناف وحشو الأطراف
+/* ---------------- 📌 VERSION CONTROL ---------------- */
+const APP_VERSION = "3.0.0";
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -57,9 +57,7 @@ const DEFAULT_DELIVERY_ZONES = [
   { id: 8, name: "شربين", fee: 80 }
 ];
 
-// 📌 المنيو الكامل بالأصناف والأحجام بالكامل
 const DEFAULT_PRODUCTS = [
-  // --- البيتزا ---
   { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 45 }, { id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 90 }] },
   { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
   { id: "p3", cat: "البيتزا", name: "بيتزا خضروات", price: 60, emoji: "🥦", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
@@ -109,30 +107,29 @@ const SALES_CHART_TIMELINE = [
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
-  // ⚡ فحص وتحديث الكاش التلقائي
   useEffect(() => {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.setItem("pos_products_v29", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v29", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v29", JSON.stringify(DEFAULT_CATEGORIES));
+      localStorage.setItem("pos_products_v30", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v30", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v30", JSON.stringify(DEFAULT_CATEGORIES));
     }
   }, []);
 
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
   const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v29") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v29") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v30") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v30") || JSON.stringify(DEFAULT_PRODUCTS)));
   const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders") || "[]"));
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v29") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v30") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
   useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories_v29", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v29", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_categories_v30", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v30", JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem("pos_orders", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v29", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v30", JSON.stringify(deliveryZones)); }, [deliveryZones]);
 
   // Auth & UI States
   const [currentUser, setCurrentUser] = useState(null);
@@ -158,17 +155,15 @@ export default function SmartPOSApp() {
   // Modals States
   const [selectedProductModal, setSelectedProductModal] = useState(null);
   const [activeSize, setActiveSize] = useState(null);
-  
-  // 🧀 خيار حشو الأطراف
   const [stuffedCrust, setStuffedCrust] = useState(false);
 
   // ✏️ تعديل صنف
   const [editProductModal, setEditProductModal] = useState(null);
-
   const [viewInvoiceModal, setViewInvoiceModal] = useState(null);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [shiftClosedReport, setShiftClosedReport] = useState(null);
 
+  // Restock & Category & Product Add States
   const [restockProduct, setRestockProduct] = useState(null);
   const [restockQty, setRestockQty] = useState("");
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -182,15 +177,6 @@ export default function SmartPOSApp() {
   const [newProdStock, setNewProdStock] = useState("");
   const [newProdCat, setNewProdCat] = useState("البيتزا");
   const [newProdImage, setNewProdImage] = useState("");
-
-  const [newZoneName, setNewZoneName] = useState("");
-  const [newZoneFee, setNewZoneFee] = useState("");
-
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newURealName, setNewURealName] = useState("");
-  const [newUName, setNewUName] = useState("");
-  const [newUPass, setNewUPass] = useState("");
-  const [newURole, setNewURole] = useState("cashier");
 
   const currentTicketNo = completedOrders.length + 1;
 
@@ -232,7 +218,6 @@ export default function SmartPOSApp() {
     }
   };
 
-  // 📌 إضافة صنف للسلة مع الأحجام وحشو الأطراف
   const addToCartDirect = (p, size, isStuffed) => {
     let crustPrice = 0;
     let crustLabel = "";
@@ -286,17 +271,94 @@ export default function SmartPOSApp() {
       return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
     }));
 
+    if (restaurantInfo.autoPrint) {
+      handlePrintReceipt(newOrder);
+    }
+
     setCart([]);
     setCustomerNameInput(""); setCustomerPhoneInput(""); setCustomerAddressInput("");
     setMobileCartDrawerOpen(false);
   };
 
-  // ✏️ حفظ تعديل الصنف من شاشة المخزون
-  const handleSaveProductEdit = (e) => {
+  const handleCancelInvoice = (orderId) => {
+    if (!window.confirm("هل أنت متأكد من إلغاء الفاتورة وإرجاع الأصناف للمخزن؟")) return;
+    setCompletedOrders((prev) => prev.map((ord) => {
+      if (ord.id === orderId) {
+        ord.items.forEach((item) => {
+          setProducts((pList) => pList.map((p) => p.id === item.id ? { ...p, stock: p.stock + item.qty } : p));
+        });
+        return { ...ord, status: "cancelled" };
+      }
+      return ord;
+    }));
+    setViewInvoiceModal(null);
+  };
+
+  // ➕ إضافة صنف جديد
+  const handleAddNewProduct = (e) => {
     e.preventDefault();
-    if (!editProductModal) return;
-    setProducts((prev) => prev.map((p) => p.id === editProductModal.id ? editProductModal : p));
-    setEditProductModal(null);
+    if (!newProdName || !newProdPrice) return;
+    const basePrice = Number(newProdPrice);
+    const newProd = {
+      id: Date.now(),
+      cat: newProdCat,
+      name: newProdName,
+      price: basePrice,
+      stock: Number(newProdStock) || 10,
+      emoji: "📦",
+      imageUrl: newProdImage.trim(),
+      sizes: newProdCat === "البيتزا" ? [
+        { id: "sm", name: "صغير", price: basePrice },
+        { id: "md", name: "وسط", price: basePrice + 25 },
+        { id: "lg", name: "كبير", price: basePrice + 45 }
+      ] : null
+    };
+    setProducts((prev) => [newProd, ...prev]);
+    setNewProdName(""); setNewProdPrice(""); setNewProdStock(""); setNewProdImage("");
+    setShowAddProductModal(false);
+  };
+
+  // ➕ إضافة قسم جديد
+  const handleAddNewCategory = (e) => {
+    e.preventDefault();
+    if (!newCatLabel) return;
+    const catId = newCatLabel.trim();
+    setCategories((prev) => [...prev, { id: catId, label: newCatLabel, emoji: newCatEmoji }]);
+    setActiveCat(catId);
+    setNewCatLabel("");
+    setShowAddCategoryModal(false);
+  };
+
+  const handleRestockSubmit = (e) => {
+    e.preventDefault();
+    if (!restockProduct || !restockQty) return;
+    setProducts((prev) => prev.map((p) => p.id === restockProduct.id ? { ...p, stock: p.stock + Number(restockQty) } : p));
+    setRestockProduct(null); setRestockQty("");
+  };
+
+  const handleCloseShift = () => {
+    const active = completedOrders.filter(o => o.status !== "cancelled");
+    setShiftClosedReport({
+      cashier: currentUser.name,
+      time: new Date().toLocaleTimeString("ar-EG"),
+      date: new Date().toLocaleDateString("ar-EG"),
+      totalRevenue: active.reduce((a, b) => a + b.total, 0),
+      totalOrdersCount: active.length,
+      takeawayCount: active.filter(o => o.orderType === "takeaway").length,
+      deliveryCount: active.filter(o => o.orderType === "delivery").length,
+    });
+    setShowCloseShiftModal(true);
+  };
+
+  const getTopSellingProducts = () => {
+    const itemMap = {};
+    completedOrders.filter(o => o.status !== "cancelled").forEach((ord) => {
+      ord.items.forEach((item) => {
+        if (!itemMap[item.name]) itemMap[item.name] = 0;
+        itemMap[item.name] += item.qty;
+      });
+    });
+    return Object.entries(itemMap).map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty).slice(0, 5);
   };
 
   if (!currentUser) {
@@ -308,9 +370,7 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">
-              v{APP_VERSION} Full Edition
-            </p>
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">v{APP_VERSION}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -391,18 +451,22 @@ export default function SmartPOSApp() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between">
-          <div className="truncate">
-            <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
-            <p className="text-[10px] text-indigo-400 font-bold">{currentUser.roleLabel}</p>
-          </div>
-          <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-rose-400 hover:bg-slate-800 rounded-xl">
-            <LogOut size={16} />
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          <button onClick={handleCloseShift} className="w-full py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+            <Lock size={14} /> <span>تقفيل الوردية</span>
           </button>
+          <div className="flex items-center justify-between pt-1">
+            <div className="truncate">
+              <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
+              <p className="text-[10px] text-indigo-400 font-bold">{currentUser.roleLabel}</p>
+            </div>
+            <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-rose-400 hover:bg-slate-800 rounded-xl">
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* OVERLAY FOR MOBILE SIDEBAR */}
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs lg:hidden z-30"></div>}
 
       {/* MAIN VIEW AREA */}
@@ -411,17 +475,63 @@ export default function SmartPOSApp() {
         {/* DASHBOARD VIEW */}
         {currentView === "dashboard" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">لوحة التحكم والمؤشرات المالية</h2>
+            <div className="flex justify-between items-center flex-wrap gap-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">لوحة التحكم والأداء اليومي</h2>
+              <button onClick={handleCloseShift} className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md">
+                <Lock size={15} /> تقفيل الوردية
+              </button>
+            </div>
+            
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p><h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(completedOrders.reduce((a,b)=>a+b.total, 0))} ج.م</h3></div>
-              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">عدد الفواتير</p><h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.length} فاتورة</h3></div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p><h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(completedOrders.filter(o=>o.status!=="cancelled").reduce((a,b)=>a+b.total, 0))} ج.م</h3></div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">عدد الفواتير النشطة</p><h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.filter(o=>o.status!=="cancelled").length} فاتورة</h3></div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">الفواتير الملغاة</p><h3 className="text-2xl font-black text-rose-600 mt-1">{completedOrders.filter(o=>o.status==="cancelled").length} فاتورة</h3></div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white p-5 rounded-2xl border shadow-xs space-y-4">
+                <h3 className="font-extrabold text-sm text-slate-900">تطور المبيعات الساعية</h3>
+                <div className="h-60 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={SALES_CHART_TIMELINE}>
+                      <defs>
+                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} />
+                      <YAxis stroke="#94a3b8" fontSize={11} axisLine={false} />
+                      <Tooltip formatter={(val) => [`${val} ج.م`, "المبيعات"]} />
+                      <Area type="monotone" dataKey="sales" stroke="#4f46e5" strokeWidth={2.5} fill="url(#colorSales)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2">⭐ الأصناف الأكثر مبيعاً</h3>
+                <div className="space-y-2.5">
+                  {getTopSellingProducts().length === 0 ? (
+                    <p className="text-xs text-slate-400 font-semibold text-center py-6">لا توجد مبيعات مسجلة</p>
+                  ) : (
+                    getTopSellingProducts().map((prod, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
+                        <span className="font-bold text-slate-800">{idx+1}. {prod.name}</span>
+                        <span className="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{prod.qty} قطعة</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* POS VIEW */}
         {currentView === "pos" && (
-          <div className="flex-1 flex flex-col md:flex-row min-h-0 relative pb-16 md:pb-0">
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 relative pb-24 md:pb-0">
             <div className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l">
               
               <div className="sticky top-0 z-10 px-4 sm:px-6 py-3 flex flex-wrap justify-between bg-white border-b items-center gap-2 shadow-xs">
@@ -436,8 +546,8 @@ export default function SmartPOSApp() {
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث صنف..." className="h-8 bg-slate-100 rounded-xl px-3 text-xs outline-none w-full sm:w-48" />
               </div>
 
-              {/* Grid Products */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {/* Grid Products with pb-32 so nothing hides behind bottom bar */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
                 <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
                   {products.filter(p=>p.cat===activeCat && p.name.includes(query)).map((p) => (
                     <button key={p.id} onClick={() => handleProductClick(p)} disabled={p.stock <= 0} className={`bg-white rounded-2xl border p-2.5 flex flex-col items-center text-center relative hover:shadow-md transition-all ${p.stock <= 0 ? "opacity-50" : ""}`}>
@@ -535,20 +645,38 @@ export default function SmartPOSApp() {
         {/* INVOICES HUB */}
         {currentView === "invoices" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة والمحفوظة ({completedOrders.length})</h2>
+            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة والتحكم بها ({completedOrders.length})</h2>
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
-              <table className="w-full text-right text-xs min-w-[500px]">
+              <table className="w-full text-right text-xs min-w-[550px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
-                  <tr><th className="p-3">رقم الفاتورة</th><th className="p-3">التاريخ والوقت</th><th className="p-3">النوع</th><th className="p-3">الكاشير</th><th className="p-3">الإجمالي</th></tr>
+                  <tr>
+                    <th className="p-3">رقم الفاتورة</th>
+                    <th className="p-3">التاريخ والوقت</th>
+                    <th className="p-3">النوع</th>
+                    <th className="p-3">الكاشير</th>
+                    <th className="p-3">الإجمالي</th>
+                    <th className="p-3">الحالة</th>
+                    <th className="p-3 text-center">إجراءات التحكم</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y font-bold">
                   {completedOrders.map((o) => (
-                    <tr key={o.id}>
+                    <tr key={o.id} className={o.status === "cancelled" ? "bg-rose-50/50 opacity-60" : ""}>
                       <td className="p-3 font-mono font-black text-indigo-600">#{o.ticketNo}</td>
                       <td className="p-3 text-slate-500">{o.date} - {o.time}</td>
                       <td className="p-3">{o.orderType}</td>
                       <td className="p-3">{o.cashier}</td>
                       <td className="p-3 font-black text-emerald-600">{fmt(o.total)} ج.م</td>
+                      <td className="p-3">
+                        {o.status === "cancelled" ? <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px]">ملغاة</span> : <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px]">مكتملة</span>}
+                      </td>
+                      <td className="p-3 text-center space-x-1.5 space-x-reverse">
+                        <button onClick={() => setViewInvoiceModal(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100" title="معاينة"><Eye size={15} /></button>
+                        <button onClick={() => handlePrintReceipt(o)} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200" title="طباعة"><Printer size={15} /></button>
+                        {o.status !== "cancelled" && (
+                          <button onClick={() => handleCancelInvoice(o.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100" title="إلغاء"><Trash2 size={15} /></button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -557,7 +685,7 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* 📦 INVENTORY VIEW WITH EDIT PRODUCT */}
+        {/* INVENTORY VIEW */}
         {currentView === "inventory" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-2">
@@ -575,7 +703,7 @@ export default function SmartPOSApp() {
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
               <table className="w-full text-right text-xs min-w-[550px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
-                  <tr><th className="p-3">الصنف والصورة</th><th className="p-3">القسم</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3 text-center">إجراءات التحكم</th></tr>
+                  <tr><th className="p-3">الصنف</th><th className="p-3">القسم</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3 text-center">إجراءات</th></tr>
                 </thead>
                 <tbody className="divide-y font-bold">
                   {products.map((p) => (
@@ -590,13 +718,8 @@ export default function SmartPOSApp() {
                       <td className="p-3">{fmt(p.price)} ج.م</td>
                       <td className="p-3 font-black">{p.stock} قطعة</td>
                       <td className="p-3 text-center space-x-1.5 space-x-reverse">
-                        {/* 📌 زر تعديل الصنف */}
-                        <button onClick={() => setEditProductModal(p)} className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl font-bold">
-                          ✏️ تعديل
-                        </button>
-                        <button onClick={() => setRestockProduct(p)} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold">
-                          + تزويد
-                        </button>
+                        <button onClick={() => setEditProductModal(p)} className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-xl font-bold">✏️ تعديل</button>
+                        <button onClick={() => setRestockProduct(p)} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-xl font-bold">+ تزويد</button>
                       </td>
                     </tr>
                   ))}
@@ -606,59 +729,129 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* ⚙️ SETTINGS VIEW */}
+        {/* SETTINGS VIEW */}
         {currentView === "settings" && permissions.canSettings && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات المطعم والنظام</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
-                  <Settings size={16} className="text-indigo-600" /> بيانات المطعم والتواصل
-                </h3>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
-                  <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">رابط صورة اللوجو (Logo URL)</label>
-                  <input type="text" value={restaurantInfo.logoUrl} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">العنوان التفصيلي</label>
-                  <input type="text" value={restaurantInfo.address} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">رقم الهاتف للتواصل</label>
-                  <input type="text" value={restaurantInfo.phone} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والطباعة</h2>
+            <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs max-w-lg">
+              <div>
+                <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
+                <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
               </div>
-
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
-                  <Printer size={16} className="text-indigo-600" /> إعدادات طباعة الفواتير
-                </h3>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">عرض ورق الطابعة Thermal Paper</label>
-                  <select value={restaurantInfo.paperWidth} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, paperWidth: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none bg-white">
-                    <option value="80mm">80mm (طابعة الكاشير القياسية)</option>
-                    <option value="58mm">58mm (طابعة المحمول الصغيرة)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">تذييل ورسالة الترحيب أسفل الفاتورة</label>
-                  <input type="text" value={restaurantInfo.receiptFooter} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, receiptFooter: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
+              <div>
+                <label className="font-bold text-slate-600 block mb-1">عنوان المطعم</label>
+                <input type="text" value={restaurantInfo.address} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
               </div>
-
+              <div>
+                <label className="font-bold text-slate-600 block mb-1">رقم الهاتف</label>
+                <input type="text" value={restaurantInfo.phone} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+              </div>
             </div>
           </div>
         )}
 
       </main>
 
-      {/* 📌 MODAL: اختيار الأحجام وخيار حشو الأطراف مع البيتزا */}
+      {/* 📌 MODAL: MOBILE CART DRAWER */}
+      {mobileCartDrawerOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex flex-col justify-end md:hidden">
+          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+              <span className="font-black text-sm text-slate-900">سلة الطلبات #{currentTicketNo}</span>
+              <button onClick={() => setMobileCartDrawerOpen(false)} className="p-1 text-slate-400"><X size={20} /></button>
+            </div>
+
+            <div className="p-3 space-y-2 border-b">
+              <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
+                {["takeaway", "delivery", "dinein"].map((t) => (
+                  <button key={t} onClick={() => setOrderType(t)} className={`py-1.5 rounded-lg text-xs font-black ${orderType === t ? "bg-indigo-600 text-white" : "text-slate-600"}`}>
+                    {t === "takeaway" ? "تيك أواي" : t === "delivery" ? "دليفري" : "صالة"}
+                  </button>
+                ))}
+              </div>
+
+              {orderType === "delivery" && (
+                <div className="p-2.5 bg-indigo-50 border rounded-xl space-y-2 text-xs">
+                  <select
+                    value={selectedZone?.id}
+                    onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
+                    className="w-full h-8 bg-white border rounded-lg px-2 font-bold outline-none"
+                  >
+                    {deliveryZones.map((z) => (
+                      <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
+                    ))}
+                  </select>
+                  <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
+                  <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
+                  <input value={customerAddressInput} onChange={(e) => setCustomerAddressInput(e.target.value)} placeholder="العنوان..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-60">
+              {cart.map((item) => (
+                <div key={item.itemKey} className="bg-slate-50 rounded-xl p-2.5 border flex justify-between items-center">
+                  <div>
+                    <h4 className="font-bold text-xs">{item.name}</h4>
+                    <span className="text-[11px] text-slate-400">{fmt(item.unitPrice)} ج.م × {item.qty}</span>
+                  </div>
+                  <span className="font-black text-xs">{fmt(item.unitPrice * item.qty)} ج.م</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t bg-slate-50 space-y-2">
+              <div className="space-y-1 text-xs font-semibold">
+                <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
+                {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>التوصيل:</span><span>{fmt(deliveryFeeCalculated)} ج.م</span></div>}
+                <div className="flex justify-between font-black text-sm pt-1 border-t"><span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span></div>
+              </div>
+              <button onClick={checkout} disabled={cart.length === 0} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">إتمام البيع والطباعة</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📌 MODAL: إضافة صنف جديد */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleAddNewProduct} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
+              <span>إضافة صنف جديد</span>
+              <button type="button" onClick={() => setShowAddProductModal(false)}><X size={18} /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <select value={newProdCat} onChange={(e) => setNewProdCat(e.target.value)} className="w-full h-9 border rounded-xl px-3 font-bold bg-white">
+                {categories.map((c) => (<option key={c.id} value={c.id}>{c.emoji} {c.label}</option>))}
+              </select>
+              <input type="text" required value={newProdName} onChange={(e) => setNewProdName(e.target.value)} placeholder="اسم الصنف..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={newProdPrice} onChange={(e) => setNewProdPrice(e.target.value)} placeholder="السعر الأساسي (ج.م)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={newProdStock} onChange={(e) => setNewProdStock(e.target.value)} placeholder="الكمية بالمخزن..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="text" value={newProdImage} onChange={(e) => setNewProdImage(e.target.value)} placeholder="رابط صورة الصنف (اختياري)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+            </div>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ الصنف</button>
+          </form>
+        </div>
+      )}
+
+      {/* 📌 MODAL: إضافة قسم جديد */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleAddNewCategory} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
+              <span>إضافة قسم جديد</span>
+              <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={18} /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <input type="text" required value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} placeholder="اسم القسم..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="text" value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} placeholder="رمز (Emoji)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+            </div>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ القسم</button>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: اختيار الأحجام وحشو الأطراف */}
       {selectedProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
@@ -669,7 +862,7 @@ export default function SmartPOSApp() {
 
             {selectedProductModal.sizes && (
               <div>
-                <label className="text-xs font-black text-slate-400 block mb-2">اختر الحجم المطلـوب:</label>
+                <label className="text-xs font-black text-slate-400 block mb-2">اختر الحجم المطلوب:</label>
                 <div className="grid grid-cols-3 gap-2">
                   {selectedProductModal.sizes.map((s) => (
                     <button key={s.id} onClick={() => setActiveSize(s)} className={`py-2 rounded-xl border text-xs font-bold ${activeSize?.id === s.id ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-black" : "border-slate-200"}`}>
@@ -681,16 +874,12 @@ export default function SmartPOSApp() {
               </div>
             )}
 
-            {/* 🧀 خيار إضافة حشو الأطراف عند اختيار أي بيتزا */}
             {selectedProductModal.cat === "البيتزا" && (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
                 <label className="flex items-center gap-2 font-bold text-amber-900 text-xs cursor-pointer">
                   <input type="checkbox" checked={stuffedCrust} onChange={(e) => setStuffedCrust(e.target.checked)} className="rounded text-amber-600" />
                   <span>إضافة حشو أطراف بالجبنة 🧀</span>
                 </label>
-                <p className="text-[10px] text-amber-700 mt-1 font-semibold">
-                  (صغير: +25ج | وسط: +30ج | كبير: +35ج)
-                </p>
               </div>
             )}
 
@@ -701,27 +890,60 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* 📌 MODAL: تعديل صنف من المخزون */}
+      {/* MODAL: معاينة الفاتورة */}
+      {viewInvoiceModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
+              <span>تفاصيل فاتورة #{viewInvoiceModal.ticketNo}</span>
+              <button onClick={() => setViewInvoiceModal(null)} className="text-slate-400"><X size={18} /></button>
+            </div>
+
+            <div className="space-y-2 text-xs font-bold">
+              <div className="flex justify-between text-slate-500"><span>التاريخ والوقت:</span><span>{viewInvoiceModal.date} - {viewInvoiceModal.time}</span></div>
+              <div className="flex justify-between text-slate-500"><span>نوع الطلب:</span><span>{viewInvoiceModal.orderType}</span></div>
+              <div className="flex justify-between text-slate-500"><span>الكاشير:</span><span>{viewInvoiceModal.cashier}</span></div>
+              
+              <div className="border-t pt-2 space-y-1">
+                {viewInvoiceModal.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between bg-slate-50 p-2 rounded-lg">
+                    <span>{item.name}</span>
+                    <span>{item.qty} × {fmt(item.unitPrice)} ج.م</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-2 flex justify-between font-black text-sm text-indigo-600">
+                <span>الإجمالي:</span><span>{fmt(viewInvoiceModal.total)} ج.م</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => handlePrintReceipt(viewInvoiceModal)} className="flex-1 h-10 bg-indigo-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5">
+                <Printer size={15} /> طباعة
+              </button>
+              {viewInvoiceModal.status !== "cancelled" && (
+                <button onClick={() => handleCancelInvoice(viewInvoiceModal.id)} className="h-10 px-4 bg-rose-50 text-rose-600 font-black text-xs rounded-xl">
+                  إلغاء
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: تعديل صنف */}
       {editProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSaveProductEdit} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+          <form onSubmit={(e) => { e.preventDefault(); setProducts(products.map(p => p.id === editProductModal.id ? editProductModal : p)); setEditProductModal(null); }} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
               <span>تعديل بيانات الصنف</span>
               <button type="button" onClick={() => setEditProductModal(null)}><X size={18} /></button>
             </div>
             <div className="space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">اسم الصنف</label>
-                <input type="text" required value={editProductModal.name} onChange={(e) => setEditProductModal({ ...editProductModal, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-              </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">السعر الأساسي (ج.م)</label>
-                <input type="number" required value={editProductModal.price} onChange={(e) => setEditProductModal({ ...editProductModal, price: Number(e.target.value) })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-              </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">الكمية بالمخزن</label>
-                <input type="number" required value={editProductModal.stock} onChange={(e) => setEditProductModal({ ...editProductModal, stock: Number(e.target.value) })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-              </div>
+              <input type="text" required value={editProductModal.name} onChange={(e) => setEditProductModal({ ...editProductModal, name: e.target.value })} placeholder="اسم الصنف" className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={editProductModal.price} onChange={(e) => setEditProductModal({ ...editProductModal, price: Number(e.target.value) })} placeholder="السعر" className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={editProductModal.stock} onChange={(e) => setEditProductModal({ ...editProductModal, stock: Number(e.target.value) })} placeholder="المخزن" className="w-full h-9 border rounded-xl px-3 font-bold" />
             </div>
             <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ التعديلات</button>
           </form>
