@@ -7,16 +7,20 @@ export class POSDatabase extends Dexie {
   customers!: Table<any>;
   shifts!: Table<any>;
   settings!: Table<any>;
+  users!: Table<any>;
 
   constructor() {
     super('DreamCornerDB');
-    this.version(7).stores({
+    
+    // رفع الإصدار لـ 11 لتحديث الداتابيز وإجبار تنزيل المنيو والمستخدمين
+    this.version(11).stores({
       categories: 'id, label',
-      products: 'id, catId, name',
+      products: '++id, catId, name',
       invoices: '++id, shiftId, createdAt, orderType',
       customers: '++id, phone',
       shifts: '++id, startTime, endTime, status',
-      settings: 'id'
+      settings: 'id',
+      users: '++id, username, role'
     });
   }
 }
@@ -24,6 +28,7 @@ export class POSDatabase extends Dexie {
 export const db = new POSDatabase();
 
 db.on('populate', async () => {
+  // 1. إضافة الأقسام
   await db.categories.bulkAdd([
     { id: 'البيتزا', label: 'البيتزا', emoji: '🍕' },
     { id: 'السندوتشات', label: 'السندوتشات', emoji: '🥪' },
@@ -33,6 +38,7 @@ db.on('populate', async () => {
     { id: 'المشروبات', label: 'المشروبات', emoji: '🥤' }
   ]);
 
+  // 2. إضافة كافة المنتجات والأسعار
   await db.products.bulkAdd([
     // --- البيتزا ---
     {
@@ -194,5 +200,11 @@ db.on('populate', async () => {
     { catId: 'المشروبات', name: 'سفن أب', price: 15, stock: 100, emoji: '🥤', createdAt: Date.now() },
     { catId: 'المشروبات', name: 'ميرندا', price: 15, stock: 100, emoji: '🥤', createdAt: Date.now() },
     { catId: 'المشروبات', name: 'مياه معدنية', price: 6, stock: 150, emoji: '💧', createdAt: Date.now() }
+  ]);
+
+  // 3. إضافة حسابات الدخول الافتراضية
+  await db.users.bulkAdd([
+    { id: 1, username: 'admin', password: '123', name: 'المدير المسؤول', role: 'admin' },
+    { id: 2, username: 'casher', password: '123', name: 'كاشير الورديات', role: 'casher' }
   ]);
 });
