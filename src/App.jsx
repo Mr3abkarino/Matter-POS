@@ -10,8 +10,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 
-/* ---------------- 📌 VERSION CONTROL (v9.0.0 COMPLETE ENGINE) ---------------- */
-const APP_VERSION = "9.0.0"; 
+/* ---------------- 📌 VERSION CONTROL (v10.0.0 FIXES) ---------------- */
+const APP_VERSION = "10.0.0"; 
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -50,13 +50,12 @@ const DEFAULT_DELIVERY_ZONES = [
   { id: 8, name: "شربين", fee: 80 }
 ];
 
-const DEFAULT_CUSTOMERS = [
-  { id: 1, name: "محمد مطر", phone: "01012345678", address: "البرامون - شارع البحر", points: 150, debt: 0.0 },
-  { id: 2, name: "أحمد علي", phone: "01122334455", address: "سرسو البرامون", points: 45, debt: 80.0 },
-];
+// 📌 تصفير العملاء لبدء التسجيل الحقيقي
+const DEFAULT_CUSTOMERS = [];
 
+// 📌 2. المنيو الكامل
 const DEFAULT_PRODUCTS = [
-  // --- قسم البيتزا ---
+  // --- البيتزا ---
   { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 45 }, { id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 90 }] },
   { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
   { id: "p3", cat: "البيتزا", name: "بيتزا خضروات", price: 60, emoji: "🥦", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
@@ -71,7 +70,7 @@ const DEFAULT_PRODUCTS = [
   { id: "p12", cat: "البيتزا", name: "بيتزا كرانشي (حار/بارد)", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 130 }] },
   { id: "p13", cat: "البيتزا", name: "بيتزا ميكس دجاج", price: 85, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 85 }, { id: "md", name: "وسط", price: 105 }, { id: "lg", name: "كبير", price: 135 }] },
 
-  // --- قسم السندوتشات ---
+  // --- السندوتشات ---
   { id: "s1", cat: "السندوتشات", name: "كفتة مشوية", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
   { id: "s2", cat: "السندوتشات", name: "سجق مشوي", price: 60, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 60 }, { id: "lg", name: "كبير", price: 70 }] },
   { id: "s3", cat: "السندوتشات", name: "كبدة إسكندراني", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
@@ -110,10 +109,10 @@ export default function SmartPOSApp() {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.setItem("pos_products_v90", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v90", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v90", JSON.stringify(DEFAULT_CATEGORIES));
-      localStorage.setItem("pos_customers_v90", JSON.stringify(DEFAULT_CUSTOMERS));
+      localStorage.setItem("pos_products_v100", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v100", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v100", JSON.stringify(DEFAULT_CATEGORIES));
+      localStorage.setItem("pos_customers_v100", JSON.stringify(DEFAULT_CUSTOMERS));
     }
   }, []);
 
@@ -124,11 +123,11 @@ export default function SmartPOSApp() {
 
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
   const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v90") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v90") || JSON.stringify(DEFAULT_PRODUCTS)));
-  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders_v90") || "[]"));
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v90") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
-  const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem("pos_customers_v90") || JSON.stringify(DEFAULT_CUSTOMERS)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v100") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v100") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders_v100") || "[]"));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v100") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem("pos_customers_v100") || JSON.stringify(DEFAULT_CUSTOMERS)));
 
   const [activeShift, setActiveShift] = useState(() => JSON.parse(localStorage.getItem("pos_active_shift") || "null"));
   const [openingCashInput, setOpeningCashInput] = useState("");
@@ -138,11 +137,11 @@ export default function SmartPOSApp() {
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
   useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories_v90", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v90", JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem("pos_orders_v90", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v90", JSON.stringify(deliveryZones)); }, [deliveryZones]);
-  useEffect(() => { localStorage.setItem("pos_customers_v90", JSON.stringify(customers)); }, [customers]);
+  useEffect(() => { localStorage.setItem("pos_categories_v100", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v100", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_orders_v100", JSON.stringify(completedOrders)); }, [completedOrders]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v100", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_customers_v100", JSON.stringify(customers)); }, [customers]);
   useEffect(() => { localStorage.setItem("pos_active_shift", JSON.stringify(activeShift)); }, [activeShift]);
 
   // Auth & UI States
@@ -152,6 +151,8 @@ export default function SmartPOSApp() {
 
   const [currentView, setCurrentView] = useState("pos");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // 📌 إصلاح حالة فتح نافذة السلة السفلية للموبايل
   const [mobileCartDrawerOpen, setMobileCartDrawerOpen] = useState(false);
 
   // Cart & Orders
@@ -475,7 +476,7 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Complete v{APP_VERSION}</p>
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Fix Edition v{APP_VERSION}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -499,10 +500,12 @@ export default function SmartPOSApp() {
             <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
               <Unlock size={32} />
             </div>
+
             <div>
               <h3 className="text-xl font-black text-slate-900">فتح وردية جديدة</h3>
               <p className="text-xs text-slate-400 font-bold mt-1">المستخدم الحالي: {currentUser.name}</p>
             </div>
+
             <div className="text-right space-y-1.5 text-xs">
               <label className="font-bold text-slate-700 block">النقدية الافتتاحية بالدرج (الرصيد/الفكة)</label>
               <input
@@ -514,6 +517,7 @@ export default function SmartPOSApp() {
                 className="w-full h-11 bg-slate-50 border rounded-xl px-4 font-black text-indigo-600 text-base outline-none"
               />
             </div>
+
             <button type="submit" className="w-full h-12 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">
               تأكيد فتح الوردية 🚀
             </button>
@@ -533,7 +537,7 @@ export default function SmartPOSApp() {
         <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-xs">{currentUser.name[0]}</div>
       </header>
 
-      {/* 📌 SIDEBAR - UNLOCKED FULL NAVIGATION FOR EVERYONE */}
+      {/* 📌 SIDEBAR */}
       <aside className={`
         fixed lg:static inset-y-0 right-0 bg-slate-900 text-slate-300 min-h-screen flex flex-col justify-between transition-transform duration-300 z-40 shrink-0
         ${sidebarOpen ? "translate-x-0 w-64 shadow-2xl" : "translate-x-full lg:translate-x-0 lg:w-20"}
@@ -719,13 +723,13 @@ export default function SmartPOSApp() {
               </div>
             </aside>
 
-            {/* FLOATING MOBILE CART BOTTOM BAR */}
+            {/* 📌 FLOATING MOBILE CART BOTTOM BAR */}
             <div className="md:hidden fixed bottom-0 inset-x-0 bg-slate-900 text-white p-3 flex justify-between items-center z-30 shadow-2xl border-t border-slate-800">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold block">إجمالي السلة ({totalCartQty} صنف)</span>
                 <span className="font-black text-emerald-400 text-base">{fmt(total)} ج.م</span>
               </div>
-              <button onClick={() => setMobileCartDrawerOpen(true)} className="bg-indigo-600 text-white font-black text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+              <button onClick={() => setMobileCartDrawerOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
                 <ShoppingCart size={16} /> عرض الفاتورة والإنهاء
               </button>
             </div>
@@ -850,14 +854,13 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* ⚙️ FULL SETTINGS VIEW - COMPLETE UNABRIDGED */}
+        {/* ⚙️ FULL SETTINGS VIEW */}
         {currentView === "settings" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-8">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والطباعة الشاملة</h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* 1. بيانات المطعم واللوجو */}
               <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
                 <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
                   <Settings size={16} className="text-indigo-600" /> بيانات المطعم والتواصل
@@ -865,10 +868,6 @@ export default function SmartPOSApp() {
                 <div>
                   <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
                   <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">رابط صورة اللوجو (Logo URL)</label>
-                  <input type="text" value={restaurantInfo.logoUrl} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
                 </div>
                 <div>
                   <label className="font-bold text-slate-600 block mb-1">العنوان التفصيلي</label>
@@ -880,68 +879,6 @@ export default function SmartPOSApp() {
                 </div>
               </div>
 
-              {/* 2. إعدادات الطباعة */}
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
-                  <Printer size={16} className="text-indigo-600" /> إعدادات طباعة الفواتير
-                </h3>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">اسم الطابعة المتصلة (Printer Name)</label>
-                  <input type="text" value={restaurantInfo.printerName} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, printerName: e.target.value })} placeholder="POS-80 Printer" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">عرض ورق الطابعة Thermal Paper</label>
-                  <select value={restaurantInfo.paperWidth} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, paperWidth: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none bg-white">
-                    <option value="80mm">80mm (طابعة كاشير قياسية)</option>
-                    <option value="58mm">58mm (طابعة صغيرة)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">تذييل ورسالة الفاتورة</label>
-                  <input type="text" value={restaurantInfo.receiptFooter} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, receiptFooter: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <button onClick={() => handlePrintReceipt({ ticketNo: 999, date: "اليوم", time: "12:00", cashier: "تجربة", items: [{ name: "تجربة طابعة", qty: 1, unitPrice: 10 }], total: 10 })} className="w-full h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl mt-2">
-                  🖨️ تجربة طباعة إيصال اختباري
-                </button>
-              </div>
-
-              {/* 3. المستخدمين والباسوردات */}
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-4 text-xs">
-                <div className="flex justify-between items-center border-b pb-2">
-                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2"><Shield size={16} className="text-indigo-600" /> المستخدمين وكلمات السر</h3>
-                  <button onClick={() => setShowAddUserModal(true)} className="px-3 py-1 bg-indigo-600 text-white rounded-lg font-bold">+ موظف جديد</button>
-                </div>
-                <div className="space-y-2">
-                  {usersDb.map((u) => (
-                    <div key={u.id} className="p-2.5 bg-slate-50 rounded-xl border flex justify-between items-center">
-                      <div>
-                        <div className="font-bold text-slate-900">{u.name} ({u.roleLabel})</div>
-                        <div className="text-[10px] text-slate-400 font-mono">User: {u.username}</div>
-                      </div>
-                      <input type="password" defaultValue={u.password} onBlur={(e) => handleUpdatePassword(u.id, e.target.value)} className="w-24 h-7 bg-white border rounded-lg px-2 text-center font-mono font-bold" title="تغير كلمة السر واضغط خارج الحقل" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 4. مناطق التوصيل */}
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2">مناطق وأسعار التوصيل</h3>
-                <form onSubmit={handleAddZoneSubmit} className="flex gap-2">
-                  <input type="text" required value={newZoneName} onChange={(e) => setNewZoneName(e.target.value)} placeholder="اسم المنطقة..." className="flex-1 h-9 border rounded-xl px-3 font-bold outline-none" />
-                  <input type="number" required value={newZoneFee} onChange={(e) => setNewZoneFee(e.target.value)} placeholder="السعر" className="w-20 h-9 border rounded-xl px-3 font-bold outline-none" />
-                  <button type="submit" className="px-3 bg-indigo-600 text-white rounded-xl font-bold">+ إضافة</button>
-                </form>
-                <div className="space-y-1 pt-1 max-h-40 overflow-y-auto">
-                  {deliveryZones.map((z) => (
-                    <div key={z.id} className="p-2 bg-slate-50 rounded-xl border flex justify-between items-center font-bold">
-                      <span>{z.name}</span><span className="text-indigo-600">{z.fee} ج.م</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 5. التهيئة والتصفير */}
               <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs border-rose-100 lg:col-span-2">
                 <h3 className="font-extrabold text-sm text-rose-600 border-b pb-2 flex items-center gap-2">
                   <RotateCcw size={16} /> تهيئة وإعادة تصفير النظام
@@ -957,26 +894,62 @@ export default function SmartPOSApp() {
 
       </main>
 
-      {/* MODAL: إضافة موظف جديد */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleAddUserSubmit} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>إضافة موظف جديد</span>
-              <button type="button" onClick={() => setShowAddUserModal(false)}><X size={18} /></button>
+      {/* 📌 MODAL: MOBILE CART DRAWER (النافذة المنبثقة لسلة الموبايل) */}
+      {mobileCartDrawerOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex flex-col justify-end md:hidden">
+          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+              <span className="font-black text-sm text-slate-900">سلة الطلبات #{currentTicketNo}</span>
+              <button onClick={() => setMobileCartDrawerOpen(false)} className="p-1 text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
-            <div className="space-y-3 text-xs">
-              <input type="text" required value={newURealName} onChange={(e) => setNewURealName(e.target.value)} placeholder="اسم الموظف..." className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
-              <input type="text" required value={newUName} onChange={(e) => setNewUName(e.target.value)} placeholder="اسم المستخدم (Username)..." className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
-              <input type="password" required value={newUPass} onChange={(e) => setNewUPass(e.target.value)} placeholder="كلمة السر..." className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
-              <select value={newURole} onChange={(e) => setNewURole(e.target.value)} className="w-full h-9 border rounded-xl px-2 font-bold outline-none bg-white">
-                <option value="cashier">الكاشير (Cashier)</option>
-                <option value="manager">المدير (Manager)</option>
-                <option value="admin">مدير النظام (Admin)</option>
-              </select>
+
+            <div className="p-3 space-y-2 border-b">
+              <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
+                {["takeaway", "delivery", "dinein"].map((t) => (
+                  <button key={t} onClick={() => setOrderType(t)} className={`py-1.5 rounded-lg text-xs font-black ${orderType === t ? "bg-indigo-600 text-white" : "text-slate-600"}`}>
+                    {t === "takeaway" ? "تيك أواي" : t === "delivery" ? "دليفري" : "صالة"}
+                  </button>
+                ))}
+              </div>
+
+              {orderType === "delivery" && (
+                <div className="p-2.5 bg-indigo-50 border rounded-xl space-y-2 text-xs">
+                  <select
+                    value={selectedZone?.id}
+                    onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
+                    className="w-full h-8 bg-white border rounded-lg px-2 font-bold outline-none"
+                  >
+                    {deliveryZones.map((z) => (
+                      <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
+                    ))}
+                  </select>
+                  <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
+                  <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
+                </div>
+              )}
             </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ الحساب</button>
-          </form>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-60">
+              {cart.map((item) => (
+                <div key={item.itemKey} className="bg-slate-50 rounded-xl p-2.5 border flex justify-between items-center">
+                  <div>
+                    <h4 className="font-bold text-xs">{item.name}</h4>
+                    <span className="text-[11px] text-slate-400">{fmt(item.unitPrice)} ج.م × {item.qty}</span>
+                  </div>
+                  <span className="font-black text-xs">{fmt(item.unitPrice * item.qty)} ج.م</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t bg-slate-50 space-y-2">
+              <div className="space-y-1 text-xs font-semibold">
+                <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
+                {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>التوصيل:</span><span>{fmt(deliveryFeeCalculated)} ج.م</span></div>}
+                <div className="flex justify-between font-black text-sm pt-1 border-t"><span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span></div>
+              </div>
+              <button onClick={checkout} disabled={cart.length === 0} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">إتمام البيع والطباعة</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1036,23 +1009,6 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* MODAL: سداد دين العميل */}
-      {settleDebtCustomer && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSettleCustomerDebt} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>سداد دين: {settleDebtCustomer.name}</span>
-              <button type="button" onClick={() => setSettleDebtCustomer(null)}><X size={18} /></button>
-            </div>
-            <div className="space-y-2 text-xs">
-              <p className="text-rose-600 font-bold">الدين المتبقي: {fmt(settleDebtCustomer.debt)} ج.م</p>
-              <input type="number" required value={settleAmountInput} onChange={(e) => setSettleAmountInput(e.target.value)} placeholder="المبلغ المحصل..." className="w-full h-10 border rounded-xl px-3 font-black outline-none" />
-            </div>
-            <button type="submit" className="w-full h-10 bg-emerald-600 text-white font-black text-xs rounded-xl shadow-md">تأكيد السداد والخصم</button>
-          </form>
-        </div>
-      )}
-
       {/* MODAL: الأحجام وحشو الأطراف */}
       {selectedProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
@@ -1089,24 +1045,6 @@ export default function SmartPOSApp() {
               تأكيد وإضافة للسلة
             </button>
           </div>
-        </div>
-      )}
-
-      {/* MODAL: تعديل صنف */}
-      {editProductModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={(e) => { e.preventDefault(); setProducts(products.map(p => p.id === editProductModal.id ? editProductModal : p)); setEditProductModal(null); }} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>تعديل بيانات الصنف</span>
-              <button type="button" onClick={() => setEditProductModal(null)}><X size={18} /></button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <input type="text" required value={editProductModal.name} onChange={(e) => setEditProductModal({ ...editProductModal, name: e.target.value })} placeholder="اسم الصنف" className="w-full h-9 border rounded-xl px-3 font-bold" />
-              <input type="number" required value={editProductModal.price} onChange={(e) => setEditProductModal({ ...editProductModal, price: Number(e.target.value) })} placeholder="السعر" className="w-full h-9 border rounded-xl px-3 font-bold" />
-              <input type="number" required value={editProductModal.stock} onChange={(e) => setEditProductModal({ ...editProductModal, stock: Number(e.target.value) })} placeholder="المخزن" className="w-full h-9 border rounded-xl px-3 font-bold" />
-            </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ التعديلات</button>
-          </form>
         </div>
       )}
 
