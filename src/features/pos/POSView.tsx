@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, Trash2, User, Phone, MapPin, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, RefreshCw } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState('البيتزا');
@@ -23,7 +23,7 @@ export function POSView() {
   // مودال الأحجام
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
 
-  // 🔄 المزامنة اللحظية
+  // 🔄 المزامنة اللحظية مع إضافة مناطق الدليفري تلقائياً لو القاعدة فاضية
   useEffect(() => {
     const unsubCats = onSnapshot(collection(dbCloud, "categories"), (snap) => {
       setRawCategories(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -33,14 +33,30 @@ export function POSView() {
       setAllProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
-    const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
-      setDeliveryZones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), async (snap) => {
+      if (snap.empty) {
+        // 🚀 تنزيل مناطق الدليفري الأساسية تلقائياً
+        const defaultZones = [
+          { name: 'البرامون (داخل البلد)', fee: 10 },
+          { name: 'البرامون (بر الترعة)', fee: 20 },
+          { name: 'سرسو البرامون', fee: 30 },
+          { name: 'كفر بدواي', fee: 50 },
+          { name: 'الخيارية', fee: 50 },
+          { name: 'كفر البرامون', fee: 40 },
+          { name: 'البدالة', fee: 40 }
+        ];
+        for (const z of defaultZones) {
+          await addDoc(collection(dbCloud, "deliveryZones"), z);
+        }
+      } else {
+        setDeliveryZones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
     });
 
     return () => { unsubCats(); unsubProds(); unsubZones(); };
   }, []);
 
-  // 🧹 إزالة الأقسام المكررة للعرض فقط
+  // 🧹 إزالة الأقسام المكررة للعرض في الشريط
   const categories = Array.from(new Set(rawCategories.map(c => c.label)))
     .map(label => rawCategories.find(c => c.label === label));
 
@@ -54,7 +70,7 @@ export function POSView() {
     return matchCategory && matchSearch;
   });
 
-  // إضافة للسلة
+  // إضافة صنف للسلة
   const addToCart = (product: any, size?: any) => {
     const itemKey = size ? `${product.id}-${size.id}` : `${product.id}`;
     const itemName = size ? `${product.name} (${size.name})` : product.name;
@@ -104,7 +120,7 @@ export function POSView() {
     try {
       await addDoc(collection(dbCloud, "invoices"), invoiceData);
 
-      // نافذة الطباعة
+      // نافذة الطباعة المباشرة
       const printWindow = window.open('', '_blank', 'width=350,height=600');
       if (printWindow) {
         printWindow.document.write(`
@@ -122,6 +138,7 @@ export function POSView() {
               <p style="margin:2px 0">نوع الطلب: ${orderType}</p>
               ${customerName ? `<p style="margin:2px 0">العميل: ${customerName}</p>` : ''}
               ${customerPhone ? `<p style="margin:2px 0">الهاتف: ${customerPhone}</p>` : ''}
+              ${customerAddress ? `<p style="margin:2px 0">العنوان: ${customerAddress}</p>` : ''}
             </div>
             ${cart.map(i => `<div class="item"><span>${i.name} × ${i.quantity}</span><span>${i.price * i.quantity} ج.م</span></div>`).join('')}
             ${deliveryFee > 0 ? `<div class="item"><span>خدمة التوصيل (${selectedZone?.name})</span><span>${deliveryFee} ج.م</span></div>` : ''}
@@ -134,13 +151,13 @@ export function POSView() {
       }
 
       setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId('');
-      alert("تم إتمام الطلب وطباعة الفاتورة بنجاح! 🚀");
+      alert("تم حفظ وطباعة الفاتورة بنجاح! 🚀");
     } catch (e: any) {
       alert("حدث خطأ في حفظ الفاتورة: " + e.message);
     }
   };
 
-  // 🧹 دالة تنظيف التكرار من السحابة
+  // 🧹 تنظيف الأقسام المكررة أونلاين
   const clearDuplicates = async () => {
     if (!confirm("هل تريد تنظيف قاعدة البيانات وإزالة التكرارات؟")) return;
     const catSnap = await getDocs(collection(dbCloud, "categories"));
@@ -236,35 +253,43 @@ export function POSView() {
           ))}
         </div>
 
-        {/* حقول الدليفري */}
+        {/* حقول الدليفري المفتوحة عند اختيار "دليفري" */}
         {orderType === 'دليفري' && (
           <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
             <select
               value={selectedZoneId}
               onChange={(e) => setSelectedZoneId(e.target.value)}
-              className="w-full p-2 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
             >
               <option value="">اختر منطقة التوصيل...</option>
               {deliveryZones.map(z => (
-                <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
+                <option key={z.id} value={z.id}>
+                  {z.name} (+{z.fee} ج.م)
+                </option>
               ))}
             </select>
             <input
               placeholder="اسم العميل"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="p-2 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
             />
             <input
               placeholder="رقم الهاتف"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="p-2 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+            />
+            <input
+              placeholder="العنوان التفصيلي"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
             />
           </div>
         )}
 
-        {/* قائمة المحتويات */}
+        {/* قائمة المحتويات في السلة */}
         <div className="flex-1 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
           {cart.length === 0 ? (
             <p className="text-center py-10 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
@@ -310,7 +335,7 @@ export function POSView() {
       {/* 🍕 مودال اختيار أحجام البيتزا */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
             <h3 className="font-black text-slate-900 text-sm mb-3 text-center border-b pb-2">
               {activeProductForSizes.emoji || '🍕'} {activeProductForSizes.name}
             </h3>
