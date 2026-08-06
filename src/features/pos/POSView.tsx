@@ -33,8 +33,8 @@
           </head>
           <body>
             <h2>دريم كورنر</h2>
-            <h4>بيزا وسندوتشات</h4>
-            <div class="footer" style="font-size: 10px;">الإيرامون - بجوار عيادة د. إلهام العشري</div>
+            <h4>بيتزا وسندوتشات</h4>
+            <div class="footer" style="font-size: 10px;">البرامون - بجوار عيادة د. إلهام العشري</div>
             <hr/>
             <div class="info">رقم الفاتورة: #${newInvoiceId}</div>
             <div class="info">النوع: ${orderType}</div>
