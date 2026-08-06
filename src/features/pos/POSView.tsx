@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/dexie';
-import { ShoppingCart, Plus, Minus, Printer, Search, X, User, Phone, MapPin } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Printer, Search, X, User, Phone, MapPin, Truck } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState('البيتزا');
@@ -9,15 +9,21 @@ export function POSView() {
   const [orderType, setOrderType] = useState('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
 
-  // بيانات الدليفري
+  // بيانات الدليفري ومناطق التوصيل
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
+  const [selectedZoneId, setSelectedZoneId] = useState<number | ''>('');
   
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
 
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const allProducts = useLiveQuery(() => db.products.toArray()) || [];
+  const deliveryZones = useLiveQuery(() => db.deliveryZones.toArray()) || [];
+
+  // جلب خدمة التوصيل المختارة
+  const selectedZone = deliveryZones.find(z => z.id === Number(selectedZoneId));
+  const deliveryFee = orderType === 'دليفري' && selectedZone ? selectedZone.fee : 0;
 
   const filteredProducts = allProducts.filter(p => {
     const matchCategory = p.catId === selectedCategory;
@@ -58,9 +64,9 @@ export function POSView() {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
-    const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalAmount = subTotal + deliveryFee;
     
-    // حفظ العميل إذا كان الطلب دليفري
     if (orderType === 'دليفري' && customerPhone) {
       const existingCust = await db.customers.where('phone').equals(customerPhone).first();
       if (!existingCust) {
@@ -71,8 +77,11 @@ export function POSView() {
     const invoiceData = {
       shiftId: 1,
       items: cart,
+      subTotal: subTotal,
+      deliveryFee: deliveryFee,
       total: totalAmount,
       orderType: orderType,
+      zoneName: selectedZone ? selectedZone.name : '',
       customerName: orderType === 'دليفري' ? customerName : '',
       customerPhone: orderType === 'دليفري' ? customerPhone : '',
       customerAddress: orderType === 'دليفري' ? customerAddress : '',
@@ -81,7 +90,7 @@ export function POSView() {
 
     const newInvoiceId = await db.invoices.add(invoiceData);
 
-    // طباعة الإيصال الحراري مع بيانات الدليفري
+    // طباعة الإيصال مع خدمة التوصيل
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
       printWindow.document.write(`
@@ -112,6 +121,7 @@ export function POSView() {
               <div class="delivery-box">
                 <div><b>العميل:</b> ${customerName || 'غير محدد'}</div>
                 <div><b>الهاتف:</b> ${customerPhone || '-'}</div>
+                <div><b>المنطقة:</b> ${selectedZone ? selectedZone.name : '-'}</div>
                 <div><b>العنوان:</b> ${customerAddress || '-'}</div>
               </div>
             ` : ''}
@@ -125,9 +135,18 @@ export function POSView() {
                 </div>
               `).join('')}
             </div>
+            
+            ${orderType === 'دليفري' ? `
+              <hr/>
+              <div class="item-row">
+                <span>رسوم التوصيل (${selectedZone?.name || ''}):</span>
+                <span>${deliveryFee} ج.م</span>
+              </div>
+            ` : ''}
+
             <hr/>
             <div class="total-row">
-              <span>الإجمالي الصافي:</span>
+              <span>الإجمالي الكلي:</span>
               <span>${totalAmount} ج.م</span>
             </div>
             <hr/>
@@ -145,18 +164,19 @@ export function POSView() {
       }, 400);
     }
 
-    // تفريغ السلة والبيانات
     setCart([]);
     setCustomerName('');
     setCustomerPhone('');
     setCustomerAddress('');
+    setSelectedZoneId('');
   };
 
-  const totalCartPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subCartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const finalCartTotal = subCartTotal + deliveryFee;
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 relative">
-      {/* 1. شبكة الأقسام والمنتجات */}
+      {/* 1. قائمة الأصناف والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
         <div className="relative mb-3">
           <Search className="absolute right-3 top-3 text-slate-400" size={18} />
@@ -221,9 +241,9 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 2. السلة + أزرار التيك أواي والحقول للدليفري */}
-      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-72 lg:h-full">
-        {/* نوع الطلب */}
+      {/* 2. سلة الطلبات واختيار منطقة التوصيل */}
+      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-80 lg:h-full">
+        {/* أزرار نوع الطلب */}
         <div className="p-2 border-b border-slate-100 bg-slate-50">
           <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
             {['تيك أواي', 'دليفري', 'صالة'].map(type => (
@@ -241,9 +261,25 @@ export function POSView() {
             ))}
           </div>
 
-          {/* حقول مدخلات الدليفري تظهر فقط عند اختيار دليفري */}
+          {/* خيارات مناطق التوصيل والعميل عند اختيار دليفري */}
           {orderType === 'دليفري' && (
             <div className="mt-2 flex flex-col gap-1.5 p-2 bg-indigo-50/50 rounded-xl border border-indigo-100">
+              <div className="flex items-center gap-2 bg-white px-2 py-1.5 rounded-lg border border-slate-200">
+                <Truck size={14} className="text-indigo-600" />
+                <select
+                  value={selectedZoneId}
+                  onChange={(e) => setSelectedZoneId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full text-xs bg-transparent focus:outline-none font-bold text-slate-700"
+                >
+                  <option value="">اختر منطقة التوصيل...</option>
+                  {deliveryZones.map(zone => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} ({zone.fee} ج.م)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
                 <User size={14} className="text-indigo-600" />
                 <input
@@ -254,6 +290,7 @@ export function POSView() {
                   className="w-full text-xs bg-transparent focus:outline-none"
                 />
               </div>
+
               <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
                 <Phone size={14} className="text-indigo-600" />
                 <input
@@ -264,11 +301,12 @@ export function POSView() {
                   className="w-full text-xs bg-transparent focus:outline-none"
                 />
               </div>
+
               <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
                 <MapPin size={14} className="text-indigo-600" />
                 <input
                   type="text"
-                  placeholder="العنوان بالكامل..."
+                  placeholder="تفاصيل العنوان..."
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   className="w-full text-xs bg-transparent focus:outline-none"
@@ -312,20 +350,29 @@ export function POSView() {
           )}
         </div>
 
-        {/* الإجمالي والطباعة */}
-        <div className="p-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between lg:flex-col lg:items-stretch gap-2">
-          <div className="flex lg:justify-between items-center gap-2">
-            <span className="font-bold text-slate-600 text-xs">الإجمالي:</span>
-            <span className="font-black text-base text-indigo-600">{totalCartPrice} ج.م</span>
+        {/* ملخص السلة والتوصيل */}
+        <div className="p-2.5 border-t border-slate-100 bg-slate-50 flex flex-col gap-2">
+          {orderType === 'دليفري' && (
+            <div className="flex justify-between text-xs text-slate-500 font-semibold border-b border-slate-200 pb-1.5">
+              <span>خدمة التوصيل ({selectedZone ? selectedZone.name : 'غير ممتد'}):</span>
+              <span className="font-bold text-slate-800">{deliveryFee} ج.م</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="font-bold text-slate-600 text-[11px]">الإجمالي الكلي:</span>
+              <span className="font-black text-base text-indigo-600">{finalCartTotal} ج.م</span>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={cart.length === 0}
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-200 transition-all"
+            >
+              <Printer size={16} />
+              <span>حفظ وطباعة الفاتورة</span>
+            </button>
           </div>
-          <button
-            onClick={handleCheckout}
-            disabled={cart.length === 0}
-            className="flex-1 lg:flex-none bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-200 transition-all"
-          >
-            <Printer size={16} />
-            <span>حفظ وطباعة الفاتورة</span>
-          </button>
         </div>
       </div>
 
