@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { Plus, Trash2, FolderPlus, Utensils } from 'lucide-react';
+import { Plus, Trash2, FolderPlus, Utensils, CloudUpload } from 'lucide-react';
 
 export function MenuManagementView() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -31,7 +31,44 @@ export function MenuManagementView() {
     };
   }, []);
 
-  // إضافة قسم للسحابة
+  // دالة ضخ المنيو الافتراضي بضغطة زر للسحابة
+  const seedInitialData = async () => {
+    const catSnap = await getDocs(collection(dbCloud, "categories"));
+    if (!catSnap.empty) {
+      alert("البيانات موجودة بالفعل على السحابة!");
+      return;
+    }
+
+    // 1. الأقسام
+    const defaultCats = [
+      { label: 'البيتزا', emoji: '🍕' },
+      { label: 'السندوتشات', label: 'السندوتشات', emoji: '🥪' },
+      { label: 'البرجر', emoji: '🍔' },
+      { label: 'التوست', emoji: '🍞' },
+      { label: 'الأصناف الجانبية', emoji: '🍟' },
+      { label: 'المشروبات', emoji: '🥤' }
+    ];
+    for (const c of defaultCats) {
+      await addDoc(collection(dbCloud, "categories"), c);
+    }
+
+    // 2. مناطق الدليفري
+    const defaultZones = [
+      { name: 'البرامون (داخل البلد)', fee: 10 },
+      { name: 'البرامون (بر الترعة)', fee: 20 },
+      { name: 'سرسو البرامون', fee: 30 },
+      { name: 'كفر بدواي', fee: 50 },
+      { name: 'الخيارية', fee: 50 },
+      { name: 'كفر البرامون', fee: 40 },
+      { name: 'البدالة', fee: 40 }
+    ];
+    for (const z of defaultZones) {
+      await addDoc(collection(dbCloud, "deliveryZones"), z);
+    }
+
+    alert("تم رفع المنيو ومناطق الدليفري بنجاح إلى Firebase! 🚀");
+  };
+
   const handleAddCategory = async () => {
     if (!newCatLabel) return;
     await addDoc(collection(dbCloud, "categories"), {
@@ -41,7 +78,6 @@ export function MenuManagementView() {
     setNewCatLabel('');
   };
 
-  // إضافة صنف للسحابة
   const handleAddProduct = async () => {
     if (!prodName || !prodCat || !prodPrice) return;
     await addDoc(collection(dbCloud, "products"), {
@@ -55,7 +91,6 @@ export function MenuManagementView() {
     setProdPrice('');
   };
 
-  // حذف صنف من السحابة
   const handleDeleteProduct = async (id: string) => {
     if (confirm('هل أنت متأكد من حذف هذا الصنف من المنيو السحابي؟')) {
       await deleteDoc(doc(dbCloud, "products", id));
@@ -64,10 +99,20 @@ export function MenuManagementView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
-      <h1 className="text-xl md:text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
-        <Utensils className="text-indigo-600" size={28} />
-        <span>إدارة المنيو السحابي</span>
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
+          <Utensils className="text-indigo-600" size={28} />
+          <span>إدارة المنيو السحابي</span>
+        </h1>
+
+        <button
+          onClick={seedInitialData}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
+        >
+          <CloudUpload size={16} />
+          <span>رفع المنيو والمناطق الأساسية للسحابة</span>
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* إضافة قسم جديد */}
@@ -78,14 +123,14 @@ export function MenuManagementView() {
           </h3>
           <input
             type="text"
-            placeholder="اسم القسم (مثلاً: مشويات)"
+            placeholder="اسم القسم"
             value={newCatLabel}
             onChange={(e) => setNewCatLabel(e.target.value)}
             className="bg-slate-50 p-2.5 rounded-xl border text-xs font-bold focus:outline-none"
           />
           <input
             type="text"
-            placeholder="الإيموجي (مثلاً: 🍖)"
+            placeholder="الإيموجي (🍕)"
             value={newCatEmoji}
             onChange={(e) => setNewCatEmoji(e.target.value)}
             className="bg-slate-50 p-2.5 rounded-xl border text-xs font-bold focus:outline-none"
