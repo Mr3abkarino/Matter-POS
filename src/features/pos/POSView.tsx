@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/dexie';
 import { useCartStore } from '../../store/useCartStore';
-import { useShiftStore } from '../../store/useShiftStore';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { Product, ProductSize } from '../../types';
-import { Search, ShoppingCart, Plus, Minus, Trash2, CheckCircle, Flame } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Trash2, CheckCircle } from 'lucide-react';
 
 export const POSView: React.FC = () => {
   const [activeCat, setActiveCat] = useState<string>('البيتزا');
@@ -14,19 +13,14 @@ export const POSView: React.FC = () => {
   const [activeSize, setActiveSize] = useState<ProductSize | null>(null);
   const [stuffedCrust, setStuffedCrust] = useState<boolean>(false);
 
-  // Zustand Store Items
   const { 
     cart, addToCart, removeFromCart, updateQty, 
     orderType, setOrderType, getSubtotal, getTotal, clearCart 
   } = useCartStore();
-  
-  const { activeShift } = useShiftStore();
 
-  // جلب البيانات مباشرة من IndexedDB (Dexie) بشكل لحظي
   const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
-  // الاستماع للباركود تلقائياً
   useBarcodeScanner((barcode) => {
     const foundProduct = products.find((p) => p.barcode === barcode);
     if (foundProduct) {
@@ -58,26 +52,23 @@ export const POSView: React.FC = () => {
   };
 
   const handleCheckout = async () => {
-    if (cart.length === 0 || !activeShift) return;
+    if (cart.length === 0) return;
 
-    // إضافة الفاتورة لقاعدة البيانات Dexie
     await db.invoices.add({
-      shiftId: activeShift.id!,
+      shiftId: 1,
       ticketNo: (await db.invoices.count()) + 1,
       subtotal: getSubtotal(),
       deliveryFee: orderType === 'delivery' ? 20 : 0,
       total: getTotal(),
       orderType,
-      paymentStatus: 'paid',
       status: 'completed',
-      cashierName: activeShift.cashierName,
+      cashierName: 'محمد مطر',
       items: [...cart],
       createdAt: Date.now(),
       dateStr: new Date().toLocaleDateString('ar-EG'),
       timeStr: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
     });
 
-    // خصم الكميات المبيعة من المخزن
     for (const item of cart) {
       const prod = await db.products.get(item.productId);
       if (prod) {
@@ -96,10 +87,7 @@ export const POSView: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden bg-slate-100 dir-rtl">
       
-      {/* قسم شبكة المنتجات الأيسر */}
       <div className="flex-1 flex flex-col min-w-0 border-l border-slate-200">
-        
-        {/* شريط الأقسام والبحث العلوي */}
         <div className="bg-white p-3 border-b flex flex-wrap justify-between items-center gap-2 shadow-xs shrink-0">
           <div className="flex gap-2 overflow-x-auto py-1">
             {categories.map((c) => (
@@ -126,7 +114,6 @@ export const POSView: React.FC = () => {
           </div>
         </div>
 
-        {/* شبكة المنتجات السريعة مع مساحة آمنة للتمرير */}
         <div className="flex-1 overflow-y-auto p-4 pb-36">
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))' }}>
             {filteredProducts.map((p) => (
@@ -158,7 +145,6 @@ export const POSView: React.FC = () => {
         </div>
       </div>
 
-      {/* لوحة السلة والفاتورة الجانبية */}
       <aside className="w-full md:w-[360px] shrink-0 bg-white flex flex-col border-r border-slate-200 shadow-2xl">
         <div className="p-4 border-b bg-slate-50 space-y-3">
           <div className="flex justify-between items-center">
@@ -183,7 +169,6 @@ export const POSView: React.FC = () => {
           </div>
         </div>
 
-        {/* عناصر السلة */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2">
@@ -209,7 +194,6 @@ export const POSView: React.FC = () => {
           )}
         </div>
 
-        {/* ختام الفاتورة والدفع */}
         <div className="p-4 border-t bg-slate-50 space-y-3">
           <div className="space-y-1 text-xs font-bold">
             <div className="flex justify-between text-slate-500"><span>المبلغ الفرعي:</span><span>{getSubtotal()} ج.م</span></div>
@@ -223,7 +207,7 @@ export const POSView: React.FC = () => {
 
           <button
             onClick={handleCheckout}
-            disabled={cart.length === 0 || !activeShift}
+            disabled={cart.length === 0}
             className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2"
           >
             <CheckCircle size={16} />
@@ -232,7 +216,6 @@ export const POSView: React.FC = () => {
         </div>
       </aside>
 
-      {/* Modal اختيار الأحجام وحشو الأطراف */}
       {selectedProductModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl dir-rtl">
