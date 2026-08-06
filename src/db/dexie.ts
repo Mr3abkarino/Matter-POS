@@ -1,21 +1,22 @@
 import Dexie, { Table } from 'dexie';
-import { Product, Category, Invoice, Shift, Customer } from '../types';
 
 export class POSDatabase extends Dexie {
-  products!: Table<Product, number>;
-  categories!: Table<Category, string>;
-  invoices!: Table<Invoice, number>;
-  shifts!: Table<Shift, number>;
-  customers!: Table<Customer, number>;
+  categories!: Table<any>;
+  products!: Table<any>;
+  invoices!: Table<any>;
+  customers!: Table<any>;
+  shifts!: Table<any>;
+  settings!: Table<any>;
 
   constructor() {
-    super('MatterPOSDatabase');
-    this.version(4).stores({
-      products: '++id, catId, name, barcode',
+    super('DreamCornerDB');
+    this.version(7).stores({
       categories: 'id, label',
+      products: 'id, catId, name',
       invoices: '++id, shiftId, createdAt, orderType',
-      shifts: '++id, status, openedAt',
-      customers: '++id, phone, name'
+      customers: '++id, phone',
+      shifts: '++id, startTime, endTime, status',
+      settings: 'id'
     });
   }
 }
