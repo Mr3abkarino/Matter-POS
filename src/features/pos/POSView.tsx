@@ -6,20 +6,24 @@ import { ShoppingCart, Plus, Minus, Printer, Search, X } from 'lucide-react';
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState('البيتزا');
   const [searchQuery, setSearchQuery] = useState('');
-  const [orderType, orderTypeSetter] = useState('تيك أواي');
+  const [orderType, setOrderType] = useState('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
   
+  // حالة النافذة المنبثقة لاختيار الأحجام
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
 
+  // جلب البيانات المباشرة من قاعدة البيانات
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const allProducts = useLiveQuery(() => db.products.toArray()) || [];
 
+  // تصفية المنتجات حسب القسم والبحث
   const filteredProducts = allProducts.filter(p => {
     const matchCategory = p.catId === selectedCategory;
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
+  // إضافة صنف للسلة
   const addToCart = (product: any, size?: any) => {
     const itemKey = size ? `${product.id}-${size.id}` : `${product.id}`;
     const itemName = size ? `${product.name} (${size.name})` : product.name;
@@ -38,6 +42,7 @@ export function POSView() {
     setActiveProductForSizes(null);
   };
 
+  // تعديل الكميات
   const updateQuantity = (itemKey: string, delta: number) => {
     setCart(prevCart => {
       return prevCart.map(i => {
@@ -50,6 +55,7 @@ export function POSView() {
     });
   };
 
+  // إتمام الطلب والطباعة
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
@@ -64,6 +70,7 @@ export function POSView() {
 
     const newInvoiceId = await db.invoices.add(invoiceData);
 
+    // طباعة الإيصال الحراري
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
       printWindow.document.write(`
@@ -124,8 +131,9 @@ export function POSView() {
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 relative">
-      {/* القسم الأول: المنتجات والأقسام */}
+      {/* 1. قائمة الأقسام والمنتجات */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
+        {/* شريط البحث */}
         <div className="relative mb-3">
           <Search className="absolute right-3 top-3 text-slate-400" size={18} />
           <input
@@ -137,6 +145,7 @@ export function POSView() {
           />
         </div>
 
+        {/* أقسام المنيو */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
           {categories.map(cat => (
             <button
@@ -154,6 +163,7 @@ export function POSView() {
           ))}
         </div>
 
+        {/* كروت المنتجات */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pr-1">
           {filteredProducts.map(product => (
             <div
@@ -189,17 +199,19 @@ export function POSView() {
         </div>
       </div>
 
-      {/* القسم الثاني: السلة + أزرار التيك أواي والـ دليفري والصالة */}
-      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-60 lg:h-full">
-        {/* أزرار نوع الطلب */}
+      {/* 2. حاوية السلة وأزرار الطلب */}
+      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-64 lg:h-full">
+        {/* أزرار اختيار نوع الطلب */}
         <div className="p-2 border-b border-slate-100 bg-slate-50">
           <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
             {['تيك أواي', 'دليفري', 'صالة'].map(type => (
               <button
                 key={type}
-                onClick={() => orderTypeSetter(type)}
+                onClick={() => setOrderType(type)}
                 className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  orderType === type ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'
+                  orderType === type 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 {type}
@@ -211,7 +223,7 @@ export function POSView() {
         {/* عناصر السلة */}
         <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
           {cart.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-400 gap-2 py-2">
+            <div className="flex-1 flex items-center justify-center text-slate-400 gap-2 py-4">
               <ShoppingCart size={22} strokeWidth={1.5} />
               <p className="font-semibold text-xs">السلة فارغة حالياً</p>
             </div>
@@ -225,14 +237,14 @@ export function POSView() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => updateQuantity(item.itemKey, -1)}
-                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"
+                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-100"
                   >
                     <Minus size={12} />
                   </button>
                   <span className="font-bold text-xs w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.itemKey, 1)}
-                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"
+                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-100"
                   >
                     <Plus size={12} />
                   </button>
@@ -242,6 +254,7 @@ export function POSView() {
           )}
         </div>
 
+        {/* ملخص السلة والدفع */}
         <div className="p-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between lg:flex-col lg:items-stretch gap-2">
           <div className="flex lg:justify-between items-center gap-2">
             <span className="font-bold text-slate-600 text-xs">الإجمالي:</span>
@@ -258,10 +271,10 @@ export function POSView() {
         </div>
       </div>
 
-      {/* النافذة المنبثقة لاختيار الحجم */}
+      {/* النافذة المنبثقة للأحجام */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{activeProductForSizes.emoji}</span>
