@@ -4,11 +4,14 @@ import {
   Coffee, IceCream, Sandwich, UtensilsCrossed, GlassWater,
   Receipt, Sparkles, Bike, ShoppingBag, Utensils, Phone, User,
   Flame, Printer, LayoutDashboard, Users, Package,
-  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag
+  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag, ShoppingCart, Eye, Lock
 } from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from "recharts";
 
-/* ---------------- 📌 0. VERSION CONTROL & CACHE BUSTING ---------------- */
-const APP_VERSION = "2.5.0"; // رقم النسخة لإجبار المتصفح على تحديث الكاش
+/* ---------------- 📌 VERSION CONTROL ---------------- */
+const APP_VERSION = "2.8.0";
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -23,7 +26,7 @@ const DEFAULT_RESTAURANT = {
 };
 
 const DEFAULT_USERS_DB = [
-  { id: 1, username: "admin", password: "admin123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin" },
+  { id: 1, username: "admin", password: "123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin" },
   { id: 2, username: "manager", password: "mgr123", name: "أحمد علي", role: "manager", roleLabel: "👔 Manager" },
   { id: 3, username: "cashier", password: "cash123", name: "محمود الكاشير", role: "cashier", roleLabel: "💳 Cashier" },
   { id: 4, username: "waiter", password: "waiter123", name: "مصطفى الويتر", role: "waiter", roleLabel: "🍽️ Waiter" },
@@ -43,7 +46,6 @@ const DEFAULT_CATEGORIES = [
   { id: "المشروبات", label: "المشروبات", emoji: "🥤" },
 ];
 
-// 📌 قائمة مناطق الدليفري الحقيقية المحدثة بالكامل
 const DEFAULT_DELIVERY_ZONES = [
   { id: 1, name: "البرامون (داخل البلد)", fee: 10 },
   { id: 2, name: "البرامون (بر الترعة)", fee: 20 },
@@ -56,77 +58,50 @@ const DEFAULT_DELIVERY_ZONES = [
 ];
 
 const DEFAULT_PRODUCTS = [
-  // --- البيتزا ---
-  { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 25 }, { id: "lg", name: "كبير", extra: 45 }] },
-  { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 30 }, { id: "lg", name: "كبير", extra: 60 }] },
-  { id: "p3", cat: "البيتزا", name: "بيتزا خضروات", price: 60, emoji: "🥦", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 30 }, { id: "lg", name: "كبير", extra: 60 }] },
-  { id: "p4", cat: "البيتزا", name: "بيتزا هوت دوج", price: 70, emoji: "🌭", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 30 }, { id: "lg", name: "كبير", extra: 65 }] },
-  { id: "p5", cat: "البيتزا", name: "بيتزا سجق", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 30 }, { id: "lg", name: "كبير", extra: 65 }] },
-  { id: "p6", cat: "البيتزا", name: "بيتزا لحمة مفرومة", price: 75, emoji: "🥩", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 35 }, { id: "lg", name: "كبير", extra: 70 }] },
-  { id: "p7", cat: "البيتزا", name: "بيتزا بيروني", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 20 }, { id: "lg", name: "كبير", extra: 40 }] },
-  { id: "p8", cat: "البيتزا", name: "بيتزا سلامي", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 20 }, { id: "lg", name: "كبير", extra: 40 }] },
-  { id: "p9", cat: "البيتزا", name: "بيتزا شاورما دجاج ⭐", price: 80, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 40 }, { id: "lg", name: "كبير", extra: 75 }] },
-  { id: "p10", cat: "البيتزا", name: "بيتزا دجاج رانش", price: 80, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 40 }, { id: "lg", name: "كبير", extra: 75 }] },
-  { id: "p11", cat: "البيتزا", name: "بيتزا دريم كورنر سبيشال ⭐", price: 90, emoji: "⭐", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 40 }, { id: "lg", name: "كبير", extra: 80 }] },
-  { id: "p12", cat: "البيتزا", name: "بيتزا كرانشي (حار/بارد)", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 20 }, { id: "lg", name: "كبير", extra: 50 }] },
-  { id: "p13", cat: "البيتزا", name: "بيتزا ميكس دجاج", price: 85, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 20 }, { id: "lg", name: "كبير", extra: 50 }] },
-  { id: "p14", cat: "البيتزا", name: "حشو الأطراف", price: 25, emoji: "🧀", stock: 999, sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 5 }, { id: "lg", name: "كبير", extra: 10 }] },
-
-  // --- السندوتشات ---
-  { id: "s1", cat: "السندوتشات", name: "كفتة مشوية", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 10 }] },
-  { id: "s2", cat: "السندوتشات", name: "سجق مشوي", price: 60, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 10 }] },
-  { id: "s3", cat: "السندوتشات", name: "كبدة إسكندراني", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 10 }] },
-  { id: "s4", cat: "السندوتشات", name: "ميكس لحوم (سجق+كبدة)", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 10 }] },
-  { id: "s5", cat: "السندوتشات", name: "حواوشي دبل طعم", price: 45, emoji: "🫓", stock: 50 },
-  { id: "s6", cat: "السندوتشات", name: "تشكن بانية", price: 70, emoji: "🥪", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 15 }] },
-  { id: "s7", cat: "السندوتشات", name: "زنجر سوبريم ⭐", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 15 }] },
-  { id: "s8", cat: "السندوتشات", name: "سوبر كرانشي", price: 80, emoji: "🥪", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 15 }] },
-  { id: "s9", cat: "السندوتشات", name: "شيش طاووق", price: 75, emoji: "🍢", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 15 }] },
-  { id: "s10", cat: "السندوتشات", name: "تشكن رانش", price: 75, emoji: "🥪", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 15 }] },
-  { id: "s11", cat: "السندوتشات", name: "كلاسيك برجر", price: 55, emoji: "🍔", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 10 }] },
-  { id: "s12", cat: "السندوتشات", name: "تشيز برجر ليدر", price: 65, emoji: "🍔", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 10 }] },
-  { id: "s13", cat: "السندوتشات", name: "تشكن برجر مقرمش", price: 50, emoji: "🍔", stock: 50, sizes: [{ id: "md", name: "وسط", extra: 0 }, { id: "lg", name: "كبير", extra: 15 }] },
-  { id: "s14", cat: "السندوتشات", name: "ميكس توست جبن", price: 60, emoji: "🥪", stock: 50 },
-
-  // --- الجوانب والمشروبات ---
+  { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 45 }, { id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 90 }] },
+  { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
+  { id: "p3", cat: "البيتزا", name: "بيتزا خضروات", price: 60, emoji: "🥦", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
+  { id: "p4", cat: "البيتزا", name: "بيتزا هوت دوج", price: 70, emoji: "🌭", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 135 }] },
+  { id: "p5", cat: "البيتزا", name: "بيتزا سجق", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 135 }] },
+  { id: "p9", cat: "البيتزا", name: "بيتزا شاورما دجاج ⭐", price: 80, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 120 }, { id: "lg", name: "كبير", price: 155 }] },
+  { id: "s1", cat: "السندوتشات", name: "كفتة مشوية", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
+  { id: "s7", cat: "السندوتشات", name: "زنجر سوبريم ⭐", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "md", name: "وسط", price: 80 }, { id: "lg", name: "كبير", price: 95 }] },
   { id: "sd1", cat: "الأصناف الجانبية", name: "بطاطس مقلية ذهبية", price: 35, emoji: "🍟", stock: 100 },
-  { id: "sd2", cat: "الأصناف الجانبية", name: "بطاطس بالجبنة الشيدر", price: 45, emoji: "🍟", stock: 100 },
-  { id: "sd3", cat: "الأصناف الجانبية", name: "صوص رانش هوم ميد", price: 10, emoji: "🥣", stock: 200 },
-  { id: "d1", cat: "المشروبات", name: "بيبسي كانز", price: 15, emoji: "🥤", stock: 100 },
-  { id: "d2", cat: "المشروبات", name: "سفن أب كانز", price: 15, emoji: "🥤", stock: 100 },
-  { id: "d3", cat: "المشروبات", name: "ميرندا برتقال كانز", price: 15, emoji: "🥤", stock: 100 },
-  { id: "d4", cat: "المشروبات", name: "مياة معدنية صغيرة", price: 6, emoji: "🍾", stock: 200 }
+  { id: "d1", cat: "المشروبات", name: "بيبسي كانز", price: 15, emoji: "🥤", stock: 100 }
+];
+
+const SALES_CHART_TIMELINE = [
+  { time: "10 ص", sales: 120 }, { time: "12 ظ", sales: 450 },
+  { time: "02 م", sales: 890 }, { time: "04 م", sales: 600 },
+  { time: "06 م", sales: 1200 }, { time: "08 م", sales: 2100 }, { time: "10 م", sales: 1800 },
 ];
 
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
-  // ⚡ 2. فحص وتحديث الكاش تلقائياً عند تغيير النسخة
   useEffect(() => {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
-      console.log(`🚀 جاري تحديث التطبيق للنسخة ${APP_VERSION}...`);
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.setItem("pos_products_v25", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v25", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v25", JSON.stringify(DEFAULT_CATEGORIES));
+      localStorage.setItem("pos_products_v28", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v28", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v28", JSON.stringify(DEFAULT_CATEGORIES));
     }
   }, []);
 
-  // 💾 التخزين والمزامنة الدائمة
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
   const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v25") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v25") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v28") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v28") || JSON.stringify(DEFAULT_PRODUCTS)));
   const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders") || "[]"));
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v25") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v28") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
   useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories_v25", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v25", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_categories_v28", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v28", JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem("pos_orders", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v25", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v28", JSON.stringify(deliveryZones)); }, [deliveryZones]);
 
   // Auth & UI States
   const [currentUser, setCurrentUser] = useState(null);
@@ -136,6 +111,7 @@ export default function SmartPOSApp() {
 
   const [currentView, setCurrentView] = useState("pos");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileCartDrawerOpen, setMobileCartDrawerOpen] = useState(false);
 
   // Cart & Orders
   const [cart, setCart] = useState([]);
@@ -151,6 +127,13 @@ export default function SmartPOSApp() {
   // Modals States
   const [selectedProductModal, setSelectedProductModal] = useState(null);
   const [activeSize, setActiveSize] = useState(null);
+
+  // 📝 معاينة وإلغاء وتعديل الفاتورة
+  const [viewInvoiceModal, setViewInvoiceModal] = useState(null);
+
+  // 🔒 تقفيل الوردية Modal
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [shiftClosedReport, setShiftClosedReport] = useState(null);
 
   // Restock & Category & Product Add States
   const [restockProduct, setRestockProduct] = useState(null);
@@ -203,6 +186,7 @@ export default function SmartPOSApp() {
 
   const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
 
+  const totalCartQty = cart.reduce((sum, item) => sum + item.qty, 0);
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const deliveryFeeCalculated = orderType === "delivery" ? Number(selectedZone?.fee || 0) : 0;
   const total = subtotal + deliveryFeeCalculated;
@@ -219,8 +203,7 @@ export default function SmartPOSApp() {
 
   const addToCartDirect = (p, size) => {
     const itemKey = `${p.id}-${size ? size.id : "def"}`;
-    const extraPrice = size ? size.extra : 0;
-    const finalUnitPrice = p.price + extraPrice;
+    const finalUnitPrice = size && size.price ? size.price : p.price;
 
     setCart((prev) => {
       const existing = prev.find((i) => i.itemKey === itemKey);
@@ -289,7 +272,7 @@ export default function SmartPOSApp() {
       customerPhone: customerPhoneInput || "",
       customerAddress: customerAddressInput || "",
       items: [...cart],
-      status: "completed",
+      status: "completed", // completed | cancelled
       date: new Date().toLocaleDateString("ar-EG"),
       time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
       cashier: currentUser.name
@@ -308,84 +291,57 @@ export default function SmartPOSApp() {
 
     setCart([]);
     setCustomerNameInput(""); setCustomerPhoneInput(""); setCustomerAddressInput("");
+    setMobileCartDrawerOpen(false);
   };
 
-  const handleAddNewCategory = (e) => {
-    e.preventDefault();
-    if (!newCatLabel) return;
-    const catId = newCatLabel.trim();
-    const newCatObj = { id: catId, label: newCatLabel, emoji: newCatEmoji };
-    setCategories((prev) => [...prev, newCatObj]);
-    setActiveCat(catId);
-    setNewCatLabel("");
-    setShowAddCategoryModal(false);
+  // ❌ إلغاء الفاتورة وإرجاع الأصناف للمخزن
+  const handleCancelInvoice = (orderId) => {
+    if (!window.confirm("هل أنت متأكد من إلغاء هذه الفاتورة وإرجاع الأصناف للمخزن؟")) return;
+
+    setCompletedOrders((prevOrders) => prevOrders.map((ord) => {
+      if (ord.id === orderId) {
+        // إرجاع الكميات للمخزن
+        ord.items.forEach((item) => {
+          setProducts((pList) => pList.map((p) => p.id === item.id ? { ...p, stock: p.stock + item.qty } : p));
+        });
+        return { ...ord, status: "cancelled" };
+      }
+      return ord;
+    }));
+    setViewInvoiceModal(null);
   };
 
-  const handleAddNewProduct = (e) => {
-    e.preventDefault();
-    if (!newProdName || !newProdPrice) return;
+  // 🔒 تنفيذ عملية تقفيل الوردية
+  const handleCloseShift = () => {
+    const activeShiftOrders = completedOrders.filter(o => o.status !== "cancelled");
+    const shiftTotal = activeShiftOrders.reduce((a, b) => a + b.total, 0);
+    const takeawayOrders = activeShiftOrders.filter(o => o.orderType === "takeaway").length;
+    const deliveryOrders = activeShiftOrders.filter(o => o.orderType === "delivery").length;
 
-    let sizesArr = null;
-    if (newProdHasSizes) {
-      sizesArr = [
-        { id: "sm", name: "صغير", extra: 0 },
-        { id: "md", name: "وسط", extra: Number(sizeMediumPrice) || 15 },
-        { id: "lg", name: "كبير", extra: Number(sizeLargePrice) || 30 },
-      ];
-    }
-
-    const newProd = {
-      id: Date.now(),
-      cat: newProdCat,
-      name: newProdName,
-      price: Number(newProdPrice),
-      stock: Number(newProdStock) || 10,
-      emoji: "📦",
-      imageUrl: newProdImage.trim(),
-      sizes: sizesArr
+    const report = {
+      cashier: currentUser.name,
+      time: new Date().toLocaleTimeString("ar-EG"),
+      date: new Date().toLocaleDateString("ar-EG"),
+      totalRevenue: shiftTotal,
+      totalOrdersCount: activeShiftOrders.length,
+      takeawayCount: takeawayOrders,
+      deliveryCount: deliveryOrders,
     };
 
-    setProducts((prev) => [newProd, ...prev]);
-    setNewProdName(""); setNewProdPrice(""); setNewProdStock(""); setNewProdImage("");
-    setNewProdHasSizes(false); setSizeMediumPrice(""); setSizeLargePrice("");
-    setShowAddProductModal(false);
+    setShiftClosedReport(report);
+    setShowCloseShiftModal(true);
   };
 
-  const handleRestockSubmit = (e) => {
-    e.preventDefault();
-    if (!restockProduct || !restockQty) return;
-    const qtyToAdd = Number(restockQty);
-    setProducts((prev) => prev.map((p) => p.id === restockProduct.id ? { ...p, stock: p.stock + qtyToAdd } : p));
-    setRestockProduct(null); setRestockQty("");
-  };
-
-  const handleAddZoneSubmit = (e) => {
-    e.preventDefault();
-    if (!newZoneName || !newZoneFee) return;
-    const zoneObj = { id: Date.now(), name: newZoneName, fee: Number(newZoneFee) };
-    setDeliveryZones((prev) => [...prev, zoneObj]);
-    setNewZoneName(""); setNewZoneFee("");
-  };
-
-  const handleAddUserSubmit = (e) => {
-    e.preventDefault();
-    if (!newUName || !newUPass) return;
-    const newUser = {
-      id: Date.now(),
-      username: newUName.trim(),
-      password: newUPass,
-      name: newURealName || newUName,
-      role: newURole,
-      roleLabel: newURole === "admin" ? "👑 Admin" : newURole === "manager" ? "👔 Manager" : "💳 Cashier"
-    };
-    setUsersDb((prev) => [...prev, newUser]);
-    setNewUName(""); setNewUPass(""); setNewURealName("");
-    setShowAddUserModal(false);
-  };
-
-  const handleUpdatePassword = (userId, newPass) => {
-    setUsersDb((prev) => prev.map((u) => u.id === userId ? { ...u, password: newPass } : u));
-    alert("✅ تم حديث كلمة السر بنجاح!");
+  // 📊 حساب الأصناف الأكثر مبيعاً
+  const getTopSellingProducts = () => {
+    const itemMap = {};
+    completedOrders.filter(o => o.status !== "cancelled").forEach((ord) => {
+      ord.items.forEach((item) => {
+        if (!itemMap[item.name]) itemMap[item.name] = 0;
+        itemMap[item.name] += item.qty;
+      });
+    });
+    return Object.entries(itemMap).map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty).slice(0, 5);
   };
 
   if (!currentUser) {
@@ -397,8 +353,6 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            
-            {/* 📌 إظهار رقم النسخة على شاشة الدخول */}
             <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">
               النسخة Mapped v{APP_VERSION}
             </p>
@@ -482,14 +436,21 @@ export default function SmartPOSApp() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between">
-          <div className="truncate">
-            <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
-            <p className="text-[10px] text-indigo-400 font-bold">{currentUser.roleLabel}</p>
-          </div>
-          <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-rose-400 hover:bg-slate-800 rounded-xl">
-            <LogOut size={16} />
+        {/* 🔒 زر تقفيل الوردية في الأسفل */}
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          <button onClick={handleCloseShift} className="w-full py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+            <Lock size={14} /> <span>تقفيل الوردية الحالية</span>
           </button>
+
+          <div className="flex items-center justify-between pt-1">
+            <div className="truncate">
+              <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
+              <p className="text-[10px] text-indigo-400 font-bold">{currentUser.roleLabel}</p>
+            </div>
+            <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-rose-400 hover:bg-slate-800 rounded-xl">
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -497,39 +458,97 @@ export default function SmartPOSApp() {
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs lg:hidden z-30"></div>}
 
       {/* MAIN VIEW AREA */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden pt-14 lg:pt-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden pt-14 lg:pt-0 relative">
         
-        {/* DASHBOARD VIEW */}
+        {/* 📊 1. DASHBOARD VIEW WITH RECHARTS & TOP SELLERS */}
         {currentView === "dashboard" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">لوحة التحكم والأداء اليومي</h2>
+            <div className="flex justify-between items-center flex-wrap gap-2">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">لوحة التحكم والمؤشرات المالية</h2>
+                <p className="text-xs text-slate-400 font-semibold">تحديث مباشر من واقع المبيعات المحصلة</p>
+              </div>
+
+              <button onClick={handleCloseShift} className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md">
+                <Lock size={15} /> تقفيل الوردية
+              </button>
+            </div>
+
+            {/* الكروت الإحصائية */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p><h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(completedOrders.reduce((a,b)=>a+b.total, 0))} ج.م</h3></div>
-              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">عدد الفواتير</p><h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.length} فاتورة</h3></div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs">
+                <p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(completedOrders.filter(o=>o.status!=="cancelled").reduce((a,b)=>a+b.total, 0))} ج.م</h3>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs">
+                <p className="text-xs font-semibold text-slate-400">عدد الفواتير النشطة</p>
+                <h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.filter(o=>o.status!=="cancelled").length} فاتورة</h3>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs">
+                <p className="text-xs font-semibold text-slate-400">الفواتير الملغاة / المرتجعة</p>
+                <h3 className="text-2xl font-black text-rose-600 mt-1">{completedOrders.filter(o=>o.status==="cancelled").length} فاتورة</h3>
+              </div>
+            </div>
+
+            {/* 📈 الرسم البياني + المنتجات الأكثر مبيعاً */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* الرسم البياني لنمو المبيعات */}
+              <div className="lg:col-span-2 bg-white p-5 rounded-2xl border shadow-xs space-y-4">
+                <h3 className="font-extrabold text-sm text-slate-900">تطور المبيعات الساعية</h3>
+                <div className="h-60 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={SALES_CHART_TIMELINE}>
+                      <defs>
+                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} />
+                      <YAxis stroke="#94a3b8" fontSize={11} axisLine={false} />
+                      <Tooltip formatter={(val) => [`${val} ج.م`, "المبيعات"]} />
+                      <Area type="monotone" dataKey="sales" stroke="#4f46e5" strokeWidth={2.5} fill="url(#colorSales)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* ⭐ الأصناف الأكثر مبيعاً */}
+              <div className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2">⭐ الأصناف الأكثر مبيعاً</h3>
+                <div className="space-y-2.5">
+                  {getTopSellingProducts().length === 0 ? (
+                    <p className="text-xs text-slate-400 font-semibold text-center py-6">لا توجد مبيعات مسجلة بعد</p>
+                  ) : (
+                    getTopSellingProducts().map((prod, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
+                        <span className="font-bold text-slate-800">{idx+1}. {prod.name}</span>
+                        <span className="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{prod.qty} قطعة</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         )}
 
         {/* POS VIEW */}
         {currentView === "pos" && (
-          <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 relative pb-16 md:pb-0">
             <div className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l">
-              <div className="px-4 sm:px-6 py-3 flex flex-wrap justify-between bg-white border-b items-center gap-2">
-                
+              
+              <div className="sticky top-0 z-10 px-4 sm:px-6 py-3 flex flex-wrap justify-between bg-white border-b items-center gap-2 shadow-xs">
                 <div className="flex gap-1.5 overflow-x-auto items-center w-full sm:w-auto">
                   {categories.map((c) => (
                     <button key={c.id} onClick={() => setActiveCat(c.id)} className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${activeCat === c.id ? "bg-indigo-600 text-white" : "bg-slate-50"}`}>
                       <span>{c.emoji || "🍽️"}</span> {c.label}
                     </button>
                   ))}
-                  
-                  {permissions.canInventory && (
-                    <button onClick={() => setShowAddCategoryModal(true)} title="إضافة قسم جديد" className="px-2 py-1.5 bg-indigo-50 text-indigo-600 border rounded-xl text-xs font-black flex items-center gap-1 shrink-0">
-                      <Plus size={14} /> قسم
-                    </button>
-                  )}
                 </div>
-
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث صنف..." className="h-8 bg-slate-100 rounded-xl px-3 text-xs outline-none w-full sm:w-48" />
               </div>
 
@@ -547,15 +566,17 @@ export default function SmartPOSApp() {
                       </div>
 
                       <div className="font-bold text-xs text-slate-800 leading-snug">{p.name}</div>
-                      <div className="text-indigo-600 font-black text-xs mt-1">{fmt(p.price)} ج.م</div>
+                      <div className="text-indigo-600 font-black text-xs mt-1">
+                        {p.sizes ? `${p.sizes[0].price} ج.م` : `${fmt(p.price)} ج.م`}
+                      </div>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Cart Panel */}
-            <aside className="w-full md:w-[340px] shrink-0 bg-white flex flex-col border-r shadow-xl max-h-[50vh] md:max-h-none">
+            {/* CART PANEL FOR DESKTOP */}
+            <aside className="hidden md:flex w-[340px] shrink-0 bg-white flex-col border-r shadow-xl">
               <div className="p-3 border-b bg-slate-50 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-black">فاتورة جديد #{currentTicketNo}</span>
@@ -613,31 +634,68 @@ export default function SmartPOSApp() {
                 <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">إتمام البيع والطباعة</button>
               </div>
             </aside>
+
+            {/* FLOATING MOBILE CART BOTTOM BAR */}
+            <div className="md:hidden fixed bottom-0 inset-x-0 bg-slate-900 text-white p-3 flex justify-between items-center z-30 shadow-2xl border-t border-slate-800">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block">إجمالي السلة ({totalCartQty} صنف)</span>
+                <span className="font-black text-emerald-400 text-base">{fmt(total)} ج.م</span>
+              </div>
+              <button onClick={() => setMobileCartDrawerOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+                <ShoppingCart size={16} /> عرض الفاتورة والإنهاء
+              </button>
+            </div>
           </div>
         )}
 
-        {/* INVOICES HUB */}
+        {/* 📜 2. INVOICES HUB WITH VIEW & CANCEL */}
         {currentView === "invoices" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة والمحفوظة ({completedOrders.length})</h2>
+            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة والتحكم بها ({completedOrders.length})</h2>
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
-              <table className="w-full text-right text-xs min-w-[500px]">
+              <table className="w-full text-right text-xs min-w-[550px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
-                  <tr><th className="p-3">رقم الفاتورة</th><th className="p-3">التاريخ والوقت</th><th className="p-3">النوع</th><th className="p-3">العميل</th><th className="p-3">الكاشير</th><th className="p-3">الإجمالي</th><th className="p-3 text-center">طباعة</th></tr>
+                  <tr>
+                    <th className="p-3">رقم الفاتورة</th>
+                    <th className="p-3">التاريخ والوقت</th>
+                    <th className="p-3">النوع</th>
+                    <th className="p-3">الكاشير</th>
+                    <th className="p-3">الإجمالي</th>
+                    <th className="p-3">الحالة</th>
+                    <th className="p-3 text-center">إجراءات التحكم</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y font-bold">
                   {completedOrders.map((o) => (
-                    <tr key={o.id}>
+                    <tr key={o.id} className={o.status === "cancelled" ? "bg-rose-50/50 opacity-60" : ""}>
                       <td className="p-3 font-mono font-black text-indigo-600">#{o.ticketNo}</td>
                       <td className="p-3 text-slate-500">{o.date} - {o.time}</td>
                       <td className="p-3">{o.orderType}</td>
-                      <td className="p-3">{o.customerName}</td>
                       <td className="p-3">{o.cashier}</td>
                       <td className="p-3 font-black text-emerald-600">{fmt(o.total)} ج.م</td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => handlePrintReceipt(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100">
+                      <td className="p-3">
+                        {o.status === "cancelled" ? (
+                          <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px]">ملغاة / مرتجع</span>
+                        ) : (
+                          <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px]">مكتملة</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-center space-x-1.5 space-x-reverse">
+                        {/* 📌 زر معاينة وتفاصيل الفاتورة */}
+                        <button onClick={() => setViewInvoiceModal(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100" title="عرض الفاتورة">
+                          <Eye size={15} />
+                        </button>
+
+                        <button onClick={() => handlePrintReceipt(o)} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200" title="إعادة الطباعة">
                           <Printer size={15} />
                         </button>
+
+                        {/* 📌 زر إلغاء الفاتورة */}
+                        {o.status !== "cancelled" && (
+                          <button onClick={() => handleCancelInvoice(o.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100" title="إلغاء الفاتورة">
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -665,7 +723,7 @@ export default function SmartPOSApp() {
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
               <table className="w-full text-right text-xs min-w-[500px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
-                  <tr><th className="p-3">الصنف والصورة</th><th className="p-3">القسم</th><th className="p-3">السعر</th><th className="p-3">الأحجام</th><th className="p-3">المخزن</th><th className="p-3 text-center">تزويد</th></tr>
+                  <tr><th className="p-3">الصنف والصورة</th><th className="p-3">القسم</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3 text-center">تزويد</th></tr>
                 </thead>
                 <tbody className="divide-y font-bold">
                   {products.map((p) => (
@@ -678,9 +736,6 @@ export default function SmartPOSApp() {
                       </td>
                       <td className="p-3 text-indigo-600">{p.cat}</td>
                       <td className="p-3">{fmt(p.price)} ج.م</td>
-                      <td className="p-3 text-slate-500">
-                        {p.sizes ? p.sizes.map(s=>s.name).join(" - ") : "عادي"}
-                      </td>
                       <td className="p-3 font-black">{p.stock} قطعة</td>
                       <td className="p-3 text-center">
                         <button onClick={() => setRestockProduct(p)} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold">
@@ -695,75 +750,82 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* SETTINGS VIEW */}
-        {currentView === "settings" && permissions.canSettings && (
-          <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والطباعة</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
-                  <Settings size={16} className="text-indigo-600" /> بيانات المطعم والتواصل
-                </h3>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
-                  <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">رابط صورة اللوجو (Logo URL)</label>
-                  <input type="text" value={restaurantInfo.logoUrl} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">العنوان التفصيلي</label>
-                  <input type="text" value={restaurantInfo.address} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">رقم الهاتف للتواصل</label>
-                  <input type="text" value={restaurantInfo.phone} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
-                  <Printer size={16} className="text-indigo-600" /> إعدادات طباعة الفواتير
-                </h3>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">عرض ورق الطابعة Thermal Paper</label>
-                  <select value={restaurantInfo.paperWidth} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, paperWidth: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none bg-white">
-                    <option value="80mm">80mm (طابعة الكاشير القياسية)</option>
-                    <option value="58mm">58mm (طابعة المحمول الصغيرة)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="font-bold text-slate-600 block mb-1">تذييل ورسالة الترحيب أسفل الفاتورة</label>
-                  <input type="text" value={restaurantInfo.receiptFooter} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, receiptFooter: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-
       </main>
 
-      {/* MODALS */}
-      {showAddCategoryModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleAddNewCategory} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      {/* 📌 MODAL 1: معاينة وتفاصيل الفاتورة كاملة */}
+      {viewInvoiceModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>إضافة قسم جديد</span>
-              <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={18} /></button>
+              <span>تفاصيل فاتورة #{viewInvoiceModal.ticketNo}</span>
+              <button onClick={() => setViewInvoiceModal(null)} className="text-slate-400"><X size={18} /></button>
             </div>
-            <div className="space-y-3 text-xs">
-              <input type="text" required value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} placeholder="اسم القسم الجديد..." className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-              <input type="text" value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} placeholder="رمز القسم (Emoji)..." className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+
+            <div className="space-y-2 text-xs font-bold">
+              <div className="flex justify-between text-slate-500"><span>التاريخ والوقت:</span><span>{viewInvoiceModal.date} - {viewInvoiceModal.time}</span></div>
+              <div className="flex justify-between text-slate-500"><span>نوع الطلب:</span><span>{viewInvoiceModal.orderType}</span></div>
+              <div className="flex justify-between text-slate-500"><span>اسم الكاشير:</span><span>{viewInvoiceModal.cashier}</span></div>
+              
+              <div className="border-t pt-2 space-y-1">
+                <p className="text-slate-400 mb-1">الأصناف المشتراة:</p>
+                {viewInvoiceModal.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between bg-slate-50 p-2 rounded-lg">
+                    <span>{item.name} {item.sizeName && `(${item.sizeName})`}</span>
+                    <span>{item.qty} × {fmt(item.unitPrice)} = {fmt(item.qty * item.unitPrice)} ج.م</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-2 flex justify-between font-black text-sm text-indigo-600">
+                <span>الإجمالي الكلي:</span><span>{fmt(viewInvoiceModal.total)} ج.م</span>
+              </div>
             </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ القسـم</button>
-          </form>
+
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => handlePrintReceipt(viewInvoiceModal)} className="flex-1 h-10 bg-indigo-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5">
+                <Printer size={15} /> طباعة الفاتورة
+              </button>
+              {viewInvoiceModal.status !== "cancelled" && (
+                <button onClick={() => handleCancelInvoice(viewInvoiceModal.id)} className="h-10 px-4 bg-rose-50 text-rose-600 font-black text-xs rounded-xl">
+                  إلغاء الفاتورة
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
+      {/* 📌 MODAL 2: تقرير تقفيل الوردية الحالية */}
+      {showCloseShiftModal && shiftClosedReport && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+              <Lock size={24} />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-900">تقرير تقفيل الوردية</h3>
+              <p className="text-xs text-slate-400 font-semibold">{shiftClosedReport.date} - {shiftClosedReport.time}</p>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-xs font-bold text-slate-700 text-right">
+              <div className="flex justify-between"><span>مسؤول الوردية:</span><span>{shiftClosedReport.cashier}</span></div>
+              <div className="flex justify-between"><span>عدد الفواتير المنفذة:</span><span>{shiftClosedReport.totalOrdersCount} فاتورة</span></div>
+              <div className="flex justify-between"><span>طلبات التيك أواي:</span><span>{shiftClosedReport.takeawayCount}</span></div>
+              <div className="flex justify-between"><span>طلبات الدليفري:</span><span>{shiftClosedReport.deliveryCount}</span></div>
+              <div className="flex justify-between text-indigo-600 font-black text-sm pt-2 border-t">
+                <span>إجمالي الخزينة الصافي:</span><span>{fmt(shiftClosedReport.totalRevenue)} ج.م</span>
+              </div>
+            </div>
+
+            <button onClick={() => setShowCloseShiftModal(false)} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">
+              تم الاستلام وتأكيد التقفيل
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL اختيار الأحجام */}
       {selectedProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
@@ -779,7 +841,7 @@ export default function SmartPOSApp() {
                   {selectedProductModal.sizes.map((s) => (
                     <button key={s.id} onClick={() => setActiveSize(s)} className={`py-2 rounded-xl border text-xs font-bold ${activeSize?.id === s.id ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-black" : "border-slate-200"}`}>
                       <div>{s.name}</div>
-                      {s.extra > 0 && <div className="text-[10px] text-slate-400">+{s.extra} ج.م</div>}
+                      <div className="text-[11px] text-indigo-600 font-bold">{s.price} ج.م</div>
                     </button>
                   ))}
                 </div>
@@ -787,7 +849,7 @@ export default function SmartPOSApp() {
             )}
 
             <button onClick={() => addToCartDirect(selectedProductModal, activeSize)} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">
-              تأكيد وإضافة للسلة
+              تأكيد وإضافة للسلة ({activeSize?.price || selectedProductModal.price} ج.م)
             </button>
           </div>
         </div>
