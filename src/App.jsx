@@ -7,6 +7,9 @@ import {
   Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag
 } from "lucide-react";
 
+/* ---------------- 📌 0. VERSION CONTROL & CACHE BUSTING ---------------- */
+const APP_VERSION = "2.5.0"; // رقم النسخة لإجبار المتصفح على تحديث الكاش
+
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
   name: "دريم كورنر - Dream Corner",
@@ -40,7 +43,7 @@ const DEFAULT_CATEGORIES = [
   { id: "المشروبات", label: "المشروبات", emoji: "🥤" },
 ];
 
-// 📌 قائمة مناطق الدليفري الحقيقية المحدثة
+// 📌 قائمة مناطق الدليفري الحقيقية المحدثة بالكامل
 const DEFAULT_DELIVERY_ZONES = [
   { id: 1, name: "البرامون (داخل البلد)", fee: 10 },
   { id: 2, name: "البرامون (بر الترعة)", fee: 20 },
@@ -98,21 +101,32 @@ const DEFAULT_PRODUCTS = [
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
+  // ⚡ 2. فحص وتحديث الكاش تلقائياً عند تغيير النسخة
+  useEffect(() => {
+    const savedVersion = localStorage.getItem("pos_app_version");
+    if (savedVersion !== APP_VERSION) {
+      console.log(`🚀 جاري تحديث التطبيق للنسخة ${APP_VERSION}...`);
+      localStorage.setItem("pos_app_version", APP_VERSION);
+      localStorage.setItem("pos_products_v25", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v25", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v25", JSON.stringify(DEFAULT_CATEGORIES));
+    }
+  }, []);
+
+  // 💾 التخزين والمزامنة الدائمة
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
   const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v2") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v25") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v25") || JSON.stringify(DEFAULT_PRODUCTS)));
   const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders") || "[]"));
-  
-  // 📌 استخدام مفتاح V2 لتحديث المناطق تلقائياً
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v2") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v25") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
   useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v2", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_categories_v25", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v25", JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem("pos_orders", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v2", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v25", JSON.stringify(deliveryZones)); }, [deliveryZones]);
 
   // Auth & UI States
   const [currentUser, setCurrentUser] = useState(null);
@@ -121,8 +135,6 @@ export default function SmartPOSApp() {
   const [loginError, setLoginError] = useState("");
 
   const [currentView, setCurrentView] = useState("pos");
-  
-  // 📌 إغلاق القائمة الجانبية تلقائياً على الموبايل
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Cart & Orders
@@ -146,11 +158,9 @@ export default function SmartPOSApp() {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
 
-  // New Category Form
   const [newCatLabel, setNewCatLabel] = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("🍽️");
 
-  // New Product Form
   const [newProdName, setNewProdName] = useState("");
   const [newProdPrice, setNewProdPrice] = useState("");
   const [newProdStock, setNewProdStock] = useState("");
@@ -193,7 +203,6 @@ export default function SmartPOSApp() {
 
   const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
 
-  // Financial Calculations
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const deliveryFeeCalculated = orderType === "delivery" ? Number(selectedZone?.fee || 0) : 0;
   const total = subtotal + deliveryFeeCalculated;
@@ -388,7 +397,11 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            <p className="text-xs text-slate-400 font-semibold">تسجيل الدخول للنظام المالي</p>
+            
+            {/* 📌 إظهار رقم النسخة على شاشة الدخول */}
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">
+              النسخة Mapped v{APP_VERSION}
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -405,16 +418,19 @@ export default function SmartPOSApp() {
   return (
     <div dir="rtl" className="h-screen w-full bg-slate-50 flex font-sans select-none overflow-hidden text-slate-800 relative">
       
-      {/* 📌 1. HEADER BAR FOR MOBILE TOGGLE */}
+      {/* HEADER FOR MOBILE TOGGLE */}
       <header className="lg:hidden h-14 bg-slate-900 text-white px-4 flex items-center justify-between z-20 shrink-0 w-full fixed top-0 inset-x-0">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 text-slate-300 hover:text-white">
           <Menu size={22} />
         </button>
-        <span className="font-extrabold text-sm">{restaurantInfo.name}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-extrabold text-xs text-white">{restaurantInfo.name}</span>
+          <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-mono font-bold">v{APP_VERSION}</span>
+        </div>
         <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-xs">{currentUser.name[0]}</div>
       </header>
 
-      {/* 📌 2. SIDEBAR WITH MOBILE OVERLAY DRAWER */}
+      {/* SIDEBAR WITH MOBILE OVERLAY DRAWER */}
       <aside className={`
         fixed lg:static inset-y-0 right-0 bg-slate-900 text-slate-300 min-h-screen flex flex-col justify-between transition-transform duration-300 z-40 shrink-0
         ${sidebarOpen ? "translate-x-0 w-64 shadow-2xl" : "translate-x-full lg:translate-x-0 lg:w-20"}
@@ -427,7 +443,7 @@ export default function SmartPOSApp() {
               </div>
               <div className="truncate">
                 <h1 className="font-extrabold text-white text-sm truncate">{restaurantInfo.name}</h1>
-                <p className="text-[10px] text-slate-400 font-bold truncate">النظام المالي الموحد</p>
+                <p className="text-[10px] text-emerald-400 font-bold truncate">محدث v{APP_VERSION}</p>
               </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 p-1">
