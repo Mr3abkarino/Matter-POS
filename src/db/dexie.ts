@@ -8,27 +8,30 @@ export class POSDatabase extends Dexie {
   shifts!: Table<any>;
   settings!: Table<any>;
   users!: Table<any>;
+  deliveryZones!: Table<any>;
 
   constructor() {
     super('DreamCornerDB');
     
-    // رفع الإصدار لـ 11 لتحديث الداتابيز وإجبار تنزيل المنيو والمستخدمين
-    this.version(11).stores({
+    // رفع إصدار قاعدة البيانات لإضافة جدول مناطق الدليفري والمستخدمين
+    this.version(12).stores({
       categories: 'id, label',
       products: '++id, catId, name',
       invoices: '++id, shiftId, createdAt, orderType',
       customers: '++id, phone',
       shifts: '++id, startTime, endTime, status',
       settings: 'id',
-      users: '++id, username, role'
+      users: '++id, username, role',
+      deliveryZones: '++id, name, fee'
     });
   }
 }
 
 export const db = new POSDatabase();
 
+// إدخال البيانات الافتراضية عند إنشاء قاعدة البيانات لأول مرة
 db.on('populate', async () => {
-  // 1. إضافة الأقسام
+  // 1. أقسام المنيو
   await db.categories.bulkAdd([
     { id: 'البيتزا', label: 'البيتزا', emoji: '🍕' },
     { id: 'السندوتشات', label: 'السندوتشات', emoji: '🥪' },
@@ -38,12 +41,12 @@ db.on('populate', async () => {
     { id: 'المشروبات', label: 'المشروبات', emoji: '🥤' }
   ]);
 
-  // 2. إضافة كافة المنتجات والأسعار
+  // 2. الأصناف كاملة بجميع أحجامها وأسعارها
   await db.products.bulkAdd([
     // --- البيتزا ---
     {
       catId: 'البيتزا',
-      name: 'مارجريتا',
+      name: 'بيتزا مارجريتا',
       price: 45,
       stock: 50,
       emoji: '🍕',
@@ -52,7 +55,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'ميكس جبنة',
+      name: 'بيتزا ميكس جبنة',
       price: 75,
       stock: 50,
       emoji: '🧀',
@@ -61,7 +64,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'خضار',
+      name: 'بيتزا خضروات',
       price: 60,
       stock: 45,
       emoji: '🍅',
@@ -70,7 +73,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'هوت دوج',
+      name: 'بيتزا هوت دوج',
       price: 70,
       stock: 40,
       emoji: '🌭',
@@ -79,7 +82,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'سجق',
+      name: 'بيتزا سجق',
       price: 70,
       stock: 40,
       emoji: '🥩',
@@ -88,7 +91,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'لحم مفروم',
+      name: 'بيتزا لحم مفروم',
       price: 80,
       stock: 35,
       emoji: '🥩',
@@ -97,7 +100,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'بيبروني',
+      name: 'بيتزا بيبروني',
       price: 70,
       stock: 35,
       emoji: '🍕',
@@ -106,7 +109,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'سلامي',
+      name: 'بيتزا سلامي',
       price: 80,
       stock: 30,
       emoji: '🍕',
@@ -115,7 +118,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'شاورما دجاج',
+      name: 'بيتزا شاورما دجاج',
       price: 80,
       stock: 40,
       emoji: '🍗',
@@ -124,7 +127,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'دجاج رانش',
+      name: 'بيتزا دجاج رانش',
       price: 80,
       stock: 40,
       emoji: '🍗',
@@ -133,7 +136,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'دريم كورنر (سبشال)',
+      name: 'بيتزا دريم كورنر (سبشيال)',
       price: 110,
       stock: 25,
       emoji: '🌟',
@@ -142,7 +145,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'كرانشي (حار أو بارد)',
+      name: 'بيتزا كرانشي (حار أو بارد)',
       price: 90,
       stock: 35,
       emoji: '🔥',
@@ -151,7 +154,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'ميكس دجاج',
+      name: 'بيتزا ميكس دجاج',
       price: 90,
       stock: 35,
       emoji: '🍗',
@@ -160,7 +163,7 @@ db.on('populate', async () => {
     },
     {
       catId: 'البيتزا',
-      name: 'ميكس لحوم',
+      name: 'بيتزا ميكس لحوم',
       price: 80,
       stock: 35,
       emoji: '🥩',
@@ -190,8 +193,8 @@ db.on('populate', async () => {
     { catId: 'التوست', name: 'ميكس توست', price: 65, stock: 30, emoji: '🍞', sizes: [{ id: 'lg', name: 'كبير', price: 65 }], createdAt: Date.now() },
 
     // --- الأصناف الجانبية ---
-    { catId: 'الأصناف الجانبية', name: 'بطاطا مقلية', price: 35, stock: 80, emoji: '🍟', sizes: [{ id: 'lg', name: 'عادي', price: 35 }], createdAt: Date.now() },
-    { catId: 'الأصناف الجانبية', name: 'بطاطا بالجبنة الشيدر', price: 45, stock: 60, emoji: '🧀', sizes: [{ id: 'lg', name: 'عادي', price: 45 }], createdAt: Date.now() },
+    { catId: 'الأصناف الجانبية', name: 'بطاطس مقلية', price: 35, stock: 80, emoji: '🍟', sizes: [{ id: 'lg', name: 'عادي', price: 35 }], createdAt: Date.now() },
+    { catId: 'الأصناف الجانبية', name: 'بطاطس بالجبنة الشيدر', price: 45, stock: 60, emoji: '🧀', sizes: [{ id: 'lg', name: 'عادي', price: 45 }], createdAt: Date.now() },
     { catId: 'الأصناف الجانبية', name: 'صوص رانش', price: 15, stock: 100, emoji: '🥣', createdAt: Date.now() },
     { catId: 'الأصناف الجانبية', name: 'صوص باربيكيو', price: 15, stock: 100, emoji: '🥣', createdAt: Date.now() },
 
@@ -202,9 +205,20 @@ db.on('populate', async () => {
     { catId: 'المشروبات', name: 'مياه معدنية', price: 6, stock: 150, emoji: '💧', createdAt: Date.now() }
   ]);
 
-  // 3. إضافة حسابات الدخول الافتراضية
+  // 3. حسابات التسجيل الافتراضية
   await db.users.bulkAdd([
     { id: 1, username: 'admin', password: '123', name: 'المدير المسؤول', role: 'admin' },
     { id: 2, username: 'casher', password: '123', name: 'كاشير الورديات', role: 'casher' }
+  ]);
+
+  // 4. مناطق الدليفري الافتراضية بأسعارها
+  await db.deliveryZones.bulkAdd([
+    { name: 'البرامون (داخل البلد)', fee: 10 },
+    { name: 'البرامون (بر الترعة)', fee: 20 },
+    { name: 'سرسو البرامون', fee: 30 },
+    { name: 'كفر بدواي', fee: 50 },
+    { name: 'الخيارية', fee: 50 },
+    { name: 'كفر البرامون', fee: 40 },
+    { name: 'البدالة', fee: 40 }
   ]);
 });
