@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff, X, ChevronUp } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
@@ -9,6 +9,7 @@ export function POSView() {
   const [orderType, setOrderType] = useState<'تيك أواي' | 'صالة' | 'دليفري'>('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
   // الحالات السحابية والمحلية
   const [allProducts, setAllProducts] = useState<any[]>([]);
@@ -168,10 +169,11 @@ export function POSView() {
     }).filter(Boolean));
   };
 
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ طباعة الفاتورة شاملة الطيار
+  // 🖨️ طباعة الفاتورة
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
@@ -243,6 +245,7 @@ export function POSView() {
 
     printInvoiceWindow(invoiceData);
     setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId(''); setSelectedDriver('');
+    setIsMobileCartOpen(false);
   };
 
   const handleEditInvoice = (inv: any) => {
@@ -256,6 +259,8 @@ export function POSView() {
 
     const zone = deliveryZones.find(z => z.name === inv.zoneName);
     if (zone) setSelectedZoneId(zone.id);
+
+    setIsMobileCartOpen(true);
   };
 
   const handleDeleteInvoice = async (id: string) => {
@@ -264,11 +269,134 @@ export function POSView() {
     }
   };
 
+  // مكون السلة (يستخدم في الموبايل والكمبيوتر)
+  const CartContent = () => (
+    <div className="flex flex-col h-full justify-between">
+      <div>
+        <h2 className="font-black text-slate-800 text-base mb-3 flex items-center justify-between border-b pb-2">
+          <span className="flex items-center gap-2">
+            <ShoppingCart className="text-indigo-600" size={20} />
+            <span>سلة الطلبات</span>
+          </span>
+          <div className="flex items-center gap-2">
+            {editingInvoiceId && (
+              <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">تعديل فاتورة</span>
+            )}
+            <button onClick={() => setIsMobileCartOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600">
+              <X size={20} />
+            </button>
+          </div>
+        </h2>
+
+        {/* نوع الطلب */}
+        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl mb-3">
+          {(['تيك أواي', 'صالة', 'دليفري'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setOrderType(t)}
+              className={`py-1.5 rounded-xl font-black text-[11px] transition-all ${
+                orderType === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* حقول الدليفري */}
+        {orderType === 'دليفري' && (
+          <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+            <select
+              value={selectedZoneId}
+              onChange={(e) => setSelectedZoneId(e.target.value)}
+              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
+            >
+              <option value="">اختر منطقة التوصيل...</option>
+              {uniqueDeliveryZones.map(z => z && (
+                <option key={z.id || z.name} value={z.id}>
+                  {z.name} (+{z.fee} ج.م)
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedDriver}
+              onChange={(e) => setSelectedDriver(e.target.value)}
+              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
+            >
+              <option value="">اختر الطيار المسؤول...</option>
+              {driversList.map(d => (
+                <option key={d} value={d}>🛵 الطيار: {d}</option>
+              ))}
+            </select>
+
+            <input
+              placeholder="اسم العميل"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+            />
+            <input
+              placeholder="رقم الهاتف"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+            />
+            <input
+              placeholder="العنوان التفصيلي"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+            />
+          </div>
+        )}
+
+        {/* قائمة عناصر السلة */}
+        <div className="max-h-48 lg:max-h-64 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
+          {cart.length === 0 ? (
+            <p className="text-center py-6 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
+          ) : (
+            cart.map(i => (
+              <div key={i.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex-1">
+                  <h5 className="font-bold text-slate-800 text-xs">{i.name}</h5>
+                  <p className="text-indigo-600 font-black text-[11px]">{i.price * i.quantity} ج.م</p>
+                </div>
+                <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
+                  <button onClick={() => updateQuantity(i.itemKey, -1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Minus size={12} /></button>
+                  <span className="font-black text-xs px-1.5">{i.quantity}</span>
+                  <button onClick={() => updateQuantity(i.itemKey, 1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Plus size={12} /></button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* الإجمالي والزر */}
+      <div className="border-t pt-3 flex flex-col gap-2 bg-white">
+        {deliveryFee > 0 && (
+          <div className="flex justify-between text-xs font-bold text-slate-500">
+            <span>خدمة التوصيل:</span>
+            <span>{deliveryFee} ج.م</span>
+          </div>
+        )}
+        <button
+          onClick={handleCheckout}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-lg transition-all active:scale-95"
+        >
+          <span>{editingInvoiceId ? 'حفظ التعديلات وطباعة' : 'حفظ وطباعة الفاتورة'}</span>
+          <span className="bg-indigo-800 px-3 py-1 rounded-xl">{totalAmount} ج.م</span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl font-sans">
+    <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl font-sans relative">
       
-      {/* 🍕 الأصناف والأقسام */}
-      <div className="flex-1 flex flex-col p-3 overflow-hidden">
+      {/* 🍕 الأصناف والأقسام (تأخذ الشاشة كاملة في الموبايل) */}
+      <div className="flex-1 flex flex-col p-3 overflow-hidden pb-20 lg:pb-3">
         
         {/* شريط البحث والاتصال */}
         <div className="flex gap-2 mb-3 items-center">
@@ -283,7 +411,7 @@ export function POSView() {
             isOnline ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
           }`}>
             {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
-            <span>{isOnline ? 'متصل' : 'أوفلاين'}</span>
+            <span className="hidden sm:inline">{isOnline ? 'متصل' : 'أوفلاين'}</span>
           </div>
         </div>
 
@@ -321,11 +449,11 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 📜 شريط السجل السريع لآخر الفواتير */}
+        {/* 📜 سجل آخر الفواتير */}
         <div className="mt-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
           <h4 className="font-bold text-xs text-slate-700 mb-2 flex items-center gap-1.5">
             <History size={16} className="text-indigo-600" />
-            <span>آخر الفواتير (طباعة / تعديل / إلغاء)</span>
+            <span>آخر الفواتير</span>
           </h4>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {recentInvoices.map(inv => (
@@ -340,116 +468,38 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 🛒 السلة وتفاصيل العميل */}
-      <div className="w-full lg:w-96 bg-white border-r border-slate-200 p-4 flex flex-col shadow-lg">
-        <h2 className="font-black text-slate-800 text-base mb-3 flex items-center justify-between border-b pb-2">
-          <span className="flex items-center gap-2">
-            <ShoppingCart className="text-indigo-600" size={20} />
-            <span>سلة الطلبات</span>
-          </span>
-          {editingInvoiceId && (
-            <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">تعديل فاتورة</span>
-          )}
-        </h2>
-
-        {/* نوع الطلب */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl mb-3">
-          {(['تيك أواي', 'صالة', 'دليفري'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setOrderType(t)}
-              className={`py-1.5 rounded-xl font-black text-[11px] transition-all ${
-                orderType === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {/* 🛵 حقول الدليفري المحدثة بأسماء الطيارين */}
-        {orderType === 'دليفري' && (
-          <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-            <select
-              value={selectedZoneId}
-              onChange={(e) => setSelectedZoneId(e.target.value)}
-              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
-            >
-              <option value="">اختر منطقة التوصيل...</option>
-              {uniqueDeliveryZones.map(z => z && (
-                <option key={z.id || z.name} value={z.id}>
-                  {z.name} (+{z.fee} ج.م)
-                </option>
-              ))}
-            </select>
-
-            {/* القائمة المنسدلة للطيار */}
-            <select
-              value={selectedDriver}
-              onChange={(e) => setSelectedDriver(e.target.value)}
-              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
-            >
-              <option value="">اختر الطيار المسؤول...</option>
-              {driversList.map(d => (
-                <option key={d} value={d}>🛵 الطيار: {d}</option>
-              ))}
-            </select>
-
-            <input
-              placeholder="اسم العميل"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
-            />
-            <input
-              placeholder="رقم الهاتف"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
-            />
-            <input
-              placeholder="العنوان التفصيلي"
-              value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
-            />
-          </div>
-        )}
-
-        {/* قائمة السلة */}
-        <div className="flex-1 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
-          {cart.map(i => (
-            <div key={i.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="flex-1">
-                <h5 className="font-bold text-slate-800 text-xs">{i.name}</h5>
-                <p className="text-indigo-600 font-black text-[11px]">{i.price * i.quantity} ج.م</p>
-              </div>
-              <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
-                <button onClick={() => updateQuantity(i.itemKey, -1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Minus size={12} /></button>
-                <span className="font-black text-xs px-1.5">{i.quantity}</span>
-                <button onClick={() => updateQuantity(i.itemKey, 1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Plus size={12} /></button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* الإجمالي والزر */}
-        <div className="border-t pt-3 flex flex-col gap-2">
-          {deliveryFee > 0 && (
-            <div className="flex justify-between text-xs font-bold text-slate-500">
-              <span>خدمة التوصيل:</span>
-              <span>{deliveryFee} ج.م</span>
-            </div>
-          )}
-          <button
-            onClick={handleCheckout}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-lg transition-all active:scale-95"
-          >
-            <span>{editingInvoiceId ? 'حفظ التعديلات وطباعة' : 'حفظ وطباعة الفاتورة'}</span>
-            <span className="bg-indigo-800 px-3 py-1 rounded-xl">{totalAmount} ج.م</span>
-          </button>
-        </div>
+      {/* 🛒 السلة في الشاشات الكبيرة (الكمبيوتر / التابلت) */}
+      <div className="hidden lg:flex w-96 bg-white border-r border-slate-200 p-4 flex-col shadow-lg">
+        <CartContent />
       </div>
+
+      {/* 🛒 زر السلة العائم المخصص للموبايل */}
+      <div className="lg:hidden fixed bottom-3 left-3 right-3 z-40">
+        <button
+          onClick={() => setIsMobileCartOpen(true)}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-2xl border border-indigo-400 active:scale-95 transition-all"
+        >
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-800 p-1.5 rounded-xl">
+              <ShoppingCart size={18} />
+            </div>
+            <span>عرض سلة الطلبات ({totalItemsCount})</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-black text-base">{totalAmount} ج.م</span>
+            <ChevronUp size={18} />
+          </div>
+        </button>
+      </div>
+
+      {/* 🛒 نافذة السلة المنبثقة للموبايل (Modal Drawer) */}
+      {isMobileCartOpen && (
+        <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col justify-end">
+          <div className="bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 shadow-2xl">
+            <CartContent />
+          </div>
+        </div>
+      )}
 
       {/* 🍕 مودال الأحجام وحشو الأطراف */}
       {activeProductForSizes && (
