@@ -10,8 +10,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 
-/* ---------------- 📌 VERSION CONTROL ---------------- */
-const APP_VERSION = "3.0.0";
+/* ---------------- 📌 VERSION CONTROL & SESSION LOCK ---------------- */
+const APP_VERSION = "3.1.0"; // تغيير النسخة لإجبار جميع الأجهزة على التحديث والتسجيل من جديد
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -107,32 +107,41 @@ const SALES_CHART_TIMELINE = [
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
+  // ⚡ 1. فحص النسخة والتحديث الإجباري عند نزول نسخة جديدة فقط
   useEffect(() => {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
+      console.log(`🚀 تم اكتشاف نسخة جديدة (${APP_VERSION})... جاري الخروج والتحديث الإجباري`);
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.setItem("pos_products_v30", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v30", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v30", JSON.stringify(DEFAULT_CATEGORIES));
+      localStorage.removeItem("pos_session_user"); // الخروج الإجباري للتحديث
+      localStorage.setItem("pos_products_v31", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v31", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v31", JSON.stringify(DEFAULT_CATEGORIES));
+      window.location.reload();
     }
   }, []);
 
+  // 🔒 2. استرجاع الجلسة المحفوظة تلقائياً من الـ Storage عند الـ Refresh
+  const [currentUser, setCurrentUser] = useState(() => {
+    const sessionUser = localStorage.getItem("pos_session_user");
+    return sessionUser ? JSON.parse(sessionUser) : null;
+  });
+
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
   const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v30") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v30") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v31") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v31") || JSON.stringify(DEFAULT_PRODUCTS)));
   const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders") || "[]"));
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v30") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v31") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
   useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories_v30", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v30", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_categories_v31", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v31", JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem("pos_orders", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v30", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v31", JSON.stringify(deliveryZones)); }, [deliveryZones]);
 
   // Auth & UI States
-  const [currentUser, setCurrentUser] = useState(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -157,13 +166,11 @@ export default function SmartPOSApp() {
   const [activeSize, setActiveSize] = useState(null);
   const [stuffedCrust, setStuffedCrust] = useState(false);
 
-  // ✏️ تعديل صنف
   const [editProductModal, setEditProductModal] = useState(null);
   const [viewInvoiceModal, setViewInvoiceModal] = useState(null);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [shiftClosedReport, setShiftClosedReport] = useState(null);
 
-  // Restock & Category & Product Add States
   const [restockProduct, setRestockProduct] = useState(null);
   const [restockQty, setRestockQty] = useState("");
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -180,11 +187,13 @@ export default function SmartPOSApp() {
 
   const currentTicketNo = completedOrders.length + 1;
 
+  // 🔑 تسجيل الدخول وحفظ الجلسة
   const handleLogin = (e) => {
     e.preventDefault();
     const user = usersDb.find((u) => u.username.toLowerCase() === usernameInput.trim().toLowerCase() && u.password === passwordInput);
     if (user) {
       setCurrentUser(user);
+      localStorage.setItem("pos_session_user", JSON.stringify(user)); // حفظ الجلسة
       setLoginError("");
       const permissions = ROLE_PERMISSIONS[user.role];
       setCurrentView(permissions.canViewDashboard ? "dashboard" : "pos");
@@ -193,7 +202,9 @@ export default function SmartPOSApp() {
     }
   };
 
+  // 🚪 الخروج الصريح بناءً على طلب المستخدم فقط
   const handleLogout = () => {
+    localStorage.removeItem("pos_session_user"); // مسح الجلسة
     setCurrentUser(null);
     setUsernameInput("");
     setPasswordInput("");
@@ -271,10 +282,6 @@ export default function SmartPOSApp() {
       return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
     }));
 
-    if (restaurantInfo.autoPrint) {
-      handlePrintReceipt(newOrder);
-    }
-
     setCart([]);
     setCustomerNameInput(""); setCustomerPhoneInput(""); setCustomerAddressInput("");
     setMobileCartDrawerOpen(false);
@@ -294,7 +301,6 @@ export default function SmartPOSApp() {
     setViewInvoiceModal(null);
   };
 
-  // ➕ إضافة صنف جديد
   const handleAddNewProduct = (e) => {
     e.preventDefault();
     if (!newProdName || !newProdPrice) return;
@@ -318,7 +324,6 @@ export default function SmartPOSApp() {
     setShowAddProductModal(false);
   };
 
-  // ➕ إضافة قسم جديد
   const handleAddNewCategory = (e) => {
     e.preventDefault();
     if (!newCatLabel) return;
@@ -327,13 +332,6 @@ export default function SmartPOSApp() {
     setActiveCat(catId);
     setNewCatLabel("");
     setShowAddCategoryModal(false);
-  };
-
-  const handleRestockSubmit = (e) => {
-    e.preventDefault();
-    if (!restockProduct || !restockQty) return;
-    setProducts((prev) => prev.map((p) => p.id === restockProduct.id ? { ...p, stock: p.stock + Number(restockQty) } : p));
-    setRestockProduct(null); setRestockQty("");
   };
 
   const handleCloseShift = () => {
@@ -546,7 +544,7 @@ export default function SmartPOSApp() {
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث صنف..." className="h-8 bg-slate-100 rounded-xl px-3 text-xs outline-none w-full sm:w-48" />
               </div>
 
-              {/* Grid Products with pb-32 so nothing hides behind bottom bar */}
+              {/* Grid Products with pb-32 */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
                 <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
                   {products.filter(p=>p.cat===activeCat && p.name.includes(query)).map((p) => (
@@ -671,10 +669,9 @@ export default function SmartPOSApp() {
                         {o.status === "cancelled" ? <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px]">ملغاة</span> : <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px]">مكتملة</span>}
                       </td>
                       <td className="p-3 text-center space-x-1.5 space-x-reverse">
-                        <button onClick={() => setViewInvoiceModal(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100" title="معاينة"><Eye size={15} /></button>
-                        <button onClick={() => handlePrintReceipt(o)} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200" title="طباعة"><Printer size={15} /></button>
+                        <button onClick={() => setViewInvoiceModal(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100" title="معاينة وتفاصيل"><Eye size={15} /></button>
                         {o.status !== "cancelled" && (
-                          <button onClick={() => handleCancelInvoice(o.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100" title="إلغاء"><Trash2 size={15} /></button>
+                          <button onClick={() => handleCancelInvoice(o.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100" title="إلغاء الفاتورة"><Trash2 size={15} /></button>
                         )}
                       </td>
                     </tr>
@@ -718,8 +715,8 @@ export default function SmartPOSApp() {
                       <td className="p-3">{fmt(p.price)} ج.م</td>
                       <td className="p-3 font-black">{p.stock} قطعة</td>
                       <td className="p-3 text-center space-x-1.5 space-x-reverse">
-                        <button onClick={() => setEditProductModal(p)} className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-xl font-bold">✏️ تعديل</button>
-                        <button onClick={() => setRestockProduct(p)} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-xl font-bold">+ تزويد</button>
+                        <button onClick={() => setEditProductModal(p)} className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl font-bold">✏️ تعديل</button>
+                        <button onClick={() => setRestockProduct(p)} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold">+ تزويد</button>
                       </td>
                     </tr>
                   ))}
@@ -732,7 +729,7 @@ export default function SmartPOSApp() {
         {/* SETTINGS VIEW */}
         {currentView === "settings" && permissions.canSettings && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والطباعة</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات المطعم والنظام</h2>
             <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs max-w-lg">
               <div>
                 <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
@@ -919,12 +916,9 @@ export default function SmartPOSApp() {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <button onClick={() => handlePrintReceipt(viewInvoiceModal)} className="flex-1 h-10 bg-indigo-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5">
-                <Printer size={15} /> طباعة
-              </button>
               {viewInvoiceModal.status !== "cancelled" && (
-                <button onClick={() => handleCancelInvoice(viewInvoiceModal.id)} className="h-10 px-4 bg-rose-50 text-rose-600 font-black text-xs rounded-xl">
-                  إلغاء
+                <button onClick={() => handleCancelInvoice(viewInvoiceModal.id)} className="w-full h-10 bg-rose-50 text-rose-600 font-black text-xs rounded-xl">
+                  إلغاء الفاتورة
                 </button>
               )}
             </div>
@@ -947,6 +941,29 @@ export default function SmartPOSApp() {
             </div>
             <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ التعديلات</button>
           </form>
+        </div>
+      )}
+
+      {/* MODAL: تقفيل الوردية */}
+      {showCloseShiftModal && shiftClosedReport && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-center">
+            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+              <Lock size={24} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900">تقرير تقفيل الوردية</h3>
+              <p className="text-xs text-slate-400 font-semibold">{shiftClosedReport.date} - {shiftClosedReport.time}</p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-xs font-bold text-slate-700 text-right">
+              <div className="flex justify-between"><span>الكاشير:</span><span>{shiftClosedReport.cashier}</span></div>
+              <div className="flex justify-between"><span>عدد الفواتير:</span><span>{shiftClosedReport.totalOrdersCount}</span></div>
+              <div className="flex justify-between text-indigo-600 font-black text-sm pt-2 border-t">
+                <span>الصافي:</span><span>{fmt(shiftClosedReport.totalRevenue)} ج.م</span>
+              </div>
+            </div>
+            <button onClick={() => setShowCloseShiftModal(false)} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">تأكيد الاستلام</button>
+          </div>
         </div>
       )}
 
