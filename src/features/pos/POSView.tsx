@@ -1,29 +1,30 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/dexie';
-import { ShoppingCart, Plus, Minus, Printer, Search, X } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Printer, Search, X, User, Phone, MapPin } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState('البيتزا');
   const [searchQuery, setSearchQuery] = useState('');
   const [orderType, setOrderType] = useState('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
+
+  // بيانات الدليفري
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
   
-  // حالة النافذة المنبثقة لاختيار الأحجام
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
 
-  // جلب البيانات المباشرة من قاعدة البيانات
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const allProducts = useLiveQuery(() => db.products.toArray()) || [];
 
-  // تصفية المنتجات حسب القسم والبحث
   const filteredProducts = allProducts.filter(p => {
     const matchCategory = p.catId === selectedCategory;
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
-  // إضافة صنف للسلة
   const addToCart = (product: any, size?: any) => {
     const itemKey = size ? `${product.id}-${size.id}` : `${product.id}`;
     const itemName = size ? `${product.name} (${size.name})` : product.name;
@@ -42,7 +43,6 @@ export function POSView() {
     setActiveProductForSizes(null);
   };
 
-  // تعديل الكميات
   const updateQuantity = (itemKey: string, delta: number) => {
     setCart(prevCart => {
       return prevCart.map(i => {
@@ -55,22 +55,33 @@ export function POSView() {
     });
   };
 
-  // إتمام الطلب والطباعة
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // حفظ العميل إذا كان الطلب دليفري
+    if (orderType === 'دليفري' && customerPhone) {
+      const existingCust = await db.customers.where('phone').equals(customerPhone).first();
+      if (!existingCust) {
+        await db.customers.add({ name: customerName, phone: customerPhone, address: customerAddress });
+      }
+    }
+
     const invoiceData = {
       shiftId: 1,
       items: cart,
       total: totalAmount,
       orderType: orderType,
+      customerName: orderType === 'دليفري' ? customerName : '',
+      customerPhone: orderType === 'دليفري' ? customerPhone : '',
+      customerAddress: orderType === 'دليفري' ? customerAddress : '',
       createdAt: Date.now()
     };
 
     const newInvoiceId = await db.invoices.add(invoiceData);
 
-    // طباعة الإيصال الحراري
+    // طباعة الإيصال الحراري مع بيانات الدليفري
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
       printWindow.document.write(`
@@ -85,6 +96,7 @@ export function POSView() {
               .item-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
               .total-row { font-weight: bold; font-size: 15px; margin-top: 8px; display: flex; justify-content: space-between; }
               .footer { text-align: center; font-size: 12px; margin-top: 10px; }
+              .delivery-box { border: 1px solid #000; padding: 6px; border-radius: 6px; margin: 6px 0; font-size: 12px; }
             </style>
           </head>
           <body>
@@ -95,6 +107,15 @@ export function POSView() {
             <div class="info">رقم الفاتورة: #${newInvoiceId}</div>
             <div class="info">النوع: ${orderType}</div>
             <div class="info">التاريخ: ${new Date().toLocaleString('ar-EG')}</div>
+            
+            ${orderType === 'دليفري' ? `
+              <div class="delivery-box">
+                <div><b>العميل:</b> ${customerName || 'غير محدد'}</div>
+                <div><b>الهاتف:</b> ${customerPhone || '-'}</div>
+                <div><b>العنوان:</b> ${customerAddress || '-'}</div>
+              </div>
+            ` : ''}
+
             <hr/>
             <div>
               ${cart.map(item => `
@@ -124,16 +145,19 @@ export function POSView() {
       }, 400);
     }
 
+    // تفريغ السلة والبيانات
     setCart([]);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerAddress('');
   };
 
   const totalCartPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 relative">
-      {/* 1. قائمة الأقسام والمنتجات */}
+      {/* 1. شبكة الأقسام والمنتجات */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
-        {/* شريط البحث */}
         <div className="relative mb-3">
           <Search className="absolute right-3 top-3 text-slate-400" size={18} />
           <input
@@ -145,7 +169,6 @@ export function POSView() {
           />
         </div>
 
-        {/* أقسام المنيو */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
           {categories.map(cat => (
             <button
@@ -163,7 +186,6 @@ export function POSView() {
           ))}
         </div>
 
-        {/* كروت المنتجات */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pr-1">
           {filteredProducts.map(product => (
             <div
@@ -199,9 +221,9 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 2. حاوية السلة وأزرار الطلب */}
-      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-64 lg:h-full">
-        {/* أزرار اختيار نوع الطلب */}
+      {/* 2. السلة + أزرار التيك أواي والحقول للدليفري */}
+      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-72 lg:h-full">
+        {/* نوع الطلب */}
         <div className="p-2 border-b border-slate-100 bg-slate-50">
           <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
             {['تيك أواي', 'دليفري', 'صالة'].map(type => (
@@ -218,6 +240,42 @@ export function POSView() {
               </button>
             ))}
           </div>
+
+          {/* حقول مدخلات الدليفري تظهر فقط عند اختيار دليفري */}
+          {orderType === 'دليفري' && (
+            <div className="mt-2 flex flex-col gap-1.5 p-2 bg-indigo-50/50 rounded-xl border border-indigo-100">
+              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                <User size={14} className="text-indigo-600" />
+                <input
+                  type="text"
+                  placeholder="اسم العميل..."
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full text-xs bg-transparent focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                <Phone size={14} className="text-indigo-600" />
+                <input
+                  type="text"
+                  placeholder="رقم التليفون..."
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full text-xs bg-transparent focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                <MapPin size={14} className="text-indigo-600" />
+                <input
+                  type="text"
+                  placeholder="العنوان بالكامل..."
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  className="w-full text-xs bg-transparent focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* عناصر السلة */}
@@ -237,14 +295,14 @@ export function POSView() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => updateQuantity(item.itemKey, -1)}
-                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-100"
+                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"
                   >
                     <Minus size={12} />
                   </button>
                   <span className="font-bold text-xs w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.itemKey, 1)}
-                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-100"
+                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"
                   >
                     <Plus size={12} />
                   </button>
@@ -254,7 +312,7 @@ export function POSView() {
           )}
         </div>
 
-        {/* ملخص السلة والدفع */}
+        {/* الإجمالي والطباعة */}
         <div className="p-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between lg:flex-col lg:items-stretch gap-2">
           <div className="flex lg:justify-between items-center gap-2">
             <span className="font-bold text-slate-600 text-xs">الإجمالي:</span>
