@@ -4,14 +4,14 @@ import { InvoicesView } from './features/invoices/InvoicesView';
 import { ReportsView } from './features/reports/ReportsView';
 import { CRMView } from './features/crm/CRMView';
 import { SettingsView } from './features/settings/SettingsView';
-import { Store, FileText, BarChart3, Users, Settings } from 'lucide-react';
+import { ShiftView } from './features/shift/ShiftView';
+import { Store, FileText, BarChart3, Users, Settings, Clock } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'pos' | 'invoices' | 'reports' | 'crm' | 'settings'>('pos');
+  const [activeTab, setActiveTab] = useState<'pos' | 'invoices' | 'reports' | 'crm' | 'settings' | 'shift'>('pos');
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 font-sans dir-rtl dir-rtl-force">
-      {/* الشريط الجانبي للتنقل */}
       <aside className="w-16 md:w-20 bg-slate-900 text-white flex flex-col items-center py-4 justify-between z-20 shadow-2xl shrink-0">
         <div className="flex flex-col items-center gap-6 w-full">
           <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-white text-lg shadow-lg shadow-indigo-500/30">
@@ -28,6 +28,17 @@ export default function App() {
             >
               <Store size={22} />
               <span className="text-[10px] font-bold mt-1 hidden md:block">الكاشير</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('shift')}
+              title="الوردية والدرج"
+              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
+                activeTab === 'shift' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Clock size={22} />
+              <span className="text-[10px] font-bold mt-1 hidden md:block">الوردية</span>
             </button>
 
             <button
@@ -82,9 +93,9 @@ export default function App() {
         </div>
       </aside>
 
-      {/* المحتوى الرئيسي */}
       <main className="flex-1 h-full overflow-hidden flex flex-col">
         {activeTab === 'pos' && <POSView />}
+        {activeTab === 'shift' && <ShiftView />}
         {activeTab === 'invoices' && <InvoicesView />}
         {activeTab === 'reports' && <ReportsView />}
         {activeTab === 'crm' && <CRMView />}
