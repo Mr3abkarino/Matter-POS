@@ -228,7 +228,7 @@ export function POSView() {
     if (isOnline) {
       try {
         if (editingInvoiceId) {
-          await updateDoc(doc(doc(dbCloud, "invoices", editingInvoiceId).path), invoiceData);
+          await updateDoc(doc(dbCloud, "invoices", editingInvoiceId), invoiceData);
           setEditingInvoiceId(null);
         } else {
           await addDoc(collection(dbCloud, "invoices"), invoiceData);
@@ -303,7 +303,7 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🛵 حقول الدليفري المحسنة ضد التهنيج */}
+        {/* 🛵 حقول الدليفري */}
         {orderType === 'دليفري' && (
           <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
             <select
@@ -439,17 +439,17 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🍕 شبكة الأصناف (تم ضبط ارتفاع الكروت بالكامل h-32 وتنسيق المربع) */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
+        {/* 🍕 شبكة الأصناف المنسقة بدون تمدد عمودي (content-start) */}
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.map(p => (
             <div
               key={p.id}
               onClick={() => p.sizes && p.sizes.length > 0 ? setActiveProductForSizes(p) : addToCart(p)}
-              className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center h-32 active:scale-95"
+              className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center h-28 active:scale-95"
             >
-              <span className="text-2xl mb-0.5">{p.emoji || '🍕'}</span>
-              <h4 className="font-black text-slate-800 text-xs line-clamp-2 px-1">{p.name}</h4>
-              <p className="text-indigo-600 font-black text-[11px] bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
+              <span className="text-xl mb-0.5">{p.emoji || '🍕'}</span>
+              <h4 className="font-black text-slate-800 text-[11px] line-clamp-2 px-1 leading-snug">{p.name}</h4>
+              <p className="text-indigo-600 font-black text-[10px] bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 mt-1">
                 {p.sizes && p.sizes.length > 0 ? `يبدأ من ${p.sizes[0].price} ج.م` : `${p.price} ج.م`}
               </p>
             </div>
