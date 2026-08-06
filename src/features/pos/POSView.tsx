@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, RefreshCw, Check } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, RefreshCw, Check, Printer, Edit2, Trash2, History } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
@@ -12,6 +12,7 @@ export function POSView() {
   // الحالات السحابية
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
+  const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
 
   // بيانات العميل والدليفري
   const [customerName, setCustomerName] = useState('');
@@ -22,12 +23,12 @@ export function POSView() {
   // مودال الأحجام وحشو الأطراف
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
   const [stuffedCrust, setStuffedCrust] = useState<boolean>(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   // 🔄 المزامنة اللحظية
   useEffect(() => {
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
-      const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAllProducts(prods);
+      setAllProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
     const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), async (snap) => {
@@ -49,33 +50,36 @@ export function POSView() {
       }
     });
 
-    return () => { unsubProds(); unsubZones(); };
+    const unsubInvoices = onSnapshot(collection(dbCloud, "invoices"), (snap) => {
+      const invs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      invs.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      setRecentInvoices(invs.slice(0, 10)); // أحدث 10 فواتير للتحكم السريع
+    });
+
+    return () => { unsubProds(); unsubZones(); unsubInvoices(); };
   }, []);
 
-  // 🧹 تصفية واستبعاد قسم "السندوتشات" الفارغ نهائياً وإظهار الأقسام النشطة فقط
+  // 🧹 تصفية الأقسام المتاحة
   const activeCategories = Array.from(
     new Set(
       allProducts
         .map(p => (p.catId || p.category || '').toString().trim())
-        .filter(cat => cat && cat !== 'السندوتشات') // إلغاء كلمة السندوتشات العامة
+        .filter(cat => cat && cat !== 'السندوتشات')
     )
   );
 
-  // الضبط الافتراضي للقسم الأول
   useEffect(() => {
     if (activeCategories.length > 0 && (!selectedCategory || !activeCategories.includes(selectedCategory))) {
       setSelectedCategory(activeCategories[0]);
     }
   }, [allProducts]);
 
-  // مناطق التوصيل
   const uniqueDeliveryZones = Array.from(new Set(deliveryZones.map(z => z.name)))
     .map(name => deliveryZones.find(z => z.name === name));
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
-  // فلترة الأصناف حسب القسم والبحث
   const filteredProducts = allProducts.filter(p => {
     const prodCat = (p.catId || p.category || '').toString().trim();
     const matchCategory = prodCat === selectedCategory.trim();
@@ -83,7 +87,6 @@ export function POSView() {
     return matchCategory && matchSearch;
   });
 
-  // 🍕 تحديد سعر حشو الأطراف بناءً على الحجم المختار
   const getCrustPrice = (sizeId: string) => {
     if (sizeId === 's' || sizeId === 'صغير') return 25;
     if (sizeId === 'm' || sizeId === 'وسط') return 30;
@@ -91,7 +94,6 @@ export function POSView() {
     return 30;
   };
 
-  // 🛒 إضافة صنف للسلة مع معالجة حشو الأطراف
   const addToCart = (product: any, size?: any) => {
     let crustFee = 0;
     let extraTitle = '';
@@ -121,7 +123,6 @@ export function POSView() {
       return [...prev, { itemKey, productId: product.id, name: itemName, price: itemPrice, quantity: 1 }];
     });
 
-    // إعادة التعيين والإغلاق
     setActiveProductForSizes(null);
     setStuffedCrust(false);
   };
@@ -139,7 +140,39 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 💾 حفظ وطباعة الفاتورة
+  // 🖨️ دالة طباعة الفاتورة الموحدة
+  const printInvoiceWindow = (inv: any) => {
+    const printWindow = window.open('', '_blank', 'width=350,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html dir="rtl"><head>
+        <style>
+          body { font-family: Tahoma, sans-serif; width: 280px; margin: auto; font-weight: bold; font-size: 12px; }
+          .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
+          .item { display: flex; justify-content: space-between; margin-bottom: 4px; }
+          .divider { border-top: 1px dashed #000; margin: 6px 0; }
+          .total { font-size: 14px; border: 2px solid #000; padding: 6px; text-align: center; margin-top: 8px; }
+        </style></head>
+        <body>
+          <div class="header">
+            <h2 style="margin:0">DREAM CORNER</h2>
+            <p style="margin:2px 0">نوع الطلب: ${inv.orderType}</p>
+            ${inv.customerName ? `<p style="margin:2px 0">العميل: ${inv.customerName}</p>` : ''}
+            ${inv.customerPhone ? `<p style="margin:2px 0">الهاتف: ${inv.customerPhone}</p>` : ''}
+            ${inv.customerAddress ? `<p style="margin:2px 0">العنوان: ${inv.customerAddress}</p>` : ''}
+          </div>
+          ${inv.items.map((i: any) => `<div class="item"><span>${i.name} × ${i.quantity}</span><span>${i.price * i.quantity} ج.م</span></div>`).join('')}
+          ${inv.deliveryFee > 0 ? `<div class="item"><span>خدمة التوصيل (${inv.zoneName || ''})</span><span>${inv.deliveryFee} ج.م</span></div>` : ''}
+          <div class="divider"></div>
+          <div class="total">الإجمالي الكلي: ${inv.total} ج.م</div>
+        </body></html>
+      `);
+      printWindow.document.close();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+    }
+  };
+
+  // 💾 حفظ أو تعديل الفاتورة وطباعتها
   const handleCheckout = async () => {
     if (cart.length === 0) return alert("السلة فارغة!");
     if (orderType === 'دليفري' && !selectedZoneId) return alert("يرجى اختيار منطقة الدليفري!");
@@ -153,45 +186,47 @@ export function POSView() {
       zoneName: selectedZone?.name || '',
       customerName,
       customerPhone,
-      customerAddress,
+      customerAddress, // العنوان التفصيلي
       createdAt: Date.now()
     };
 
     try {
-      await addDoc(collection(dbCloud, "invoices"), invoiceData);
-
-      const printWindow = window.open('', '_blank', 'width=350,height=600');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html dir="rtl"><head>
-          <style>
-            body { font-family: Tahoma, sans-serif; width: 280px; margin: auto; font-weight: bold; font-size: 12px; }
-            .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
-            .item { display: flex; justify-content: space-between; margin-bottom: 4px; }
-            .divider { border-top: 1px dashed #000; margin: 6px 0; }
-            .total { font-size: 14px; border: 2px solid #000; padding: 6px; text-align: center; margin-top: 8px; }
-          </style></head>
-          <body>
-            <div class="header">
-              <h2 style="margin:0">DREAM CORNER</h2>
-              <p style="margin:2px 0">نوع الطلب: ${orderType}</p>
-              ${customerName ? `<p style="margin:2px 0">العميل: ${customerName}</p>` : ''}
-              ${customerPhone ? `<p style="margin:2px 0">الهاتف: ${customerPhone}</p>` : ''}
-            </div>
-            ${cart.map(i => `<div class="item"><span>${i.name} × ${i.quantity}</span><span>${i.price * i.quantity} ج.م</span></div>`).join('')}
-            ${deliveryFee > 0 ? `<div class="item"><span>خدمة التوصيل (${selectedZone?.name})</span><span>${deliveryFee} ج.م</span></div>` : ''}
-            <div class="divider"></div>
-            <div class="total">الإجمالي الكلي: ${totalAmount} ج.م</div>
-          </body></html>
-        `);
-        printWindow.document.close();
-        setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+      if (editingInvoiceId) {
+        // تعديل فاتورة حالية
+        await updateDoc(doc(dbCloud, "invoices", editingInvoiceId), invoiceData);
+        alert("تم تعديل الفاتورة بنجاح! 🚀");
+        setEditingInvoiceId(null);
+      } else {
+        // إضافة فاتورة جديدة
+        await addDoc(collection(dbCloud, "invoices"), invoiceData);
+        alert("تم حفظ وطباعة الفاتورة بنجاح! 🚀");
       }
 
+      printInvoiceWindow(invoiceData);
+
       setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId('');
-      alert("تم حفظ وطباعة الفاتورة بنجاح! 🚀");
     } catch (e: any) {
       alert("حدث خطأ في حفظ الفاتورة: " + e.message);
+    }
+  };
+
+  // 🔄 إعادة فتح فاتورة سابقة للتعديل
+  const handleEditInvoice = (inv: any) => {
+    setCart(inv.items || []);
+    setOrderType(inv.orderType || 'تيك أواي');
+    setCustomerName(inv.customerName || '');
+    setCustomerPhone(inv.customerPhone || '');
+    setCustomerAddress(inv.customerAddress || '');
+    setEditingInvoiceId(inv.id);
+
+    const zone = deliveryZones.find(z => z.name === inv.zoneName);
+    if (zone) setSelectedZoneId(zone.id);
+  };
+
+  // 🗑️ حذف/إلغاء فاتورة
+  const handleDeleteInvoice = async (id: string) => {
+    if (confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟")) {
+      await deleteDoc(doc(dbCloud, "invoices", id));
     }
   };
 
@@ -201,7 +236,7 @@ export function POSView() {
       {/* 🍕 الأصناف والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
         
-        {/* البحث والتحكم */}
+        {/* البحث */}
         <div className="flex gap-2 mb-3">
           <input
             className="flex-1 p-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:outline-none bg-white shadow-sm"
@@ -211,7 +246,7 @@ export function POSView() {
           />
         </div>
 
-        {/* شريط الأقسام (بدون قسم السندوتشات العام) */}
+        {/* شريط الأقسام */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
           {activeCategories.map((catName) => (
             <button
@@ -248,13 +283,42 @@ export function POSView() {
             ))
           )}
         </div>
+
+        {/* 📜 شريط السجل السريع لآخر الفواتير (إعادة طباعة / تعديل / إلغاء) */}
+        <div className="mt-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+          <h4 className="font-bold text-xs text-slate-700 mb-2 flex items-center gap-1.5">
+            <History size={16} className="text-indigo-600" />
+            <span>آخر الفواتير (إعادة طباعة / تعديل / إلغاء)</span>
+          </h4>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recentInvoices.map(inv => (
+              <div key={inv.id} className="bg-slate-50 p-2 rounded-xl border flex items-center gap-2 text-xs font-bold whitespace-nowrap">
+                <span>{inv.orderType} - {inv.total} ج.م</span>
+                <button onClick={() => printInvoiceWindow(inv)} title="إعادة طباعة" className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                  <Printer size={14} />
+                </button>
+                <button onClick={() => handleEditInvoice(inv)} title="تعديل الفاتورة" className="p-1 text-amber-600 hover:bg-amber-50 rounded-lg">
+                  <Edit2 size={14} />
+                </button>
+                <button onClick={() => handleDeleteInvoice(inv.id)} title="إلغاء الفاتورة" className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* 🛒 السلة */}
+      {/* 🛒 السلة وتفاصيل العميل */}
       <div className="w-full lg:w-96 bg-white border-r border-slate-200 p-4 flex flex-col shadow-lg">
-        <h2 className="font-black text-slate-800 text-base mb-3 flex items-center gap-2 border-b pb-2">
-          <ShoppingCart className="text-indigo-600" size={20} />
-          <span>سلة الطلبات</span>
+        <h2 className="font-black text-slate-800 text-base mb-3 flex items-center justify-between border-b pb-2">
+          <span className="flex items-center gap-2">
+            <ShoppingCart className="text-indigo-600" size={20} />
+            <span>سلة الطلبات</span>
+          </span>
+          {editingInvoiceId && (
+            <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">وضع التعديل</span>
+          )}
         </h2>
 
         {/* نوع الطلب */}
@@ -272,7 +336,7 @@ export function POSView() {
           ))}
         </div>
 
-        {/* حقول الدليفري */}
+        {/* 🛵 حقول الدليفري المحدثة (تتضمن خانة العنوان تحت التليفون) */}
         {orderType === 'دليفري' && (
           <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
             <select
@@ -297,6 +361,13 @@ export function POSView() {
               placeholder="رقم الهاتف"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+            />
+            {/* 🏠 خانة العنوان تحت الاسم ورقم الهاتف */}
+            <input
+              placeholder="العنوان التفصيلي (الشارع / رقم البيت / علامة مميزة)"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
               className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
             />
           </div>
@@ -327,7 +398,7 @@ export function POSView() {
           )}
         </div>
 
-        {/* الإجمالي */}
+        {/* الإجمالي والزر */}
         <div className="border-t pt-3 flex flex-col gap-2">
           {deliveryFee > 0 && (
             <div className="flex justify-between text-xs font-bold text-slate-500">
@@ -339,13 +410,13 @@ export function POSView() {
             onClick={handleCheckout}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-lg transition-all active:scale-95"
           >
-            <span>حفظ وطباعة الفاتورة</span>
+            <span>{editingInvoiceId ? 'حفظ التعديلات وطباعة' : 'حفظ وطباعة الفاتورة'}</span>
             <span className="bg-indigo-800 px-3 py-1 rounded-xl">{totalAmount} ج.م</span>
           </button>
         </div>
       </div>
 
-      {/* 🍕 مودال الأحجام وحشو الأطراف للبيتزا */}
+      {/* 🍕 مودال الأحجام وحشو الأطراف */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl animate-in fade-in zoom-in duration-150">
@@ -353,7 +424,6 @@ export function POSView() {
               {activeProductForSizes.emoji || '🍕'} {activeProductForSizes.name}
             </h3>
 
-            {/* 🧀 خيار إضافة حشو الأطراف تحت اسم البيتزا مباشرة */}
             <div 
               onClick={() => setStuffedCrust(!stuffedCrust)}
               className={`flex items-center justify-between p-3 rounded-2xl border mb-4 cursor-pointer transition-all ${
