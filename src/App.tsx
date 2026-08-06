@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { POSView } from './features/pos/POSView';
 import { MenuManagementView } from './features/menu/MenuManagementView';
-import { Utensils, ShoppingCart, LogOut, ShieldAlert, UserCheck } from 'lucide-react';
+import { ReportsView } from './features/reports/ReportsView';
+import { Utensils, ShoppingCart, LogOut, ShieldAlert, UserCheck, TrendingUp } from 'lucide-react';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'cashier'>('cashier');
-  const [currentTab, setCurrentTab] = useState<'pos' | 'menu'>('pos');
+  const [currentTab, setCurrentTab] = useState<'pos' | 'reports' | 'menu'>('pos');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
@@ -24,13 +25,11 @@ export default function App() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === '0000') {
-      // رمز الكاشير
       loginUser('cashier');
     } else if (pin === '8888') {
-      // رمز الأدمن
       loginUser('admin');
     } else {
-      setError('رمز PIN غير صحيح! (الكاشير: 0000 | الأدمن: 8888)');
+      setError('رمز PIN غير صحيح!');
     }
   };
 
@@ -49,7 +48,7 @@ export default function App() {
     localStorage.removeItem('dc_user_role');
   };
 
-  // 🔒 شاشة تسجيل الدخول
+  // 🔒 شاشة تسجيل الدخول المحمية (بدون عرض الأكواد)
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 dir-rtl font-sans">
@@ -65,7 +64,7 @@ export default function App() {
               <input
                 type="password"
                 maxLength={4}
-                placeholder="أدخل رمز PIN (مثال: 0000)"
+                placeholder="أدخل رمز PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 className="w-full text-center text-2xl font-black tracking-widest p-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
@@ -80,11 +79,6 @@ export default function App() {
               دخول النظام
             </button>
           </form>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-400 font-bold flex justify-around">
-            <span>رمز الكاشير: <b>0000</b></span>
-            <span>رمز الأدمن: <b>8888</b></span>
-          </div>
         </div>
       </div>
     );
@@ -119,17 +113,29 @@ export default function App() {
               <span className="hidden lg:block">الكاشير (POS)</span>
             </button>
 
-            {/* زر إدارة المنيو متاح فقط للأدمن */}
+            {/* أدوات الأدمن فقط */}
             {role === 'admin' && (
-              <button
-                onClick={() => setCurrentTab('menu')}
-                className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                  currentTab === 'menu' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <Utensils size={20} />
-                <span className="hidden lg:block">إدارة المنيو</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setCurrentTab('reports')}
+                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
+                    currentTab === 'reports' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
+                  }`}
+                >
+                  <TrendingUp size={20} />
+                  <span className="hidden lg:block">التقارير</span>
+                </button>
+
+                <button
+                  onClick={() => setCurrentTab('menu')}
+                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
+                    currentTab === 'menu' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
+                  }`}
+                >
+                  <Utensils size={20} />
+                  <span className="hidden lg:block">إدارة المنيو</span>
+                </button>
+              </>
             )}
           </nav>
         </div>
@@ -143,9 +149,15 @@ export default function App() {
         </button>
       </aside>
 
-      {/* عرض الشاشة المختارة */}
+      {/* الشاشات */}
       <main className="flex-1 flex overflow-hidden">
-        {currentTab === 'pos' ? <POSView /> : <MenuManagementView />}
+        {currentTab === 'pos' ? (
+          <POSView />
+        ) : currentTab === 'reports' ? (
+          <ReportsView />
+        ) : (
+          <MenuManagementView />
+        )}
       </main>
     </div>
   );
