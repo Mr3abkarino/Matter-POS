@@ -9,6 +9,7 @@ import {
   Award,
   Trash2,
   Percent,
+  UserCheck,
   PieChart as PieChartIcon
 } from 'lucide-react';
 
@@ -17,7 +18,6 @@ export function ReportsView() {
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [selectedOrderType, setSelectedOrderType] = useState<string>('all');
 
-  // 🔄 المزامنة اللحظية للفواتير من السحابة
   useEffect(() => {
     const q = query(collection(dbCloud, "invoices"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
@@ -27,7 +27,6 @@ export function ReportsView() {
     return () => unsub();
   }, []);
 
-  // 🗓️ تصفية الفواتير حسب الفترة الزمنية المحددة
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).getTime();
@@ -46,13 +45,25 @@ export function ReportsView() {
     return matchTime && matchType;
   });
 
-  // 📊 الأرقام والمؤشرات الرئيسية (KPIs)
   const totalSales = filteredInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
   const totalOrders = filteredInvoices.length;
   const avgOrderValue = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
   const totalDeliveryFees = filteredInvoices.reduce((sum, inv) => sum + Number(inv.deliveryFee || 0), 0);
 
-  // 🍕 تحليل وتجميع أفضل الأصناف المبيعة (Top Selling Items)
+  // 🛵 تجميع وتقفيل حسابات الطيارين
+  const driverSummary = filteredInvoices
+    .filter(inv => inv.orderType === 'دليفري' && inv.driverName)
+    .reduce((acc: any, inv: any) => {
+      const driver = inv.driverName;
+      if (!acc[driver]) {
+        acc[driver] = { count: 0, totalCash: 0, totalDeliveryFees: 0 };
+      }
+      acc[driver].count += 1;
+      acc[driver].totalCash += Number(inv.total || 0);
+      acc[driver].totalDeliveryFees += Number(inv.deliveryFee || 0);
+      return acc;
+    }, {});
+
   const itemSalesMap: { [key: string]: { name: string; count: number; totalRevenue: number } } = {};
 
   filteredInvoices.forEach(inv => {
@@ -73,16 +84,14 @@ export function ReportsView() {
 
   const topItems = Object.values(itemSalesMap)
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5); // أفضل 5 أصناف
+    .slice(0, 5);
 
-  // 🚚 توزيع الطلبات حسب النوع (تيك أواي / صالة / دليفري)
   const orderTypeCounts = {
     'تيك أواي': filteredInvoices.filter(i => i.orderType === 'تيك أواي').length,
     'صالة': filteredInvoices.filter(i => i.orderType === 'صالة').length,
     'دليفري': filteredInvoices.filter(i => i.orderType === 'دليفري').length,
   };
 
-  // 🗑️ حذف فاتورة (في حالة الإلغاء أو الخطأ)
   const handleDeleteInvoice = async (id: string) => {
     if (confirm("هل أنت متأكد من حذف هذه الفاتورة من السجلات؟")) {
       await deleteDoc(doc(dbCloud, "invoices", id));
@@ -92,26 +101,23 @@ export function ReportsView() {
   return (
     <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
       
-      {/* 👑 الهيدر والتصفية */}
+      {/* الهيدر والتصفية */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
             <TrendingUp className="text-indigo-600" size={28} />
             <span>لوحة التقارير والتحليلات</span>
           </h1>
-          <p className="text-xs text-slate-500 font-bold mt-1">تابع المبيعات والأداء المالي لمطعم Dream Corner لحظياً</p>
+          <p className="text-xs text-slate-500 font-bold mt-1">تابع المبيعات وتقفيل الطيارين لمطعم Dream Corner</p>
         </div>
 
-        {/* أدوات تصفية الفترة */}
         <div className="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
           {(['today', 'week', 'month', 'all'] as const).map(period => (
             <button
               key={period}
               onClick={() => setFilterPeriod(period)}
               className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${
-                filterPeriod === period
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-600 hover:bg-slate-100'
+                filterPeriod === period ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
               {period === 'today' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : period === 'month' ? 'هذا الشهر' : 'الكل'}
@@ -120,17 +126,14 @@ export function ReportsView() {
         </div>
       </div>
 
-      {/* 📈 بطاقات الأرقام والمؤشرات الرئيسية (KPI Cards) */}
+      {/* 📊 بطاقات الأرقام */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs text-slate-500 font-bold mb-1">إجمالي المبيعات</p>
             <h3 className="text-2xl font-black text-slate-900">{totalSales.toLocaleString()} <span className="text-xs font-normal">ج.م</span></h3>
           </div>
-          <div className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl">
-            <DollarSign size={24} />
-          </div>
+          <div className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl"><DollarSign size={24} /></div>
         </div>
 
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -138,9 +141,7 @@ export function ReportsView() {
             <p className="text-xs text-slate-500 font-bold mb-1">عدد الفواتير</p>
             <h3 className="text-2xl font-black text-slate-900">{totalOrders} <span className="text-xs font-normal">طلب</span></h3>
           </div>
-          <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl">
-            <Receipt size={24} />
-          </div>
+          <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl"><Receipt size={24} /></div>
         </div>
 
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -148,9 +149,7 @@ export function ReportsView() {
             <p className="text-xs text-slate-500 font-bold mb-1">متوسط قيمة الطلب</p>
             <h3 className="text-2xl font-black text-slate-900">{avgOrderValue} <span className="text-xs font-normal">ج.م</span></h3>
           </div>
-          <div className="bg-amber-50 text-amber-600 p-3 rounded-2xl">
-            <Percent size={24} />
-          </div>
+          <div className="bg-amber-50 text-amber-600 p-3 rounded-2xl"><Percent size={24} /></div>
         </div>
 
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -158,155 +157,109 @@ export function ReportsView() {
             <p className="text-xs text-slate-500 font-bold mb-1">إيراد التوصيل</p>
             <h3 className="text-2xl font-black text-slate-900">{totalDeliveryFees} <span className="text-xs font-normal">ج.م</span></h3>
           </div>
-          <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl">
-            <ShoppingBag size={24} />
-          </div>
+          <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl"><ShoppingBag size={24} /></div>
         </div>
+      </div>
 
+      {/* 🛵 كشف وتقفيل حسابات الطيارين */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm mb-6">
+        <h3 className="font-bold text-slate-900 text-sm mb-4 border-b pb-3 flex items-center gap-2">
+          <UserCheck className="text-indigo-600" size={20} />
+          <span>تقفيل حسابات طيارين الدليفري</span>
+        </h3>
+
+        {Object.keys(driverSummary).length === 0 ? (
+          <p className="text-xs font-bold text-slate-400 text-center py-4">لا توجد طلبات دليفري مسجلة لطيارين في هذه الفترة</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.keys(driverSummary).map(driver => (
+              <div key={driver} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col gap-2">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="font-black text-xs text-indigo-900">🛵 الطيار: {driver}</span>
+                  <span className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-lg font-bold">
+                    {driverSummary[driver].count} أوردر
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs font-bold text-slate-600">
+                  <span>إجمالي النقدية للمستلم:</span>
+                  <span className="text-emerald-600 font-black">{driverSummary[driver].totalCash} ج.م</span>
+                </div>
+                <div className="flex justify-between text-[11px] font-bold text-slate-400">
+                  <span>منها خدمة توصيل:</span>
+                  <span>{driverSummary[driver].totalDeliveryFees} ج.م</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        
-        {/* 🏆 الأكثر مبيعاً (Top 5 Products) */}
+        {/* الأكثر مبيعاً */}
         <div className="lg:col-span-2 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
           <h3 className="font-bold text-slate-900 text-sm mb-4 flex items-center gap-2 border-b pb-3">
             <Award className="text-amber-500" size={20} />
-            <span>الأصناف الأكثر طلبًا (الأعلى مبيعاً)</span>
+            <span>الأصناف الأكثر طلبًا</span>
           </h3>
 
-          {topItems.length === 0 ? (
-            <div className="flex-1 flex justify-center items-center py-10 text-slate-400 font-bold text-xs">
-              لا توجد مبيعات مسجلة في هذه الفترة
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {topItems.map((item, index) => {
-                const maxCount = topItems[0].count || 1;
-                const percentage = Math.round((item.count / maxCount) * 100);
-
-                return (
-                  <div key={item.name} className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="flex justify-between items-center text-xs font-black">
-                      <span className="flex items-center gap-2 text-slate-900">
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white ${index === 0 ? 'bg-amber-500' : index === 1 ? 'bg-slate-400' : 'bg-amber-700'}`}>
-                          {index + 1}
-                        </span>
-                        {item.name}
-                      </span>
-                      <span className="text-indigo-600">{item.count} عدد <span className="text-slate-400 font-normal">({item.totalRevenue} ج.م)</span></span>
-                    </div>
-                    {/* شريط الأداء البصري */}
-                    <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                      <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="flex flex-col gap-3">
+            {topItems.map((item, index) => (
+              <div key={item.name} className="flex flex-col gap-1.5 p-3 bg-slate-50 rounded-2xl border">
+                <div className="flex justify-between items-center text-xs font-black">
+                  <span className="text-slate-900">{index + 1}. {item.name}</span>
+                  <span className="text-indigo-600">{item.count} عدد ({item.totalRevenue} ج.م)</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* 📊 توزيع أنواع الطلبات */}
+        {/* أنواع الطلبات */}
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <h3 className="font-bold text-slate-900 text-sm mb-4 flex items-center gap-2 border-b pb-3">
             <PieChartIcon className="text-indigo-600" size={20} />
             <span>نسبة أنواع الطلبات</span>
           </h3>
-
-          <div className="flex flex-col gap-3 my-auto">
-            <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-100 flex justify-between items-center">
-              <span className="font-bold text-xs text-indigo-900">🛵 دليفري (توصيل)</span>
-              <span className="font-black text-indigo-600 text-sm">{orderTypeCounts['دليفري']} طلب</span>
-            </div>
-
-            <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
-              <span className="font-bold text-xs text-emerald-900">🛍️ تيك أواي (سفري)</span>
-              <span className="font-black text-emerald-600 text-sm">{orderTypeCounts['تيك أواي']} طلب</span>
-            </div>
-
-            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-100 flex justify-between items-center">
-              <span className="font-bold text-xs text-amber-900">🍽️ صالة (محلي)</span>
-              <span className="font-black text-amber-600 text-sm">{orderTypeCounts['صالة']} طلب</span>
-            </div>
+          <div className="flex flex-col gap-3">
+            <div className="p-3 bg-indigo-50 rounded-2xl flex justify-between font-bold text-xs"><span>🛵 دليفري</span><span>{orderTypeCounts['دليفري']}</span></div>
+            <div className="p-3 bg-emerald-50 rounded-2xl flex justify-between font-bold text-xs"><span>🛍️ تيك أواي</span><span>{orderTypeCounts['تيك أواي']}</span></div>
+            <div className="p-3 bg-amber-50 rounded-2xl flex justify-between font-bold text-xs"><span>🍽️ صالة</span><span>{orderTypeCounts['صالة']}</span></div>
           </div>
         </div>
-
       </div>
 
-      {/* 🧾 جدول تفاصيل الفواتير المسجلة */}
+      {/* سجل الفواتير */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b pb-3">
-          <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-            <Receipt className="text-indigo-600" size={20} />
-            <span>سجل الفواتير التفصيلي ({filteredInvoices.length})</span>
-          </h3>
-
-          <select
-            value={selectedOrderType}
-            onChange={(e) => setSelectedOrderType(e.target.value)}
-            className="p-2 rounded-xl border text-xs font-bold bg-slate-50 text-slate-700 focus:outline-none"
-          >
-            <option value="all">كل أنواع الطلبات</option>
-            <option value="تيك أواي">تيك أواي فقط</option>
-            <option value="دليفري">دليفري فقط</option>
-            <option value="صالة">صالة فقط</option>
-          </select>
-        </div>
-
-        {filteredInvoices.length === 0 ? (
-          <p className="text-slate-400 text-center py-10 text-xs font-bold">لا توجد فواتير مطابقة للبحث حتى الآن</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead>
-                <tr className="border-b text-slate-400 font-bold bg-slate-50">
-                  <th className="p-3">التاريخ والوقت</th>
-                  <th className="p-3">نوع الطلب</th>
-                  <th className="p-3">اسم العميل / المنطقة</th>
-                  <th className="p-3">الأصناف</th>
-                  <th className="p-3">الإجمالي</th>
-                  <th className="p-3 text-center">إجراءات</th>
+        <h3 className="font-bold text-slate-900 text-sm mb-4 flex items-center gap-2">
+          <Receipt className="text-indigo-600" size={20} />
+          <span>سجل الفواتير</span>
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-xs">
+            <thead>
+              <tr className="border-b text-slate-400 font-bold bg-slate-50">
+                <th className="p-3">الوقت</th>
+                <th className="p-3">نوع الطلب</th>
+                <th className="p-3">الطيار / العميل</th>
+                <th className="p-3">الإجمالي</th>
+                <th className="p-3 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredInvoices.map((inv) => (
+                <tr key={inv.id} className="hover:bg-slate-50 font-bold text-slate-800">
+                  <td className="p-3 text-slate-500 text-[11px]">{new Date(inv.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</td>
+                  <td className="p-3">{inv.orderType}</td>
+                  <td className="p-3">{inv.driverName ? `🛵 ${inv.driverName}` : inv.customerName || 'عميل مباشر'}</td>
+                  <td className="p-3 font-black text-indigo-600">{inv.total} ج.م</td>
+                  <td className="p-3 text-center">
+                    <button onClick={() => handleDeleteInvoice(inv.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl"><Trash2 size={16} /></button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredInvoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/80 transition-all font-bold text-slate-800">
-                    <td className="p-3 text-slate-500 text-[11px]">
-                      {inv.createdAt ? new Date(inv.createdAt).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'غير محدد'}
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black ${
-                        inv.orderType === 'دليفري' ? 'bg-blue-100 text-blue-700' :
-                        inv.orderType === 'صالة' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-                      }`}>
-                        {inv.orderType}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      {inv.customerName || 'عميل مباشر'}
-                      {inv.zoneName && <span className="block text-[10px] text-slate-400">({inv.zoneName})</span>}
-                    </td>
-                    <td className="p-3 text-[11px] text-slate-600 max-w-xs truncate">
-                      {Array.isArray(inv.items) ? inv.items.map((i: any) => `${i.name} (${i.quantity})`).join(', ') : '-'}
-                    </td>
-                    <td className="p-3 font-black text-indigo-600 text-sm">
-                      {inv.total} ج.م
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => handleDeleteInvoice(inv.id)}
-                        className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all"
-                        title="حذف الفاتورة"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
