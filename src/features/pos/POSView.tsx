@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/dexie';
-import { ShoppingCart, Trash2, Plus, Minus, Printer, Search } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Printer, Search } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState('البيتزا');
@@ -94,7 +94,7 @@ export function POSView() {
               ${cart.map(item => `
                 <div class="item-row">
                   <span>${item.name} (${item.quantity}x)</span>
-                  <span>${item.price * item.quantity} ج.م</span>
+                  <span>${item.price * item.quantity} ج.M</span>
                 </div>
               `).join('')}
             </div>
@@ -127,8 +127,8 @@ export function POSView() {
   const totalCartPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
-    <div className="flex flex-1 h-full overflow-hidden bg-slate-100">
-      {/* القسم الأيمن: المنتجات والأقسام */}
+    <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100">
+      {/* القسم الأول: المنتجات والأقسام */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
         {/* شريط البحث */}
         <div className="relative mb-4">
@@ -161,14 +161,13 @@ export function POSView() {
         </div>
 
         {/* شبكة المنتجات */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pr-1">
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 pr-1">
           {filteredProducts.map(product => (
             <div
               key={product.id}
               className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-500 transition-all cursor-pointer group"
               onClick={() => {
                 if (product.sizes && product.sizes.length > 0) {
-                  // افتراضيًا يضيف الحجم الأوسط أو الأول لو مفيش نافذة منسدلة سريعة
                   addToCart(product, product.sizes[1] || product.sizes[0]);
                 } else {
                   addToCart(product);
@@ -214,8 +213,8 @@ export function POSView() {
         </div>
       </div>
 
-      {/* القسم الأيسر: سلة الطلبات */}
-      <div className="w-96 bg-white border-r border-slate-200 flex flex-col shadow-lg">
+      {/* القسم الثاني: سلة الطلبات الجانبية */}
+      <div className="w-full lg:w-96 bg-white border-r border-slate-200 flex flex-col shadow-lg h-1/2 lg:h-full">
         {/* نوع الطلب */}
         <div className="p-4 border-b border-slate-100">
           <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl">
@@ -236,8 +235,8 @@ export function POSView() {
         {/* عناصر السلة */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
           {cart.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2">
-              <ShoppingCart size={48} strokeWidth={1.5} />
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 py-6">
+              <ShoppingCart size={40} strokeWidth={1.5} />
               <p className="font-semibold text-sm">السلة فارغة حالياً</p>
             </div>
           ) : (
