@@ -4,13 +4,10 @@ import {
   Coffee, IceCream, Sandwich, UtensilsCrossed, GlassWater,
   Receipt, Sparkles, Bike, ShoppingBag, Utensils, Phone, User,
   Flame, Printer, LayoutDashboard, Users, Package,
-  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, History, Gift
+  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from "recharts";
 
-/* ---------------- 1. DATABASES & USERS ---------------- */
+/* ---------------- 1. USERS DATABASE (SECURE) ---------------- */
 const USERS_DB = [
   { id: 1, username: "admin", password: "admin123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin" },
   { id: 2, username: "manager", password: "mgr123", name: "أحمد علي", role: "manager", roleLabel: "👔 Manager" },
@@ -19,10 +16,10 @@ const USERS_DB = [
 ];
 
 const ROLE_PERMISSIONS = {
-  admin: { canViewDashboard: true, canCheckout: true, canKDS: true, canCRM: true, canInventory: true, canReports: true },
-  manager: { canViewDashboard: true, canCheckout: true, canKDS: true, canCRM: true, canInventory: true, canReports: true },
-  cashier: { canViewDashboard: false, canCheckout: true, canKDS: true, canCRM: true, canInventory: false, canReports: false },
-  waiter: { canViewDashboard: false, canCheckout: false, canKDS: true, canCRM: false, canInventory: false, canReports: false },
+  admin: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true },
+  manager: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true },
+  cashier: { canViewDashboard: false, canCheckout: true, canCRM: true, canInventory: false, canReports: false },
+  waiter: { canViewDashboard: false, canCheckout: false, canCRM: false, canInventory: false, canReports: false },
 };
 
 const CATEGORIES = [
@@ -36,7 +33,7 @@ const INITIAL_PRODUCTS = [
   {
     id: 1, cat: "hot", name: "قهوة تركي", price: 25, emoji: "☕", stock: 50,
     sizes: [{ id: "s", name: "سينجل", extra: 0 }, { id: "d", name: "دبل", extra: 10 }],
-    modifiers: [{ id: "m1", name: "سكر زيادة", price: 0 }, { id: "m2", name: "على الريحة", price: 0 }]
+    modifiers: [{ id: "m1", name: "سكر زيادة", price: 0 }]
   },
   {
     id: 14, cat: "meal", name: "بيتزا مارجريتا", price: 60, emoji: "🍕", stock: 15,
@@ -60,12 +57,6 @@ const ORDER_TYPES = [
   { id: "dinein", label: "صالة", icon: Utensils },
 ];
 
-const SALES_TIMELINE_DATA = [
-  { time: "10 ص", sales: 420 }, { time: "12 ظ", sales: 850 },
-  { time: "02 م", sales: 1400 }, { time: "04 م", sales: 1100 },
-  { time: "06 م", sales: 2300 }, { time: "08 م", sales: 3100 }, { time: "10 م", sales: 2800 },
-];
-
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
@@ -74,10 +65,9 @@ export default function SmartPOSApp() {
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [currentView, setCurrentView] = useState("pos"); // pos, dashboard, kitchen, crm, inventory, reports
+  const [currentView, setCurrentView] = useState("pos");
   const [isOnline] = useState(navigator.onLine);
   
-  // Database States
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
   const [cart, setCart] = useState([]);
@@ -86,7 +76,6 @@ export default function SmartPOSApp() {
   const [ticketNo, setTicketNo] = useState(1060);
   const [applyTax, setApplyTax] = useState(true);
 
-  // Order & Customer active
   const [orderType, setOrderType] = useState("takeaway");
   const [customerPhoneInput, setCustomerPhoneInput] = useState("");
   const [customerNameInput, setCustomerNameInput] = useState("");
@@ -128,7 +117,6 @@ export default function SmartPOSApp() {
 
   const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
 
-  // Cart calculations
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const tax = applyTax ? subtotal * 0.14 : 0;
   const currentDeliveryFee = orderType === "delivery" ? Number(deliveryFee) || 0 : 0;
@@ -166,7 +154,6 @@ export default function SmartPOSApp() {
 
   const checkout = () => {
     if (cart.length === 0) return;
-    // خصم المخزون تلقائياً
     setProducts((prev) => prev.map((prod) => {
       const cartItem = cart.find((i) => i.id === prod.id);
       return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
@@ -176,7 +163,6 @@ export default function SmartPOSApp() {
     setMobileCartOpen(false);
   };
 
-  // إضافة صنف جديد للمخزون
   const handleAddNewProduct = (e) => {
     e.preventDefault();
     if (!newProdName || !newProdPrice) return;
@@ -195,35 +181,75 @@ export default function SmartPOSApp() {
     setShowAddProductModal(false);
   };
 
+  // 🔑 1. CLEAN & SECURE LOGIN SCREEN (بدون إظهار الباسوردات)
   if (!currentUser) {
     return (
       <div dir="rtl" className="h-screen w-full bg-slate-900 flex items-center justify-center p-4 font-sans select-none">
-        <div className="bg-white rounded-3xl max-w-sm w-full p-8 space-y-6 shadow-2xl">
+        <div className="bg-white rounded-3xl max-w-sm w-full p-8 space-y-6 shadow-2xl border border-slate-100">
+          
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto text-xl shadow-lg shadow-indigo-600/30">POS</div>
-            <h2 className="text-2xl font-black text-slate-900">تسجيل الدخول</h2>
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto text-xl shadow-lg shadow-indigo-600/30">
+              POS
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">تسجيل الدخول</h2>
+            <p className="text-xs text-slate-400 font-semibold">أدخل بيانات الحساب للوصول للنظام</p>
           </div>
+
           <form onSubmit={handleLogin} className="space-y-4">
-            {loginError && <div className="p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold text-center">{loginError}</div>}
+            {loginError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold text-center">
+                {loginError}
+              </div>
+            )}
+
             <div className="space-y-1">
               <label className="text-xs font-black text-slate-600 block">اسم المستخدم</label>
-              <input type="text" required value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="admin / manager / cashier / waiter" className="w-full h-11 bg-slate-50 border rounded-xl px-3 text-xs font-bold outline-none" />
+              <div className="relative">
+                <User size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder="اسم المستخدم..."
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                />
+              </div>
             </div>
+
             <div className="space-y-1">
               <label className="text-xs font-black text-slate-600 block">كلمة السر</label>
-              <input type="password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="••••••••" className="w-full h-11 bg-slate-50 border rounded-xl px-3 text-xs font-bold outline-none" />
+              <div className="relative">
+                <Key size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="password"
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                />
+              </div>
             </div>
-            <button type="submit" className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-600/30">دخول النظام</button>
+
+            <button
+              type="submit"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all"
+            >
+              دخول النظام
+            </button>
           </form>
-          <div className="bg-slate-50 p-3 rounded-2xl text-[11px] font-semibold text-slate-500 space-y-1">
-            <div className="flex justify-between"><span>👑 Admin:</span><span className="font-mono font-bold">admin / admin123</span></div>
-            <div className="flex justify-between"><span>💳 Cashier:</span><span className="font-mono font-bold">cashier / cash123</span></div>
-          </div>
+
+          <p className="text-[11px] text-center text-slate-400 font-semibold">
+            جميع الحقوق محفوظة © ElHadary FIN
+          </p>
+
         </div>
       </div>
     );
   }
 
+  // 2. MAIN APPLICATION AFTER LOGIN
   return (
     <div dir="rtl" className="h-screen w-full bg-slate-50 flex flex-col font-sans select-none overflow-hidden text-slate-800">
       
@@ -231,14 +257,13 @@ export default function SmartPOSApp() {
       <header className="min-h-16 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 shrink-0 shadow-xs z-20 gap-2">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-600/20 text-sm">POS</div>
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md text-sm">POS</div>
             <div>
               <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">النظام المالي الذكي</h1>
-              <p className="text-[10px] text-slate-400 font-semibold">v1.0.1 • ElHadary FIN</p>
+              <p className="text-[10px] text-slate-400 font-semibold">ElHadary FIN Ecosystem</p>
             </div>
           </div>
 
-          {/* تبويبات التنقل الرئيسية شاملة العملاء والمخزون والتقارير */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 text-xs font-bold overflow-x-auto">
             {permissions.canViewDashboard && (
               <button onClick={() => setCurrentView("dashboard")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "dashboard" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
@@ -274,7 +299,7 @@ export default function SmartPOSApp() {
         </div>
       </header>
 
-      {/* 📊 1. DASHBOARD VIEW */}
+      {/* DASHBOARD VIEW */}
       {currentView === "dashboard" && permissions.canViewDashboard && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
           <h2 className="text-xl font-black text-slate-900">لوحة التحكم والأداء اليومي</h2>
@@ -287,7 +312,7 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* 🛒 2. POS VIEW */}
+      {/* POS VIEW */}
       {currentView === "pos" && (
         <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
           <main className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l border-slate-100">
@@ -370,12 +395,10 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* 👥 3. CRM CUSTOMERS VIEW */}
+      {/* CRM CUSTOMERS VIEW */}
       {currentView === "crm" && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black text-slate-900">إدارة العملاء ونقاط الولاء (CRM)</h2>
-          </div>
+          <h2 className="text-xl font-black text-slate-900">إدارة العملاء ونقاط الولاء (CRM)</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {customers.map((c) => (
               <div key={c.id} className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
@@ -394,7 +417,7 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* 📦 4. INVENTORY & ADD PRODUCTS VIEW */}
+      {/* INVENTORY VIEW */}
       {currentView === "inventory" && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
           <div className="flex justify-between items-center">
@@ -407,13 +430,12 @@ export default function SmartPOSApp() {
           <div className="bg-white rounded-2xl border shadow-xs overflow-hidden">
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-50 border-b font-black text-slate-600">
-                <tr><th className="p-3">الصنف</th><th className="p-3">القسم</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3">الحالة</th></tr>
+                <tr><th className="p-3">الصنف</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3">الحالة</th></tr>
               </thead>
               <tbody className="divide-y font-bold">
                 {products.map((p) => (
                   <tr key={p.id}>
                     <td className="p-3 flex items-center gap-2"><span className="text-xl">{p.emoji}</span><span>{p.name}</span></td>
-                    <td className="p-3 text-slate-400">{p.cat}</td>
                     <td className="p-3">{fmt(p.price)} ج.م</td>
                     <td className="p-3 font-black">{p.stock} قطعه</td>
                     <td className="p-3">{p.stock > 0 ? <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">متوفر</span> : <span className="bg-rose-50 text-rose-700 px-2 py-0.5 rounded">منتهي</span>}</td>
@@ -425,7 +447,7 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* 📑 5. REPORTS VIEW */}
+      {/* REPORTS VIEW */}
       {currentView === "reports" && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-4">
           <h2 className="text-xl font-black text-slate-900">التقارير المالية وحركة المبيعات</h2>
@@ -437,7 +459,7 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* MODAL: إتمام إضافة صنف جديد للمخزون */}
+      {/* MODAL: ADD PRODUCT */}
       {showAddProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <form onSubmit={handleAddNewProduct} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
@@ -458,22 +480,13 @@ export default function SmartPOSApp() {
                 <label className="font-bold text-slate-600 block mb-1">الكمية بالمخزن</label>
                 <input type="number" required value={newProdStock} onChange={(e) => setNewProdStock(e.target.value)} placeholder="30" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
               </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">القسم</label>
-                <select value={newProdCat} onChange={(e) => setNewProdCat(e.target.value)} className="w-full h-9 border rounded-xl px-2 font-bold outline-none bg-white">
-                  <option value="hot">مشروبات ساخنة</option>
-                  <option value="cold">مشروبات باردة</option>
-                  <option value="sand">ساندويتشات</option>
-                  <option value="meal">وجبات</option>
-                </select>
-              </div>
             </div>
             <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ وإضافة للمخزون</button>
           </form>
         </div>
       )}
 
-      {/* MODAL: الأحجام والإضافات للأصناف */}
+      {/* MODAL: PRODUCT SIZES */}
       {selectedProduct && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
