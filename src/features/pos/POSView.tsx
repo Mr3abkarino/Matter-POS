@@ -1,144 +1,160 @@
-const handleCheckout = async () => {
-    if (cart.length === 0) return;
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { dbCloud } from '../../db/firebase';
+import { ShoppingCart, Plus, Minus, Printer, Search, X, User, Phone, MapPin, Truck } from 'lucide-react';
 
+export function POSView() {
+  const [selectedCategory, setSelectedCategory] = useState('البيتزا');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [orderType, setOrderType] = useState('تيك أواي');
+  const [cart, setCart] = useState<any[]>([]);
+
+  // الحالات السحابية
+  const [categories, setCategories] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
+
+  // حالات العميل والدليفري
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [selectedZoneId, setSelectedZoneId] = useState<string>('');
+  
+  const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
+
+  // 🔄 المزامنة اللحظية (Real-time Sync)
+  useEffect(() => {
+    const unsubCats = onSnapshot(collection(dbCloud, "categories"), (snap) => {
+      setCategories(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
+      setAllProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
+      setDeliveryZones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => { unsubCats(); unsubProds(); unsubZones(); };
+  }, []);
+
+  const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
+  const deliveryFee = orderType === 'دليفري' && selectedZone ? selectedZone.fee : 0;
+
+  const filteredProducts = allProducts.filter(p => {
+    const matchCategory = p.catId === selectedCategory;
+    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
+
+  const addToCart = (product: any, size?: any) => {
+    const itemKey = size ? `${product.id}-${size.id}` : `${product.id}`;
+    const itemName = size ? `${product.name} (${size.name})` : product.name;
+    const itemPrice = size ? size.price : product.price;
+
+    setCart(prev => {
+      const existing = prev.find(i => i.itemKey === itemKey);
+      if (existing) return prev.map(i => i.itemKey === itemKey ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { itemKey, productId: product.id, name: itemName, price: itemPrice, quantity: 1 }];
+    });
+    setActiveProductForSizes(null);
+  };
+
+  const updateQuantity = (itemKey: string, delta: number) => {
+    setCart(prev => prev.map(i => i.itemKey === itemKey ? { ...i, quantity: i.quantity + delta } : i).filter(i => i.quantity > 0));
+  };
+
+  // 💾 حفظ الفاتورة في السحابة وطباعتها
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
     const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalAmount = subTotal + deliveryFee;
 
-    if (orderType === 'دليفري' && customerPhone) {
-      const existingCust = await db.customers.where('phone').equals(customerPhone).first();
-      if (!existingCust) {
-        await db.customers.add({ name: customerName, phone: customerPhone, address: customerAddress });
-      }
-    }
-
     const invoiceData = {
-      shiftId: 1,
       items: cart,
-      subTotal: subTotal,
-      deliveryFee: deliveryFee,
+      subTotal,
+      deliveryFee,
       total: totalAmount,
-      orderType: orderType,
-      zoneName: selectedZone ? selectedZone.name : '',
-      customerName: orderType === 'دليفري' ? customerName : '',
-      customerPhone: orderType === 'دليفري' ? customerPhone : '',
-      customerAddress: orderType === 'دليفري' ? customerAddress : '',
+      orderType,
+      zoneName: selectedZone?.name || '',
+      customerName,
+      customerPhone,
+      customerAddress,
       createdAt: Date.now()
     };
 
-    const newInvoiceId = await db.invoices.add(invoiceData);
+    // حفظ في Firebase
+    await addDoc(collection(dbCloud, "invoices"), invoiceData);
 
-    // قراءة مقاس ورقة الطابعة الحرارية المخزنة من الإعدادات
-    const printerSetting = await db.settings.get('printer');
-    const paperWidth = printerSetting?.paperWidth === '58mm' ? '200px' : '280px';
-
-    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    // الطباعة الاحترافية
+    const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
       printWindow.document.write(`
-        <html dir="rtl">
-          <head>
-            <title>فاتورة رقم #${newInvoiceId}</title>
-            <style>
-              @page { margin: 0; }
-              body { 
-                font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif; 
-                width: ${paperWidth}; 
-                margin: auto; 
-                padding: 10px 4px; 
-                color: #000; 
-                font-weight: 800; /* خط سميك وواضح جداً للطباعة الحرارية */
-                -webkit-print-color-adjust: exact;
-              }
-              .text-center { text-align: center; }
-              .logo { font-size: 18px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 2px; }
-              .sub-title { font-size: 11px; font-weight: 800; margin-bottom: 2px; }
-              .address { font-size: 9px; font-weight: 700; margin-bottom: 4px; }
-              .divider { border-top: 2px dashed #000; margin: 6px 0; }
-              .solid-divider { border-top: 2px solid #000; margin: 6px 0; }
-              .info-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin-bottom: 3px; }
-              .item-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: 900; border-bottom: 1.5px solid #000; padding-bottom: 3px; margin-bottom: 4px; }
-              .item-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin-bottom: 4px; }
-              .delivery-box { border: 2px solid #000; padding: 6px; border-radius: 6px; margin: 6px 0; font-size: 11px; font-weight: 800; background: #fff; }
-              .total-box { border: 2.5px solid #000; padding: 6px; font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin-top: 6px; }
-              .footer { text-align: center; font-size: 10px; font-weight: 800; margin-top: 8px; }
-            </style>
-          </head>
-          <body>
-            <div class="text-center">
-              <div class="logo">DREAM CORNER</div>
-              <div class="sub-title">دريم كورنر - بيتزا وسندوتشات</div>
-              <div class="sub-title">طعم يفرق .. جودة تليق بك</div>
-              <div class="address">البرامون - بجوار عيادة د. إلهام العشري</div>
-              <div class="sub-title" style="font-size: 12px; margin-top: 3px;">📞 01006113627</div>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="info-row"><span>رقم الفاتورة:</span> <span>#${newInvoiceId}</span></div>
-            <div class="info-row"><span>نوع الطلب:</span> <span>${orderType}</span></div>
-            <div class="info-row"><span>التاريخ:</span> <span>${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div>
-
-            ${orderType === 'دليفري' ? `
-              <div class="delivery-box">
-                <div><b>العميل:</b> ${customerName || 'غير محدد'}</div>
-                <div><b>الهاتف:</b> ${customerPhone || '-'}</div>
-                <div><b>المنطقة:</b> ${selectedZone ? selectedZone.name : '-'}</div>
-                <div><b>العنوان:</b> ${customerAddress || '-'}</div>
-              </div>
-            ` : ''}
-
-            <div class="divider"></div>
-
-            <div class="item-header">
-              <span>الصنف</span>
-              <span>الإجمالي</span>
-            </div>
-
-            <div>
-              ${cart.map(item => `
-                <div class="item-row">
-                  <span>${item.name} <br/> <small>(${item.quantity} × ${item.price})</small></span>
-                  <span>${item.price * item.quantity} ج.م</span>
-                </div>
-              `).join('')}
-            </div>
-
-            ${orderType === 'دليفري' ? `
-              <div class="divider"></div>
-              <div class="info-row">
-                <span>المجموع:</span>
-                <span>${subTotal} ج.م</span>
-              </div>
-              <div class="info-row">
-                <span>خدمة التوصيل (${selectedZone?.name || ''}):</span>
-                <span>${deliveryFee} ج.م</span>
-              </div>
-            ` : ''}
-
-            <div class="total-box">
-              <span>الصافي المطلوب:</span>
-              <span>${totalAmount} ج.م</span>
-            </div>
-
-            <div class="solid-divider"></div>
-
-            <div class="footer">
-              شكراً لزيارتكم دريم كورنر! ❤️<br/>
-              خدمة سريعة - جودة عالية
-            </div>
-          </body>
-        </html>
+        <html dir="rtl"><head>
+        <style>
+          body { font-family: Tahoma; width: 280px; margin: auto; font-weight: 800; }
+          .divider { border-top: 2px dashed #000; margin: 6px 0; }
+          .info { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+          .total { border: 2.5px solid #000; padding: 6px; font-size: 14px; display: flex; justify-content: space-between; margin-top: 6px; }
+        </style></head>
+        <body>
+          <h2 style="text-align:center; margin:0">DREAM CORNER</h2>
+          <div class="divider"></div>
+          ${cart.map(i => `<div class="info"><span>${i.name} (${i.quantity}x)</span><span>${i.price * i.quantity} ج.م</span></div>`).join('')}
+          <div class="total"><span>الصافي:</span><span>${totalAmount} ج.م</span></div>
+        </body></html>
       `);
       printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 350);
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 350);
     }
 
-    setCart([]);
-    setCustomerName('');
-    setCustomerPhone('');
-    setCustomerAddress('');
-    setSelectedZoneId('');
+    setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId('');
   };
+
+  return (
+    <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl">
+      {/* الأصناف */}
+      <div className="flex-1 p-3 overflow-hidden">
+        <input className="w-full p-2 mb-3 rounded-xl border" placeholder="بحث..." onChange={(e) => setSearchQuery(e.target.value)} />
+        <div className="flex gap-2 overflow-x-auto pb-3">
+          {categories.map(c => (
+            <button key={c.id} onClick={() => setSelectedCategory(c.label)} className={`px-4 py-2 rounded-xl font-bold text-xs ${selectedCategory === c.label ? 'bg-indigo-600 text-white' : 'bg-white'}`}>
+              {c.emoji} {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {filteredProducts.map(p => (
+            <div key={p.id} className="bg-white p-3 rounded-xl border cursor-pointer" onClick={() => p.sizes?.length ? setActiveProductForSizes(p) : addToCart(p)}>
+              <span className="text-xl">{p.emoji}</span>
+              <h4 className="font-bold text-xs">{p.name}</h4>
+              <p className="text-indigo-600 font-bold text-xs">{p.price} ج.م</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* السلة */}
+      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 p-3 flex flex-col">
+        {orderType === 'دليفري' && (
+          <select onChange={(e) => setSelectedZoneId(e.target.value)} className="w-full p-2 mb-2 rounded-lg border text-xs">
+            <option value="">اختر المنطقة...</option>
+            {deliveryZones.map(z => <option key={z.id} value={z.id}>{z.name} ({z.fee} ج.م)</option>)}
+          </select>
+        )}
+        <div className="flex-1 overflow-y-auto">
+          {cart.map(i => (
+            <div key={i.itemKey} className="flex justify-between p-2 border-b text-xs font-bold">
+              <span>{i.name} ({i.quantity})</span>
+              <span>{i.price * i.quantity} ج.م</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={handleCheckout} className="bg-indigo-600 text-white p-3 rounded-xl font-black mt-2">
+          إجمالي: {cart.reduce((s, i) => s + (i.price * i.quantity), 0) + deliveryFee} ج.م
+        </button>
+      </div>
+    </div>
+  );
+}
