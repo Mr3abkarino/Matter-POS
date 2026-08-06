@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { Plus, Trash2, FolderPlus, Utensils, CloudUpload } from 'lucide-react';
+import { Plus, Trash2, FolderPlus, Utensils, UploadCloud } from 'lucide-react';
 
 export function MenuManagementView() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -115,7 +115,7 @@ export function MenuManagementView() {
           onClick={seedInitialData}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95"
         >
-          <CloudUpload size={18} />
+          <UploadCloud size={18} />
           <span>رفع المنيو والمناطق الأساسية للسحابة</span>
         </button>
       </div>
