@@ -23,7 +23,7 @@ export function POSView() {
   // مودال الأحجام
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
 
-  // 🔄 المزامنة اللحظية مع إضافة مناطق الدليفري تلقائياً لو القاعدة فاضية
+  // 🔄 المزامنة اللحظية
   useEffect(() => {
     const unsubCats = onSnapshot(collection(dbCloud, "categories"), (snap) => {
       setRawCategories(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -35,7 +35,7 @@ export function POSView() {
 
     const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), async (snap) => {
       if (snap.empty) {
-        // 🚀 تنزيل مناطق الدليفري الأساسية تلقائياً
+        // تنزيل مناطق الدليفري الأساسية تلقائياً
         const defaultZones = [
           { name: 'البرامون (داخل البلد)', fee: 10 },
           { name: 'البرامون (بر الترعة)', fee: 20 },
@@ -56,9 +56,13 @@ export function POSView() {
     return () => { unsubCats(); unsubProds(); unsubZones(); };
   }, []);
 
-  // 🧹 إزالة الأقسام المكررة للعرض في الشريط
+  // 🧹 إزالة الأقسام المكررة للعرض
   const categories = Array.from(new Set(rawCategories.map(c => c.label)))
     .map(label => rawCategories.find(c => c.label === label));
+
+  // 🧹 إزالة مناطق التوصيل المكررة للعرض في القائمة
+  const uniqueDeliveryZones = Array.from(new Set(deliveryZones.map(z => z.name)))
+    .map(name => deliveryZones.find(z => z.name === name));
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
@@ -157,20 +161,33 @@ export function POSView() {
     }
   };
 
-  // 🧹 تنظيف الأقسام المكررة أونلاين
+  // 🧹 تنظيف الأقسام والمناطق المكررة
   const clearDuplicates = async () => {
     if (!confirm("هل تريد تنظيف قاعدة البيانات وإزالة التكرارات؟")) return;
+    
+    // تنظيف الأقسام
     const catSnap = await getDocs(collection(dbCloud, "categories"));
     const seenLabels = new Set();
     for (const d of catSnap.docs) {
-      const data = d.data();
-      if (seenLabels.has(data.label)) {
+      if (seenLabels.has(d.data().label)) {
         await deleteDoc(doc(dbCloud, "categories", d.id));
       } else {
-        seenLabels.add(data.label);
+        seenLabels.add(d.data().label);
       }
     }
-    alert("تم تنظيف الأقسام المكررة بنجاح!");
+
+    // تنظيف المناطق
+    const zoneSnap = await getDocs(collection(dbCloud, "deliveryZones"));
+    const seenZones = new Set();
+    for (const d of zoneSnap.docs) {
+      if (seenZones.has(d.data().name)) {
+        await deleteDoc(doc(dbCloud, "deliveryZones", d.id));
+      } else {
+        seenZones.add(d.data().name);
+      }
+    }
+
+    alert("تم تنظيف الأقسام والمناطق المكررة بنجاح!");
   };
 
   return (
@@ -262,8 +279,8 @@ export function POSView() {
               className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
             >
               <option value="">اختر منطقة التوصيل...</option>
-              {deliveryZones.map(z => (
-                <option key={z.id} value={z.id}>
+              {uniqueDeliveryZones.map(z => z && (
+                <option key={z.id || z.name} value={z.id}>
                   {z.name} (+{z.fee} ج.م)
                 </option>
               ))}
