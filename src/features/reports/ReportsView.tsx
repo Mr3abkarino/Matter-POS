@@ -1,21 +1,62 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/dexie';
-import { BarChart3, TrendingUp, ShoppingBag, DollarSign } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingBag, DollarSign, Calendar } from 'lucide-react';
 
 export function ReportsView() {
-  const invoices = useLiveQuery(() => db.invoices.toArray()) || [];
+  const [filterPeriod, setFilterPeriod] = useState<'today' | 'yesterday' | 'week' | 'month' | 'all'>('today');
+  const allInvoices = useLiveQuery(() => db.invoices.toArray()) || [];
 
-  const totalSales = invoices.reduce((sum, inv) => sum + inv.total, 0);
-  const totalOrders = invoices.length;
+  // تصفية الفواتير حسب الفترة الزمنية المحددة
+  const filteredInvoices = allInvoices.filter(inv => {
+    const invDate = new Date(inv.createdAt);
+    const now = new Date();
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 86400000;
+    const startOfWeek = startOfToday - (now.getDay() * 86400000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    if (filterPeriod === 'today') return inv.createdAt >= startOfToday;
+    if (filterPeriod === 'yesterday') return inv.createdAt >= startOfYesterday && inv.createdAt < startOfToday;
+    if (filterPeriod === 'week') return inv.createdAt >= startOfWeek;
+    if (filterPeriod === 'month') return inv.createdAt >= startOfMonth;
+    return true; // كل المدة
+  });
+
+  const totalSales = filteredInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const totalOrders = filteredInvoices.length;
   const avgOrderValue = totalOrders > 0 ? (totalSales / totalOrders).toFixed(1) : 0;
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
-      <h1 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
-        <BarChart3 className="text-indigo-600" size={28} />
-        <span>التقارير والأرباح</span>
-      </h1>
+    <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <h1 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
+          <BarChart3 className="text-indigo-600" size={28} />
+          <span>التقارير والأرباح</span>
+        </h1>
+
+        {/* أزرار الفلترة الزمنية */}
+        <div className="flex gap-1 bg-slate-200 p-1 rounded-2xl w-full md:w-auto overflow-x-auto">
+          {[
+            { id: 'today', label: 'اليوم' },
+            { id: 'yesterday', label: 'أمس' },
+            { id: 'week', label: 'هذا الأسبوع' },
+            { id: 'month', label: 'هذا الشهر' },
+            { id: 'all', label: 'كل المدة' },
+          ].map(p => (
+            <button
+              key={p.id}
+              onClick={() => setFilterPeriod(p.id as any)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                filterPeriod === p.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* كروت الإحصائيات */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -24,7 +65,7 @@ export function ReportsView() {
             <DollarSign size={24} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-500">إجمالي المبيعات</p>
+            <p className="text-xs font-bold text-slate-500">إجمالي المبيعات</p>
             <h3 className="text-2xl font-black text-slate-900">{totalSales} ج.م</h3>
           </div>
         </div>
@@ -34,7 +75,7 @@ export function ReportsView() {
             <ShoppingBag size={24} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-500">إجمالي الطلبات</p>
+            <p className="text-xs font-bold text-slate-500">عدد الطلبات</p>
             <h3 className="text-2xl font-black text-slate-900">{totalOrders} طلب</h3>
           </div>
         </div>
@@ -44,28 +85,26 @@ export function ReportsView() {
             <TrendingUp size={24} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-500">متوسط قيمة الطلب</p>
+            <p className="text-xs font-bold text-slate-500">متوسط قيمة الطلب</p>
             <h3 className="text-2xl font-black text-slate-900">{avgOrderValue} ج.م</h3>
           </div>
         </div>
       </div>
 
-      {/* سجل الفواتير المفصل */}
+      {/* سجل المبيعات */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex-1">
-        <h3 className="font-bold text-lg text-slate-800 mb-4">سجل حركة المبيعات الأخيرة</h3>
-        {invoices.length === 0 ? (
-          <p className="text-slate-400 text-center py-10">لا توجد مبيعات مسجلة حتى الآن</p>
+        <h3 className="font-bold text-slate-800 text-sm mb-4">تفاصيل الحركة عن الفترة المختارة</h3>
+        {filteredInvoices.length === 0 ? (
+          <p className="text-slate-400 text-center py-10 text-xs">لا توجد مبيعات في هذه الفترة</p>
         ) : (
-          <div className="flex flex-col gap-3">
-            {invoices.map((inv: any) => (
-              <div key={inv.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="flex flex-col gap-2">
+            {filteredInvoices.map((inv: any) => (
+              <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <div>
-                  <span className="font-bold text-indigo-600 text-sm">فاتورة #{inv.id}</span>
-                  <p className="text-xs text-slate-500">{new Date(inv.createdAt).toLocaleString('ar-EG')} - ({inv.orderType})</p>
+                  <span className="font-bold text-indigo-600 text-xs">فاتورة #{inv.id} ({inv.orderType})</span>
+                  <p className="text-[10px] text-slate-400">{new Date(inv.createdAt).toLocaleString('ar-EG')}</p>
                 </div>
-                <div className="text-left">
-                  <span className="font-black text-slate-900 text-base">{inv.total} ج.م</span>
-                </div>
+                <span className="font-black text-slate-900 text-sm">{inv.total} ج.م</span>
               </div>
             ))}
           </div>
