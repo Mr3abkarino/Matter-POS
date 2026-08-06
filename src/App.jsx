@@ -4,14 +4,11 @@ import {
   Coffee, IceCream, Sandwich, UtensilsCrossed, GlassWater,
   Receipt, Sparkles, Bike, ShoppingBag, Utensils, Phone, User,
   Flame, Printer, LayoutDashboard, Users, Package,
-  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag, ShoppingCart, Eye, Lock, Edit3, Calendar, RotateCcw, Award, CheckCircle2, Clock
+  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag, ShoppingCart, Eye, Lock, Edit3, Calendar, RotateCcw, Award, CheckCircle2, Clock, Unlock
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
-} from "recharts";
 
 /* ---------------- 📌 VERSION CONTROL ---------------- */
-const APP_VERSION = "5.0.0";
+const APP_VERSION = "5.5.0";
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -20,30 +17,21 @@ const DEFAULT_RESTAURANT = {
   logoUrl: "",
   address: "البرامون - الدقهلية",
   phone: "01012345678",
-  printerName: "POS-80 Thermal Printer",
   receiptFooter: "شكراً لزيارتكم دريم كورنر! نتمنى لكم وجبة شهية ❤️",
   paperWidth: "80mm",
   autoPrint: true
 };
 
-const DEFAULT_DRIVERS = [
-  { id: 1, name: "محمد السيد (طياّر)" },
-  { id: 2, name: "أحمد حسام (طياّر)" },
-  { id: 3, name: "حسن محمود (طياّر)" }
-];
-
 const DEFAULT_USERS_DB = [
   { id: 1, username: "admin", password: "admin123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin" },
   { id: 2, username: "manager", password: "mgr123", name: "أحمد علي", role: "manager", roleLabel: "👔 Manager" },
   { id: 3, username: "cashier", password: "cash123", name: "محمود الكاشير", role: "cashier", roleLabel: "💳 Cashier" },
-  { id: 4, username: "waiter", password: "waiter123", name: "مصطفى الويتر", role: "waiter", roleLabel: "🍽️ Waiter" },
 ];
 
 const ROLE_PERMISSIONS = {
   admin: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true, canManageInvoices: true, canSettings: true },
   manager: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true, canManageInvoices: true, canSettings: true },
   cashier: { canViewDashboard: false, canCheckout: true, canCRM: true, canInventory: false, canReports: false, canManageInvoices: false, canSettings: false },
-  waiter: { canViewDashboard: false, canCheckout: false, canCRM: false, canInventory: false, canReports: false, canManageInvoices: false, canSettings: false },
 };
 
 const DEFAULT_CATEGORIES = [
@@ -64,19 +52,10 @@ const DEFAULT_DELIVERY_ZONES = [
   { id: 8, name: "شربين", fee: 80 }
 ];
 
-const DEFAULT_CUSTOMERS = [
-  { id: 1, name: "محمد مطر", phone: "01012345678", address: "البرامون - شارع البحر", points: 150, debt: 0.0 },
-  { id: 2, name: "أحمد علي", phone: "01122334455", address: "سرسو البرامون", points: 45, debt: 80.0 },
-];
-
 const DEFAULT_PRODUCTS = [
   { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 45 }, { id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 90 }] },
   { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
   { id: "p3", cat: "البيتزا", name: "بيتزا خضروات", price: 60, emoji: "🥦", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
-  { id: "p4", cat: "البيتزا", name: "بيتزا هوت دوج", price: 70, emoji: "🌭", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 135 }] },
-  { id: "p5", cat: "البيتزا", name: "بيتزا سجق", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 135 }] },
-  { id: "p6", cat: "البيتزا", name: "بيتزا لحمة مفرومة", price: 75, emoji: "🥩", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 75 }, { id: "md", name: "وسط", price: 110 }, { id: "lg", name: "كبير", price: 145 }] },
-  { id: "p9", cat: "البيتزا", name: "بيتزا شاورما دجاج ⭐", price: 80, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 120 }, { id: "lg", name: "كبير", price: 155 }] },
   { id: "s1", cat: "السندوتشات", name: "كفتة مشوية", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
   { id: "s7", cat: "السندوتشات", name: "زنجر سوبريم ⭐", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "md", name: "وسط", price: 80 }, { id: "lg", name: "كبير", price: 95 }] },
   { id: "sd1", cat: "الأصناف الجانبية", name: "بطاطس مقلية ذهبية", price: 35, emoji: "🍟", stock: 100 },
@@ -90,10 +69,9 @@ export default function SmartPOSApp() {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.setItem("pos_products_v50", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v50", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v50", JSON.stringify(DEFAULT_CATEGORIES));
-      localStorage.setItem("pos_customers_v50", JSON.stringify(DEFAULT_CUSTOMERS));
+      localStorage.setItem("pos_products_v55", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v55", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v55", JSON.stringify(DEFAULT_CATEGORIES));
     }
   }, []);
 
@@ -103,21 +81,25 @@ export default function SmartPOSApp() {
   });
 
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
-  const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v50") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v50") || JSON.stringify(DEFAULT_PRODUCTS)));
-  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders_v50") || "[]"));
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v50") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
-  const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem("pos_customers_v50") || JSON.stringify(DEFAULT_CUSTOMERS)));
-  const [drivers] = useState(DEFAULT_DRIVERS);
+  const [usersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
+  const [categories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v55") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v55") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders_v55") || "[]"));
+  const [deliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v55") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+
+  // 🔑 حالة الوردية الحالية
+  const [activeShift, setActiveShift] = useState(() => JSON.parse(localStorage.getItem("pos_active_shift") || "null"));
+  const [openingCashInput, setOpeningCashInput] = useState("");
+
+  // 🔒 حالة تقفيل الوردية
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [closingCashInput, setClosingCashInput] = useState("");
+  const [shiftReport, setShiftReport] = useState(null);
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
-  useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories_v50", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v50", JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem("pos_orders_v50", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v50", JSON.stringify(deliveryZones)); }, [deliveryZones]);
-  useEffect(() => { localStorage.setItem("pos_customers_v50", JSON.stringify(customers)); }, [customers]);
+  useEffect(() => { localStorage.setItem("pos_products_v55", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_orders_v55", JSON.stringify(completedOrders)); }, [completedOrders]);
+  useEffect(() => { localStorage.setItem("pos_active_shift", JSON.stringify(activeShift)); }, [activeShift]);
 
   // Auth & UI States
   const [usernameInput, setUsernameInput] = useState("");
@@ -135,22 +117,14 @@ export default function SmartPOSApp() {
   const [orderType, setOrderType] = useState("takeaway");
   
   const [selectedZone, setSelectedDeliveryZone] = useState(deliveryZones[0] || DEFAULT_DELIVERY_ZONES[0]);
-  const [selectedDriver, setSelectedDriver] = useState(drivers[0].name);
   const [customerPhoneInput, setCustomerPhoneInput] = useState("");
   const [customerNameInput, setCustomerNameInput] = useState("");
-  const [customerAddressInput, setCustomerAddressInput] = useState("");
 
   // Modals States
   const [selectedProductModal, setSelectedProductModal] = useState(null);
   const [activeSize, setActiveSize] = useState(null);
   const [stuffedCrust, setStuffedCrust] = useState(false);
-
-  // Settle Debt Modal
-  const [settleDebtCustomer, setSettleDebtCustomer] = useState(null);
-  const [settleAmountInput, setSettleAmountInput] = useState("");
-
   const [viewInvoiceModal, setViewInvoiceModal] = useState(null);
-  const [invoiceFilter, setInvoiceFilter] = useState("all"); // all, pending_delivery, paid
 
   const currentTicketNo = completedOrders.length + 1;
 
@@ -172,6 +146,57 @@ export default function SmartPOSApp() {
     localStorage.removeItem("pos_session_user");
     setCurrentUser(null);
     setUsernameInput(""); setPasswordInput(""); setCart([]);
+  };
+
+  // 🔓 دالة فتح وردية جديدة وبدء التشغيل
+  const handleOpenNewShift = (e) => {
+    e.preventDefault();
+    const openingBalance = Number(openingCashInput) || 0;
+    const newShiftObj = {
+      id: Date.now(),
+      cashier: currentUser.name,
+      openingTime: new Date().toLocaleTimeString("ar-EG"),
+      openingDate: new Date().toLocaleDateString("ar-EG"),
+      openingBalance: openingBalance,
+      startTimeStamp: Date.now()
+    };
+    setActiveShift(newShiftObj);
+    setOpeningCashInput("");
+  };
+
+  // 🔒 دالة تجهيز وتقفيل الوردية الحالية
+  const handleCalculateCloseShift = () => {
+    if (!activeShift) return;
+    const shiftOrders = completedOrders.filter(o => o.shiftId === activeShift.id && o.status !== "cancelled");
+    const totalSales = shiftOrders.reduce((a, b) => a + b.total, 0);
+    const expectedInDrawer = activeShift.openingBalance + totalSales;
+    const actualEntered = Number(closingCashInput) || 0;
+    const diff = actualEntered - expectedInDrawer;
+
+    const report = {
+      cashier: activeShift.cashier,
+      openingDate: activeShift.openingDate,
+      openingTime: activeShift.openingTime,
+      closingTime: new Date().toLocaleTimeString("ar-EG"),
+      openingBalance: activeShift.openingBalance,
+      totalSales: totalSales,
+      ordersCount: shiftOrders.length,
+      expectedInDrawer,
+      actualEntered,
+      diff,
+      statusMessage: diff === 0 ? "متطابق تماماً ✅" : diff > 0 ? `زيادة قدرها +${diff} ج.م` : `عجز قدره ${diff} ج.م ⚠️`
+    };
+
+    setShiftReport(report);
+  };
+
+  // 📝 تأكيد إنهاء الوردية وبدء واحدة جديدة
+  const handleFinalizeShiftClose = () => {
+    setActiveShift(null);
+    setShowCloseShiftModal(false);
+    setClosingCashInput("");
+    setShiftReport(null);
+    alert("✅ تم تقفيل الوردية بنجاح! يمكنك الآن بدء وردية جديدة.");
   };
 
   const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
@@ -218,22 +243,20 @@ export default function SmartPOSApp() {
   };
 
   const checkout = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !activeShift) return;
 
     const newOrder = {
       id: Date.now(),
+      shiftId: activeShift.id, // ربط بالوردية الحالية
       ticketNo: currentTicketNo,
       total,
       subtotal,
       deliveryFee: deliveryFeeCalculated,
       zoneName: orderType === "delivery" ? selectedZone?.name : null,
-      driverName: orderType === "delivery" ? selectedDriver : null,
       orderType,
       customerName: customerNameInput || "عميل نقدًا",
       customerPhone: customerPhoneInput || "",
-      customerAddress: customerAddressInput || "",
       items: [...cart],
-      paymentStatus: orderType === "delivery" ? "pending" : "paid", // pending (غير مدفوع مع الطيار) | paid
       status: "completed",
       date: new Date().toLocaleDateString("ar-EG"),
       time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
@@ -248,25 +271,8 @@ export default function SmartPOSApp() {
     }));
 
     setCart([]);
-    setCustomerNameInput(""); setCustomerPhoneInput(""); setCustomerAddressInput("");
+    setCustomerNameInput(""); setCustomerPhoneInput("");
     setMobileCartDrawerOpen(false);
-  };
-
-  // 🛵 تأكيد تحصيل المبلغ وسداد الطيار للأوردر
-  const handleSettleDriverOrder = (orderId) => {
-    setCompletedOrders((prev) => prev.map((ord) => ord.id === orderId ? { ...ord, paymentStatus: "paid" } : ord));
-    alert("✅ تم تأكيد استلام النقدية وسداد أوردر الدليفري بنجاح!");
-  };
-
-  // 💵 سداد دين عميل
-  const handleSettleCustomerDebt = (e) => {
-    e.preventDefault();
-    if (!settleDebtCustomer || !settleAmountInput) return;
-    const amount = Number(settleAmountInput);
-    setCustomers((prev) => prev.map((c) => c.id === settleDebtCustomer.id ? { ...c, debt: Math.max(0, c.debt - amount) } : c));
-    setSettleDebtCustomer(null);
-    setSettleAmountInput("");
-    alert("✅ تم تسجيل السداد بنجاح!");
   };
 
   if (!currentUser) {
@@ -278,7 +284,7 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Pro Edition v{APP_VERSION}</p>
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Shift Manager v{APP_VERSION}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -292,16 +298,41 @@ export default function SmartPOSApp() {
     );
   }
 
-  // فلترة الفواتير حسب حالة الدليفري والسداد
-  const displayedOrders = completedOrders.filter((ord) => {
-    if (invoiceFilter === "pending_delivery") return ord.orderType === "delivery" && ord.paymentStatus === "pending";
-    if (invoiceFilter === "paid") return ord.paymentStatus === "paid";
-    return true;
-  });
-
   return (
     <div dir="rtl" className="h-screen w-full bg-slate-50 flex font-sans select-none overflow-hidden text-slate-800 relative">
       
+      {/* 🔓 1. MODAL فتح وردية جديدة عند بدء التشغيل إذا كانت الوردية مغلقة */}
+      {!activeShift && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleOpenNewShift} className="bg-white rounded-3xl max-w-sm w-full p-8 space-y-6 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <Unlock size={32} />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-black text-slate-900">بدء وفتح وردية جديدة</h3>
+              <p className="text-xs text-slate-400 font-bold mt-1">مسؤول الوردية الحالي: {currentUser.name}</p>
+            </div>
+
+            <div className="text-right space-y-1.5 text-xs">
+              <label className="font-bold text-slate-700 block">النقدية الافتتاحية بالدرج (الرصيد/الفكة)</label>
+              <input
+                type="number"
+                required
+                value={openingCashInput}
+                onChange={(e) => setOpeningCashInput(e.target.value)}
+                placeholder="أدخل المبلغ الافتتاحي (مثلاً 200)..."
+                className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-4 font-black text-indigo-600 text-base outline-none focus:border-indigo-600"
+              />
+            </div>
+
+            <button type="submit" className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/20">
+              تأكيد فتح الوردية وبدء البيع 🚀
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* HEADER FOR MOBILE TOGGLE */}
       <header className="lg:hidden h-14 bg-slate-900 text-white px-4 flex items-center justify-between z-20 shrink-0 w-full fixed top-0 inset-x-0">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 text-slate-300 hover:text-white">
@@ -342,13 +373,7 @@ export default function SmartPOSApp() {
 
             {permissions.canManageInvoices && (
               <button onClick={() => { setCurrentView("invoices"); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all ${currentView === "invoices" ? "bg-indigo-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-400"}`}>
-                <FileText size={18} /> <span>الفواتير والدليفري ({completedOrders.length})</span>
-              </button>
-            )}
-
-            {permissions.canCRM && (
-              <button onClick={() => { setCurrentView("crm"); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all ${currentView === "crm" ? "bg-indigo-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-400"}`}>
-                <Users size={18} /> <span>العملاء والديون</span>
+                <FileText size={18} /> <span>الفواتير ({completedOrders.length})</span>
               </button>
             )}
 
@@ -360,14 +385,23 @@ export default function SmartPOSApp() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between">
-          <div className="truncate">
-            <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
-            <p className="text-[10px] text-indigo-400 font-bold">{currentUser.roleLabel}</p>
+        {/* 🔒 زر تقفيل الوردية الحالية بالأسفل */}
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          {activeShift && (
+            <button onClick={() => setShowCloseShiftModal(true)} className="w-full py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+              <Lock size={14} /> <span>تقفيل الوردية الحالية</span>
+            </button>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            <div className="truncate">
+              <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
+              <p className="text-[10px] text-indigo-400 font-bold">{currentUser.roleLabel}</p>
+            </div>
+            <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-rose-400 hover:bg-slate-800 rounded-xl">
+              <LogOut size={16} />
+            </button>
           </div>
-          <button onClick={handleLogout} title="تسجيل الخروج" className="p-2 text-rose-400 hover:bg-slate-800 rounded-xl">
-            <LogOut size={16} />
-          </button>
         </div>
       </aside>
 
@@ -378,7 +412,7 @@ export default function SmartPOSApp() {
         
         {/* POS VIEW */}
         {currentView === "pos" && (
-          <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 relative pb-24 md:pb-0">
             <div className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l overflow-hidden">
               
               {/* STICKY CATEGORIES BAR */}
@@ -394,7 +428,7 @@ export default function SmartPOSApp() {
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث صنف..." className="h-8 bg-slate-100 rounded-xl px-3 text-xs outline-none w-full sm:w-48" />
               </div>
 
-              {/* 📌 1. Grid Products With pb-40 to make sure bottom items show clearly */}
+              {/* Grid Products */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-40">
                 <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
                   {products.filter(p=>p.cat===activeCat && p.name.includes(query)).map((p) => (
@@ -435,33 +469,15 @@ export default function SmartPOSApp() {
 
                 {orderType === "delivery" && (
                   <div className="p-2.5 bg-indigo-50 border border-indigo-100 rounded-xl space-y-2 text-xs">
-                    <div>
-                      <label className="font-bold text-indigo-900 block mb-1">منطقة التوصيل:</label>
-                      <select
-                        value={selectedZone?.id}
-                        onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
-                        className="w-full h-7 bg-white border rounded-lg px-2 font-bold outline-none"
-                      >
-                        {deliveryZones.map((z) => (
-                          <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* 📌 اختيار اسم طيار الدليفري */}
-                    <div>
-                      <label className="font-bold text-indigo-900 block mb-1">طيار التوصيل:</label>
-                      <select
-                        value={selectedDriver}
-                        onChange={(e) => setSelectedDriver(e.target.value)}
-                        className="w-full h-7 bg-white border rounded-lg px-2 font-bold outline-none"
-                      >
-                        {drivers.map((d) => (
-                          <option key={d.id} value={d.name}>{d.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
+                    <select
+                      value={selectedZone?.id}
+                      onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
+                      className="w-full h-7 bg-white border rounded-lg px-2 font-bold outline-none"
+                    >
+                      {deliveryZones.map((z) => (
+                        <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
+                      ))}
+                    </select>
                     <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
                     <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
                   </div>
@@ -503,106 +519,37 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* 🛵 3. INVOICES & DELIVERY ORDERS TRACKING HUB */}
+        {/* INVOICES HUB */}
         {currentView === "invoices" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <div>
-                <h2 className="text-xl font-black text-slate-900">سجل الفواتير ومتابعة الدليفري</h2>
-                <p className="text-xs text-slate-400 font-semibold">متابعة الأوردرات المسلمة مع الطيار والتحصيل</p>
-              </div>
-
-              {/* أزرار الفلترة للأوردرات المعلقة والمدفوعة */}
-              <div className="flex bg-white p-1 rounded-xl border text-xs font-bold">
-                <button onClick={() => setInvoiceFilter("all")} className={`px-3 py-1.5 rounded-lg ${invoiceFilter === "all" ? "bg-indigo-600 text-white" : "text-slate-500"}`}>الكل ({completedOrders.length})</button>
-                <button onClick={() => setInvoiceFilter("pending_delivery")} className={`px-3 py-1.5 rounded-lg ${invoiceFilter === "pending_delivery" ? "bg-amber-600 text-white" : "text-amber-600"}`}>
-                  🛵 مع الطيار ({completedOrders.filter(o=>o.orderType==="delivery" && o.paymentStatus==="pending").length})
-                </button>
-                <button onClick={() => setInvoiceFilter("paid")} className={`px-3 py-1.5 rounded-lg ${invoiceFilter === "paid" ? "bg-emerald-600 text-white" : "text-emerald-600"}`}>المدفوعة المسلمة</button>
-              </div>
-            </div>
-
+            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة ({completedOrders.length})</h2>
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
-              <table className="w-full text-right text-xs min-w-[650px]">
+              <table className="w-full text-right text-xs min-w-[550px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
                   <tr>
                     <th className="p-3">الفاتورة</th>
-                    <th className="p-3">النوع / الطيار</th>
-                    <th className="p-3">العميل والتليفون</th>
+                    <th className="p-3">التاريخ والوقت</th>
+                    <th className="p-3">النوع</th>
+                    <th className="p-3">الكاشير</th>
                     <th className="p-3">الإجمالي</th>
-                    <th className="p-3">حالة السداد</th>
-                    <th className="p-3 text-center">التحكم والسداد</th>
+                    <th className="p-3 text-center">عرض التفاصيل</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y font-bold">
-                  {displayedOrders.map((o) => (
+                  {completedOrders.map((o) => (
                     <tr key={o.id}>
                       <td className="p-3 font-mono font-black text-indigo-600">#{o.ticketNo}</td>
-                      <td className="p-3">
-                        <div>{o.orderType === "delivery" ? "🛵 دليفري" : "🛍️ تيك أواي"}</div>
-                        {o.driverName && <div className="text-[10px] text-indigo-600 font-bold">{o.driverName}</div>}
-                      </td>
-                      <td className="p-3">
-                        <div>{o.customerName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{o.customerPhone}</div>
-                      </td>
+                      <td className="p-3 text-slate-500">{o.date} - {o.time}</td>
+                      <td className="p-3">{o.orderType}</td>
+                      <td className="p-3">{o.cashier}</td>
                       <td className="p-3 font-black text-emerald-600">{fmt(o.total)} ج.م</td>
-                      <td className="p-3">
-                        {o.paymentStatus === "pending" ? (
-                          <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 w-max">
-                            <Clock size={11} /> لم يُسدد (مع الطيار)
-                          </span>
-                        ) : (
-                          <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 w-max">
-                            <CheckCircle2 size={11} /> مدفوع ومستلم
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center space-x-1.5 space-x-reverse">
-                        {/* 📌 زر تأكيد سداد الطيار للأوردر */}
-                        {o.paymentStatus === "pending" && (
-                          <button onClick={() => handleSettleDriverOrder(o.id)} className="px-3 py-1 bg-emerald-600 text-white rounded-lg font-black text-[11px]">
-                            تأكيد التحصيل ✅
-                          </button>
-                        )}
+                      <td className="p-3 text-center">
                         <button onClick={() => setViewInvoiceModal(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><Eye size={15} /></button>
-                        <button onClick={() => handlePrintReceipt(o)} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg"><Printer size={15} /></button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-        )}
-
-        {/* 👥 2. CRM CUSTOMERS & DEBT SETTLEMENT VIEW */}
-        {currentView === "crm" && permissions.canCRM && (
-          <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl font-black text-slate-900">دليل العملاء وسداد الديون</h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {customers.map((c) => (
-                <div key={c.id} className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-black text-sm text-slate-900">{c.name}</h3>
-                      <p className="text-xs text-slate-400">{c.address}</p>
-                    </div>
-                    <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{c.phone}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs font-bold pt-2 border-t">
-                    <span className="text-rose-600">الديون: {fmt(c.debt)} ج.م</span>
-                    
-                    {/* 📌 زر سداد الدين */}
-                    {c.debt > 0 && (
-                      <button onClick={() => setSettleDebtCustomer(c)} className="px-3 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl font-bold">
-                        سداد دين 💰
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -638,23 +585,58 @@ export default function SmartPOSApp() {
 
       </main>
 
-      {/* 📌 MODAL: سداد دين العميل */}
-      {settleDebtCustomer && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSettleCustomerDebt} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      {/* 🔒 2. MODAL تقفيل الوردية والجرد المباشر */}
+      {showCloseShiftModal && activeShift && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>سداد دين: {settleDebtCustomer.name}</span>
-              <button type="button" onClick={() => setSettleDebtCustomer(null)}><X size={18} /></button>
+              <span className="flex items-center gap-2 text-rose-600"><Lock size={18} /> تقفيل وتسليم الوردية</span>
+              <button onClick={() => setShowCloseShiftModal(false)}><X size={18} /></button>
             </div>
-            <div className="space-y-2 text-xs">
-              <p className="text-rose-600 font-bold">المبلغ المتبقي المديون به: {fmt(settleDebtCustomer.debt)} ج.م</p>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">المبلغ المحصل الآن (ج.م)</label>
-                <input type="number" required value={settleAmountInput} onChange={(e) => setSettleAmountInput(e.target.value)} placeholder="المبلغ..." className="w-full h-10 border rounded-xl px-3 font-black outline-none text-indigo-600" />
+
+            {!shiftReport ? (
+              <div className="space-y-4 text-xs font-bold">
+                <div className="p-3 bg-slate-50 rounded-2xl space-y-1.5 border">
+                  <div className="flex justify-between"><span>مسؤول الوردية:</span><span>{activeShift.cashier}</span></div>
+                  <div className="flex justify-between"><span>تاريخ ووقت الفتح:</span><span>{activeShift.openingTime}</span></div>
+                  <div className="flex justify-between text-indigo-600"><span>النقدية الافتتاحية بالدرج:</span><span>{fmt(activeShift.openingBalance)} ج.م</span></div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">أدخل المبلغ النادي الفعلي بالخزينة الآن (ج.م):</label>
+                  <input
+                    type="number"
+                    value={closingCashInput}
+                    onChange={(e) => setClosingCashInput(e.target.value)}
+                    placeholder="أدخل المبلغ بعد العد المادي..."
+                    className="w-full h-11 bg-slate-50 border rounded-xl px-3 text-indigo-600 font-black text-base outline-none"
+                  />
+                </div>
+
+                <button onClick={handleCalculateCloseShift} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">
+                  احسب واستخرج التقرير 📊
+                </button>
               </div>
-            </div>
-            <button type="submit" className="w-full h-10 bg-emerald-600 text-white font-black text-xs rounded-xl shadow-md">تأكيد السداد والخصم</button>
-          </form>
+            ) : (
+              /* 📜 التقرير النهائي للوردية */
+              <div className="space-y-4 text-xs">
+                <div className="bg-slate-50 p-4 rounded-2xl border space-y-2 font-bold text-right">
+                  <div className="flex justify-between"><span>مسؤول الوردية:</span><span>{shiftReport.cashier}</span></div>
+                  <div className="flex justify-between"><span>الرصيد الافتتاحي:</span><span>{fmt(shiftReport.openingBalance)} ج.م</span></div>
+                  <div className="flex justify-between text-indigo-600"><span>مبيعات الوردية ({shiftReport.ordersCount} فاتورة):</span><span>{fmt(shiftReport.totalSales)} ج.م</span></div>
+                  <div className="flex justify-between pt-1 border-t text-slate-900 font-extrabold"><span>المفروض تواجده بالدرج:</span><span>{fmt(shiftReport.expectedInDrawer)} ج.م</span></div>
+                  <div className="flex justify-between text-emerald-600 font-extrabold"><span>الموجود فعلياً:</span><span>{fmt(shiftReport.actualEntered)} ج.م</span></div>
+                  <div className="flex justify-between pt-2 border-t font-black text-sm text-indigo-700">
+                    <span>نتيجة المطابقة:</span><span>{shiftReport.statusMessage}</span>
+                  </div>
+                </div>
+
+                <button onClick={handleFinalizeShiftClose} className="w-full h-12 bg-emerald-600 text-white font-black text-xs rounded-xl shadow-lg">
+                  تأكيد إغلاق الوردية والبدء من جديد ✅
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -685,15 +667,6 @@ export default function SmartPOSApp() {
                   >
                     {deliveryZones.map((z) => (
                       <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
-                    ))}
-                  </select>
-                  <select
-                    value={selectedDriver}
-                    onChange={(e) => setSelectedDriver(e.target.value)}
-                    className="w-full h-8 bg-white border rounded-lg px-2 font-bold outline-none"
-                  >
-                    {drivers.map((d) => (
-                      <option key={d.id} value={d.name}>{d.name}</option>
                     ))}
                   </select>
                   <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
@@ -777,7 +750,7 @@ export default function SmartPOSApp() {
             <div className="space-y-2 text-xs font-bold">
               <div className="flex justify-between text-slate-500"><span>التاريخ والوقت:</span><span>{viewInvoiceModal.date} - {viewInvoiceModal.time}</span></div>
               <div className="flex justify-between text-slate-500"><span>نوع الطلب:</span><span>{viewInvoiceModal.orderType}</span></div>
-              {viewInvoiceModal.driverName && <div className="flex justify-between text-indigo-600"><span>الطيار:</span><span>{viewInvoiceModal.driverName}</span></div>}
+              <div className="flex justify-between text-slate-500"><span>الكاشير:</span><span>{viewInvoiceModal.cashier}</span></div>
               
               <div className="border-t pt-2 space-y-1">
                 {viewInvoiceModal.items.map((item, idx) => (
@@ -789,13 +762,9 @@ export default function SmartPOSApp() {
               </div>
 
               <div className="border-t pt-2 flex justify-between font-black text-sm text-indigo-600">
-                <span>الإجمالي الكلي:</span><span>{fmt(viewInvoiceModal.total)} ج.م</span>
+                <span>الإجمالي:</span><span>{fmt(viewInvoiceModal.total)} ج.م</span>
               </div>
             </div>
-
-            <button onClick={() => handlePrintReceipt(viewInvoiceModal)} className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5">
-              <Printer size={15} /> طباعة إيصال
-            </button>
           </div>
         </div>
       )}
