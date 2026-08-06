@@ -4,7 +4,6 @@ import { MenuManagementView } from './features/menu/MenuManagementView';
 import { ReportsView } from './features/reports/ReportsView';
 import { SettingsView } from './features/settings/SettingsView';
 import { 
-  Utensils, 
   ShoppingCart, 
   LogOut, 
   ShieldAlert, 
@@ -57,13 +56,14 @@ export default function App() {
     localStorage.removeItem('dc_user_role');
   };
 
-  // 🔒 شاشة تسجيل الدخول المحمية
+  // 🔒 شاشة تسجيل الدخول باللوجو الرسمي
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 dir-rtl font-sans">
         <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl text-center">
-          <div className="bg-indigo-600 text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Utensils size={32} />
+          {/* 🍔 اللوجو الأساسي */}
+          <div className="bg-black w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl p-2 border-2 border-indigo-500 overflow-hidden">
+            <img src="/logo.png" alt="Dream Corner Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-black text-slate-900 mb-1">دريم كورنر POS</h1>
           <p className="text-slate-500 text-xs font-bold mb-6">نظام إدارة المبيعات ونقاط البيع</p>
@@ -95,13 +95,13 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden dir-rtl font-sans">
-      {/* 📌 الشريط الجانبي (Sidebar) */}
+      {/* 📌 الشريط الجانبي */}
       <aside className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col justify-between p-4 shadow-xl">
         <div>
-          {/* اللوجو والمعلومات */}
+          {/* 🍔 اللوجو في أعلى القائمة الجانبية */}
           <div className="flex items-center gap-3 mb-8 px-2">
-            <div className="bg-indigo-600 p-2.5 rounded-2xl">
-              <Utensils size={24} />
+            <div className="bg-black p-1 rounded-2xl border border-slate-700 w-11 h-11 flex items-center justify-center overflow-hidden shrink-0">
+              <img src="/logo.png" alt="DC Logo" className="w-full h-full object-contain" />
             </div>
             <div className="hidden lg:block">
               <h2 className="font-black text-sm text-white">DREAM CORNER</h2>
@@ -112,9 +112,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* أزرار التنقل */}
           <nav className="flex flex-col gap-2">
-            {/* الكاشير - متاح للجميع */}
             <button
               onClick={() => setCurrentTab('pos')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -125,7 +123,6 @@ export default function App() {
               <span className="hidden lg:block">الكاشير (POS)</span>
             </button>
 
-            {/* أدوات الأدمن فقط */}
             {role === 'admin' && (
               <>
                 <button
@@ -144,7 +141,7 @@ export default function App() {
                     currentTab === 'menu' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
                   }`}
                 >
-                  <Utensils size={20} />
+                  <span className="text-base">🍔</span>
                   <span className="hidden lg:block">إدارة المنيو</span>
                 </button>
 
@@ -162,7 +159,6 @@ export default function App() {
           </nav>
         </div>
 
-        {/* زر تسجيل الخروج */}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 p-3 text-rose-400 hover:bg-rose-500/10 rounded-2xl font-bold text-xs transition-all"
@@ -172,7 +168,6 @@ export default function App() {
         </button>
       </aside>
 
-      {/* 🖥️ منطقة عرض الشاشات الرئيسية */}
       <main className="flex-1 flex overflow-hidden">
         {currentTab === 'pos' ? (
           <POSView />
