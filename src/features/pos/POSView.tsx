@@ -91,12 +91,12 @@ export function POSView() {
           </head>
           <body>
             <h2>دريم كورنر</h2>
-            <h4>بيتزا وسندوتشات</h4>
+            <h4>طعم يفرق .. جودة تليق بك</h4>
             <div class="footer" style="font-size: 10px;">البرامون - بجوار عيادة د. إلهام العشري</div>
             <hr/>
             <div class="info">رقم الفاتورة: #${newInvoiceId}</div>
             <div class="info">النوع: ${orderType}</div>
-            <div class="info">التاريخ: ${new Date().toLocaleString('ar-EG')}</div>
+            <div class="info">التاريخ: ${new Date().toLocaleString('en-US')}</div>
             <hr/>
             <div>
               ${cart.map(item => `
@@ -205,7 +205,25 @@ export function POSView() {
       </div>
 
       {/* القسم الثاني: سلة الطلبات الجانبية */}
-      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-44 lg:h-full">
+      <div className="w-full lg:w-96 bg-weight bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-52 lg:h-full">
+        {/* أزرار نوع الطلب (تيك أواي، دليفري، صالة) */}
+        <div className="p-2 border-b border-slate-100 bg-slate-50">
+          <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
+            {['تيك أواي', 'دليفري', 'صالة'].map(type => (
+              <button
+                key={type}
+                onClick={() => orderTypeSetter(type)}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  orderType === type ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* عناصر السلة */}
         <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
           {cart.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-slate-400 gap-2 py-2">
