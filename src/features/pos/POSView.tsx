@@ -4,7 +4,7 @@ import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, RefreshCw } from 'lucide-react';
 
 export function POSView() {
-  const [selectedCategory, setSelectedCategory] = useState('البيتزا');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [orderType, setOrderType] = useState<'تيك أواي' | 'صالة' | 'دليفري'>('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
@@ -56,23 +56,31 @@ export function POSView() {
     return () => { unsubCats(); unsubProds(); unsubZones(); };
   }, []);
 
-  // 🧹 تجميد الأقسام المتاحة (من جدول الأقسام + من جدول المنتجات لضمان ظهور الكل)
-  const productCatIds = Array.from(new Set(allProducts.map(p => p.catId?.trim()))).filter(Boolean);
-  const dbCatLabels = rawCategories.map(c => c.label?.trim()).filter(Boolean);
-  const allUniqueCategoryNames = Array.from(new Set([...dbCatLabels, ...productCatIds]));
+  // 🧹 تجميع واستخراج كافة الأقسام الموجودة فعلياً في المنتجات مع الأقسام الرئيسية
+  const productCatNames = allProducts.map(p => (p.catId || p.category || '').toString().trim()).filter(Boolean);
+  const dbCatNames = rawCategories.map(c => (c.label || c.name || '').toString().trim()).filter(Boolean);
+  const allCategoriesList = Array.from(new Set([...dbCatNames, ...productCatNames]));
 
-  // 🧹 إزالة مناطق التوصيل المكررة
+  // تحديد القسم الأول تلقائياً عند التحميل
+  useEffect(() => {
+    if (!selectedCategory && allCategoriesList.length > 0) {
+      setSelectedCategory(allCategoriesList[0]);
+    }
+  }, [allCategoriesList]);
+
+  // 🧹 مناطق الدليفري
   const uniqueDeliveryZones = Array.from(new Set(deliveryZones.map(z => z.name)))
     .map(name => deliveryZones.find(z => z.name === name));
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
-  // فلترة الأصناف حسب القسم والبحث
+  // فلترة مرنة للأصناف بدون التأثر بالمسافات
   const filteredProducts = allProducts.filter(p => {
-    const matchCategory = p.catId?.trim() === selectedCategory.trim();
+    const prodCat = (p.catId || p.category || '').toString().trim();
+    const matchCategory = prodCat === selectedCategory.trim();
     const matchSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCategory && matchSearch;
+    return (selectedCategory ? matchCategory : true) && matchSearch;
   });
 
   // إضافة صنف للسلة
@@ -104,7 +112,7 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 💾 حفظ الفاتورة وطباعتها
+  // 💾 طباعة وحفظ
   const handleCheckout = async () => {
     if (cart.length === 0) return alert("السلة فارغة!");
     if (orderType === 'دليفري' && !selectedZoneId) return alert("يرجى اختيار منطقة الدليفري!");
@@ -160,29 +168,26 @@ export function POSView() {
     }
   };
 
-  // 🧹 تنظيف التكرارات
-  const clearDuplicates = async () => {
-    if (!confirm("هل تريد إعادة ضبط وتنظيف الأقسام المكررة؟")) return;
-    const catSnap = await getDocs(collection(dbCloud, "categories"));
-    const seenLabels = new Set();
-    for (const d of catSnap.docs) {
-      const lbl = d.data().label?.trim();
-      if (seenLabels.has(lbl)) {
-        await deleteDoc(doc(dbCloud, "categories", d.id));
-      } else {
-        seenLabels.add(lbl);
-      }
-    }
-    alert("تم تنظيف الأقسام المكررة بنجاح!");
+  // 🧹 إعادة المنيو وتصفية البيانات
+  const resetDatabase = async () => {
+    if (!confirm("هل تريد مسح البيانات القديمة بالكامل وإعادة تنظيف المنيو؟")) return;
+    
+    const prodsSnap = await getDocs(collection(dbCloud, "products"));
+    for (const d of prodsSnap.docs) await deleteDoc(doc(dbCloud, "products", d.id));
+    
+    const catsSnap = await getDocs(collection(dbCloud, "categories"));
+    for (const d of catsSnap.docs) await deleteDoc(doc(dbCloud, "categories", d.id));
+
+    alert("تم مسح السحابة بنجاح! يمكنك الآن الذهاب لصفحة إدارة المنيو ورفع المنيو الحقيقي بضغطة واحدة 🚀");
   };
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl font-sans">
       
-      {/* 🍕 قسم الأصناف والأقسام */}
+      {/* 🍕 الأصناف والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
         
-        {/* شريط البحث والتحكم */}
+        {/* البحث والتحكم */}
         <div className="flex gap-2 mb-3">
           <input
             className="flex-1 p-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:outline-none bg-white shadow-sm"
@@ -190,19 +195,20 @@ export function POSView() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button onClick={clearDuplicates} title="تنظيف التكرار" className="bg-white p-2.5 rounded-2xl border text-slate-600 hover:text-indigo-600">
-            <RefreshCw size={18} />
+          <button onClick={resetDatabase} title="إعادة ضبط السحابة" className="bg-rose-50 text-rose-600 p-2.5 rounded-2xl border border-rose-200 font-bold text-xs flex items-center gap-1 hover:bg-rose-100 transition-all">
+            <RefreshCw size={16} />
+            <span>تنظيف السحابة</span>
           </button>
         </div>
 
-        {/* شريط الأقسام الشامل المضمون */}
+        {/* شريط الأقسام السليم والمضمون */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
-          {allUniqueCategoryNames.map((catName) => (
+          {allCategoriesList.map((catName) => (
             <button
               key={catName}
               onClick={() => setSelectedCategory(catName)}
               className={`px-4 py-2.5 rounded-2xl font-black text-xs whitespace-nowrap transition-all shadow-sm ${
-                selectedCategory.trim() === catName.trim() 
+                selectedCategory === catName 
                   ? 'bg-indigo-600 text-white scale-105' 
                   : 'bg-white text-slate-700 hover:bg-slate-50'
               }`}
@@ -234,7 +240,7 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 🛒 السلة وتفاصيل الطلب */}
+      {/* 🛒 السلة */}
       <div className="w-full lg:w-96 bg-white border-r border-slate-200 p-4 flex flex-col shadow-lg">
         <h2 className="font-black text-slate-800 text-base mb-3 flex items-center gap-2 border-b pb-2">
           <ShoppingCart className="text-indigo-600" size={20} />
@@ -286,7 +292,7 @@ export function POSView() {
           </div>
         )}
 
-        {/* محتويات السلة */}
+        {/* السلة */}
         <div className="flex-1 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
           {cart.length === 0 ? (
             <p className="text-center py-10 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
@@ -329,7 +335,7 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 🍕 مودال اختيار الأحجام */}
+      {/* 🍕 مودال الأحجام */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
