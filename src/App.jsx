@@ -4,10 +4,20 @@ import {
   Coffee, IceCream, Sandwich, UtensilsCrossed, GlassWater,
   Receipt, Sparkles, Bike, ShoppingBag, Utensils, Phone, User,
   Flame, Printer, LayoutDashboard, Users, Package,
-  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database
+  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw
 } from "lucide-react";
 
-/* ---------------- 1. USERS DATABASE ---------------- */
+/* ---------------- 1. INITIAL FALLBACK DATA ---------------- */
+const DEFAULT_RESTAURANT = {
+  name: "مطعم وفول الحضري",
+  logo: "🍔",
+  address: "شربين - بجوار شركة WE - الدقهلية",
+  phone: "01012345678",
+  receiptFooter: "شكراً لزيارتكم! نتمنى لكم وجبة شهية ❤️",
+  autoPrint: true,
+  paperWidth: "80mm"
+};
+
 const DEFAULT_USERS_DB = [
   { id: 1, username: "admin", password: "admin123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin" },
   { id: 2, username: "manager", password: "mgr123", name: "أحمد علي", role: "manager", roleLabel: "👔 Manager" },
@@ -16,10 +26,10 @@ const DEFAULT_USERS_DB = [
 ];
 
 const ROLE_PERMISSIONS = {
-  admin: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true },
-  manager: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true },
-  cashier: { canViewDashboard: false, canCheckout: true, canCRM: true, canInventory: false, canReports: false },
-  waiter: { canViewDashboard: false, canCheckout: false, canCRM: false, canInventory: false, canReports: false },
+  admin: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true, canManageInvoices: true, canSettings: true },
+  manager: { canViewDashboard: true, canCheckout: true, canCRM: true, canInventory: true, canReports: true, canManageInvoices: true, canSettings: true },
+  cashier: { canViewDashboard: false, canCheckout: true, canCRM: true, canInventory: false, canReports: false, canManageInvoices: false, canSettings: false },
+  waiter: { canViewDashboard: false, canCheckout: false, canCRM: false, canInventory: false, canReports: false, canManageInvoices: false, canSettings: false },
 };
 
 const CATEGORIES = [
@@ -30,112 +40,55 @@ const CATEGORIES = [
 ];
 
 const DEFAULT_PRODUCTS = [
-  {
-    id: 1, cat: "hot", name: "قهوة تركي", price: 25, emoji: "☕", stock: 50,
-    sizes: [{ id: "s", name: "سينجل", extra: 0 }, { id: "d", name: "دبل", extra: 10 }],
-    modifiers: [{ id: "m1", name: "سكر زيادة", price: 0 }]
-  },
-  {
-    id: 14, cat: "meal", name: "بيتزا مارجريتا", price: 60, emoji: "🍕", stock: 15,
-    sizes: [{ id: "sm", name: "صغير", extra: 0 }, { id: "md", name: "وسط", extra: 25 }, { id: "lg", name: "كبير", extra: 50 }],
-    modifiers: [{ id: "m_stuffed", name: "أطراف محشوة", price: 20 }]
-  },
+  { id: 1, cat: "hot", name: "قهوة تركي", price: 25, emoji: "☕", stock: 50 },
+  { id: 14, cat: "meal", name: "بيتزا مارجريتا", price: 60, emoji: "🍕", stock: 15 },
   { id: 13, cat: "meal", name: "وجبة برجر", price: 90, emoji: "🍔", stock: 25 },
-  { id: 2, cat: "hot", name: "كابتشينو", price: 40, emoji: "☕", stock: 8 },
-  { id: 6, cat: "cold", name: "عصير مانجو", price: 35, emoji: "🥭", stock: 3 },
-  { id: 11, cat: "sand", name: "ساندوتش فراخ", price: 55, emoji: "🌯", stock: 0 },
-];
-
-const DEFAULT_CUSTOMERS = [
-  { id: 1, name: "محمد مطر", phone: "01012345678", address: "شربين - شارع الجمهورية", points: 120, balance: 50.0, debt: 0.0 },
-  { id: 2, name: "أحمد علي", phone: "01122334455", address: "شربين - بورسعيد", points: 45, balance: 0.0, debt: 110.0 },
-];
-
-const ORDER_TYPES = [
-  { id: "takeaway", label: "تيك أواي", icon: ShoppingBag },
-  { id: "delivery", label: "دليفري", icon: Bike },
-  { id: "dinein", label: "صالة", icon: Utensils },
+  { id: 2, cat: "hot", name: "كابتشينو", price: 40, emoji: "☕", stock: 0 }, // صنف منتهي للتجربة
 ];
 
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
-  // 💾 1. التحميل من LocalStorage للحفاظ على استمرارية البيانات الواقعية
-  const [usersDb] = useState(() => {
-    const saved = localStorage.getItem("pos_users");
-    return saved ? JSON.parse(saved) : DEFAULT_USERS_DB;
-  });
+  // 💾 1. تحميل الإعدادات والبيانات من LocalStorage
+  const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
+  const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders") || "[]"));
 
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem("pos_products");
-    return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
-  });
+  // 💾 2. الحفظ التلقائي عند التعديل
+  useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
+  useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
+  useEffect(() => { localStorage.setItem("pos_products", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_orders", JSON.stringify(completedOrders)); }, [completedOrders]);
 
-  const [customers, setCustomers] = useState(() => {
-    const saved = localStorage.getItem("pos_customers");
-    return saved ? JSON.parse(saved) : DEFAULT_CUSTOMERS;
-  });
-
-  const [completedOrders, setCompletedOrders] = useState(() => {
-    const saved = localStorage.getItem("pos_orders");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // 💾 2. حفظ البيانات تلقائياً
-  useEffect(() => {
-    localStorage.setItem("pos_products", JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem("pos_customers", JSON.stringify(customers));
-  }, [customers]);
-
-  useEffect(() => {
-    localStorage.setItem("pos_orders", JSON.stringify(completedOrders));
-  }, [completedOrders]);
-
-  // Auth States
+  // Auth & View States
   const [currentUser, setCurrentUser] = useState(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [currentView, setCurrentView] = useState("pos");
-  const [isOnline] = useState(navigator.onLine);
-  
+  const [currentView, setCurrentView] = useState("pos"); // pos, dashboard, invoices, inventory, settings
   const [cart, setCart] = useState([]);
   const [activeCat, setActiveCat] = useState("hot");
   const [query, setQuery] = useState("");
-  
-  // 📌 1. الضريبة غير مفعلة كخيار افتراضي
   const [applyTax, setApplyTax] = useState(false);
-
-  // 📌 2. نوع الطلب ومدخلات الدليفري
   const [orderType, setOrderType] = useState("takeaway");
-  const [customerPhoneInput, setCustomerPhoneInput] = useState("");
-  const [customerNameInput, setCustomerNameInput] = useState("");
-  const [customerAddressInput, setCustomerAddressInput] = useState("");
-  const [deliveryFee] = useState(15);
-  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
-  // Modals
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [activeSize, setActiveSize] = useState(null);
-  const [selectedMods, setSelectedMods] = useState([]);
-  const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [newProdName, setNewProdName] = useState("");
-  const [newProdPrice, setNewProdPrice] = useState("");
-  const [newProdStock, setNewProdStock] = useState("");
-  const [newProdCat, setNewProdCat] = useState("hot");
+  // Restock & User Management Modal States
+  const [restockProduct, setRestockProduct] = useState(null);
+  const [restockQty, setRestockQty] = useState("");
 
-  // 📌 3. رقم الفاتورة متتالي يبدأ بناءً على عدد الفواتير المخزنة فعلياً
+  const [newUserModal, setNewUserModal] = useState(false);
+  const [newUName, setNewUName] = useState("");
+  const [newUPass, setNewUPass] = useState("");
+  const [newURole, setNewURole] = useState("cashier");
+  const [newURealName, setNewURealName] = useState("");
+
   const currentTicketNo = completedOrders.length + 1;
 
   const handleLogin = (e) => {
     e.preventDefault();
-    const user = usersDb.find(
-      (u) => u.username.toLowerCase() === usernameInput.trim().toLowerCase() && u.password === passwordInput
-    );
+    const user = usersDb.find((u) => u.username.toLowerCase() === usernameInput.trim().toLowerCase() && u.password === passwordInput);
     if (user) {
       setCurrentUser(user);
       setLoginError("");
@@ -158,216 +111,161 @@ export default function SmartPOSApp() {
   // Cart Financials
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const tax = applyTax ? subtotal * 0.14 : 0;
-  const currentDeliveryFee = orderType === "delivery" ? Number(deliveryFee) || 0 : 0;
-  const total = subtotal + tax + currentDeliveryFee;
+  const total = subtotal + tax;
 
-  const handleProductClick = (p) => {
+  const addToCartDirect = (p) => {
     if (p.stock <= 0) return;
-    if (p.sizes || p.modifiers) {
-      setSelectedProduct(p);
-      setActiveSize(p.sizes ? p.sizes[0] : null);
-      setSelectedMods([]);
-    } else {
-      addToCartDirect(p, null, []);
-    }
-  };
-
-  const addToCartDirect = (p, size, mods) => {
-    const itemKey = `${p.id}-${size ? size.id : "def"}-${mods.map(m=>m.id).sort().join(",")}`;
-    const extraPrice = (size ? size.extra : 0) + mods.reduce((a, b) => a + b.price, 0);
-    const finalUnitPrice = p.price + extraPrice;
-
     setCart((prev) => {
-      const existing = prev.find((i) => i.itemKey === itemKey);
-      if (existing) return prev.map((i) => (i.itemKey === itemKey ? { ...i, qty: i.qty + 1 } : i));
-      return [...prev, { itemKey, id: p.id, name: p.name, emoji: p.emoji, unitPrice: finalUnitPrice, sizeName: size ? size.name : null, selectedMods: mods, qty: 1 }];
+      const existing = prev.find((i) => i.id === p.id);
+      if (existing) return prev.map((i) => (i.id === p.id ? { ...i, qty: i.qty + 1 } : i));
+      return [...prev, { id: p.id, name: p.name, emoji: p.emoji, unitPrice: p.price, qty: 1 }];
     });
-    setSelectedProduct(null);
   };
 
-  const changeQty = (itemKey, delta) => {
-    setCart((c) => c.map((i) => (i.itemKey === itemKey ? { ...i, qty: i.qty + delta } : i)).filter((i) => i.qty > 0));
-  };
-
-  const clearCart = () => setCart([]);
-
-  // 💳 إتمام البيع مع حفظ بيانات الفاتورة الحقيقية والتسلسل
   const checkout = () => {
     if (cart.length === 0) return;
-    
+
     const newOrder = {
       id: Date.now(),
       ticketNo: currentTicketNo,
       total,
       subtotal,
       tax,
-      deliveryFee: currentDeliveryFee,
       orderType,
-      customerName: customerNameInput || "عميل نقدًا",
-      customerPhone: customerPhoneInput || "",
-      customerAddress: customerAddressInput || "",
-      itemsCount: cart.length,
+      items: [...cart],
+      status: "completed",
       date: new Date().toLocaleDateString("ar-EG"),
       time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
       cashier: currentUser.name
     };
-    
+
     setCompletedOrders((prev) => [newOrder, ...prev]);
 
+    // خصم المخزن
     setProducts((prev) => prev.map((prod) => {
       const cartItem = cart.find((i) => i.id === prod.id);
       return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
     }));
 
-    clearCart();
-    setCustomerNameInput("");
-    setCustomerPhoneInput("");
-    setCustomerAddressInput("");
-    setMobileCartOpen(false);
+    setCart([]);
   };
 
-  const handleAddNewProduct = (e) => {
+  // 📦 1. تزويد وإعادات شحن المخزون للصنف
+  const handleRestockSubmit = (e) => {
     e.preventDefault();
-    if (!newProdName || !newProdPrice) return;
-    const newProductObj = {
-      id: Date.now(),
-      cat: newProdCat,
-      name: newProdName,
-      price: Number(newProdPrice),
-      stock: Number(newProdStock) || 10,
-      emoji: newProdCat === "hot" ? "☕" : newProdCat === "cold" ? "🧃" : "🥪"
-    };
-    setProducts((prev) => [newProductObj, ...prev]);
-    setNewProdName("");
-    setNewProdPrice("");
-    setNewProdStock("");
-    setShowAddProductModal(false);
+    if (!restockProduct || !restockQty) return;
+    const qtyToAdd = Number(restockQty);
+    setProducts((prev) => prev.map((p) => p.id === restockProduct.id ? { ...p, stock: p.stock + qtyToAdd } : p));
+    setRestockProduct(null);
+    setRestockQty("");
   };
 
-  // 📌 4. حساب البيانات الحقيقية للوحة التحكم والتقارير
-  const totalRevenue = completedOrders.reduce((a, b) => a + b.total, 0);
-  const totalTaxesCollected = completedOrders.reduce((a, b) => a + b.tax, 0);
+  // 👥 2. إضافة مستخدم جديد للنظام
+  const handleAddUserSubmit = (e) => {
+    e.preventDefault();
+    if (!newUName || !newUPass) return;
+    const newUser = {
+      id: Date.now(),
+      username: newUName.trim(),
+      password: newUPass,
+      name: newURealName || newUName,
+      role: newURole,
+      roleLabel: newURole === "admin" ? "👑 Admin" : newURole === "manager" ? "👔 Manager" : "💳 Cashier"
+    };
+    setUsersDb((prev) => [...prev, newUser]);
+    setNewUName(""); setNewUPass(""); setNewURealName("");
+    setNewUserModal(false);
+  };
 
-  // 🔑 LOGIN SCREEN
+  // 🔑 3. تعديل باسورد مستخدم
+  const handleUpdatePassword = (userId, newPass) => {
+    setUsersDb((prev) => prev.map((u) => u.id === userId ? { ...u, password: newPass } : u));
+    alert("✅ تم تحديث كلمة السر بنجاح!");
+  };
+
   if (!currentUser) {
     return (
       <div dir="rtl" className="h-screen w-full bg-slate-900 flex items-center justify-center p-4 font-sans select-none">
-        <div className="bg-white rounded-3xl max-w-sm w-full p-8 space-y-6 shadow-2xl border border-slate-100">
+        <div className="bg-white rounded-3xl max-w-sm w-full p-8 space-y-6 shadow-2xl">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto text-xl shadow-lg shadow-indigo-600/30">
-              POS
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto text-2xl shadow-lg shadow-indigo-600/30">
+              {restaurantInfo.logo}
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">تسجيل الدخول</h2>
-            <p className="text-xs text-slate-400 font-semibold">أدخل بيانات الحساب للوصول للنظام</p>
+            <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
+            <p className="text-xs text-slate-400 font-semibold">تسجيل الدخول للنظام المالي</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {loginError && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold text-center">{loginError}</div>}
-
-            <div className="space-y-1">
-              <label className="text-xs font-black text-slate-600 block">اسم المستخدم</label>
-              <div className="relative">
-                <User size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" required value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="اسم المستخدم..." className="w-full h-11 bg-slate-50 border rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-black text-slate-600 block">كلمة السر</label>
-              <div className="relative">
-                <Key size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="••••••••" className="w-full h-11 bg-slate-50 border rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600" />
-              </div>
-            </div>
-
-            <button type="submit" className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-600/30">
-              دخول النظام
-            </button>
+            {loginError && <div className="p-3 bg-rose-50 border text-rose-600 rounded-xl text-xs font-bold text-center">{loginError}</div>}
+            <input type="text" required value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="اسم المستخدم..." className="w-full h-11 bg-slate-50 border rounded-xl px-4 text-xs font-bold outline-none" />
+            <input type="password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="••••••••" className="w-full h-11 bg-slate-50 border rounded-xl px-4 text-xs font-bold outline-none" />
+            <button type="submit" className="w-full h-12 bg-indigo-600 text-white font-black text-sm rounded-xl shadow-lg">دخول النظام</button>
           </form>
-
-          <p className="text-[11px] text-center text-slate-400 font-semibold">
-            جميع الحقوق محفوظة © ElHadary FIN
-          </p>
         </div>
       </div>
     );
   }
 
-  // MAIN SYSTEM APPLICATION
   return (
     <div dir="rtl" className="h-screen w-full bg-slate-50 flex flex-col font-sans select-none overflow-hidden text-slate-800">
       
       {/* Header */}
-      <header className="min-h-16 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 shrink-0 shadow-xs z-20 gap-2">
+      <header className="min-h-16 bg-white border-b flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 shrink-0 shadow-xs z-20 gap-2">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md text-sm">POS</div>
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md text-base">
+              {restaurantInfo.logo}
+            </div>
             <div>
-              <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">النظام المالي الذكي</h1>
-              <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                <Database size={10} className="text-emerald-500 inline" /> البيانات حقيقية ومحفوظة
-              </p>
+              <h1 className="font-extrabold text-sm sm:text-base text-slate-900">{restaurantInfo.name}</h1>
+              <p className="text-[10px] text-slate-400 font-semibold">{restaurantInfo.address}</p>
             </div>
           </div>
 
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 text-xs font-bold overflow-x-auto">
+          <div className="flex bg-slate-100 p-1 rounded-xl border text-xs font-bold overflow-x-auto">
             {permissions.canViewDashboard && (
-              <button onClick={() => setCurrentView("dashboard")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "dashboard" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
+              <button onClick={() => setCurrentView("dashboard")} className={`px-3 py-1.5 rounded-lg ${currentView === "dashboard" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
                 <LayoutDashboard size={14} className="inline mr-1" /> لوحة التحكم
               </button>
             )}
-            <button onClick={() => setCurrentView("pos")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "pos" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
+            <button onClick={() => setCurrentView("pos")} className={`px-3 py-1.5 rounded-lg ${currentView === "pos" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
               <Receipt size={14} className="inline mr-1" /> نقطة البيع
             </button>
-            {permissions.canCRM && (
-              <button onClick={() => setCurrentView("crm")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "crm" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
-                <Users size={14} className="inline mr-1" /> العملاء
+            {permissions.canManageInvoices && (
+              <button onClick={() => setCurrentView("invoices")} className={`px-3 py-1.5 rounded-lg ${currentView === "invoices" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
+                <FileText size={14} className="inline mr-1" /> الفواتير ({completedOrders.length})
               </button>
             )}
             {permissions.canInventory && (
-              <button onClick={() => setCurrentView("inventory")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "inventory" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
+              <button onClick={() => setCurrentView("inventory")} className={`px-3 py-1.5 rounded-lg ${currentView === "inventory" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
                 <Package size={14} className="inline mr-1" /> المخزون
               </button>
             )}
-            {permissions.canReports && (
-              <button onClick={() => setCurrentView("reports")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "reports" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
-                <FileText size={14} className="inline mr-1" /> التقارير ({completedOrders.length})
+            
+            {/* ⚙️ 4. تبويب الإعدادات المدمج */}
+            {permissions.canSettings && (
+              <button onClick={() => setCurrentView("settings")} className={`px-3 py-1.5 rounded-lg ${currentView === "settings" ? "bg-indigo-600 text-white font-extrabold" : "text-slate-500"}`}>
+                <Settings size={14} className="inline mr-1" /> الإعدادات
               </button>
             )}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+          <div className="bg-indigo-50 border px-3 py-1 rounded-xl text-xs font-bold text-indigo-700 flex items-center gap-1.5">
             <User size={14} /> <span>{currentUser.name}</span>
           </div>
-          <button onClick={handleLogout} className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl"><LogOut size={16} /></button>
+          <button onClick={handleLogout} className="p-2 text-rose-600 bg-rose-50 border rounded-xl"><LogOut size={16} /></button>
         </div>
       </header>
 
-      {/* DASHBOARD VIEW (بيانات حقيقية 100%) */}
+      {/* DASHBOARD VIEW */}
       {currentView === "dashboard" && permissions.canViewDashboard && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
-          <h2 className="text-xl font-black text-slate-900">لوحة التحكم والأداء (مباشر)</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border shadow-xs">
-              <p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p>
-              <h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(totalRevenue)} ج.م</h3>
-            </div>
-            <div className="bg-white p-5 rounded-2xl border shadow-xs">
-              <p className="text-xs font-semibold text-slate-400">عدد الفواتير المنفذة</p>
-              <h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.length} فاتورة</h3>
-            </div>
-            <div className="bg-white p-5 rounded-2xl border shadow-xs">
-              <p className="text-xs font-semibold text-slate-400">إجمالي الضرائب المحصلة</p>
-              <h3 className="text-2xl font-black text-emerald-600 mt-1">{fmt(totalTaxesCollected)} ج.م</h3>
-            </div>
-            <div className="bg-white p-5 rounded-2xl border shadow-xs">
-              <p className="text-xs font-semibold text-slate-400">متوسط قيمة الفاتورة</p>
-              <h3 className="text-2xl font-black text-amber-600 mt-1">
-                {completedOrders.length > 0 ? fmt(totalRevenue / completedOrders.length) : "0.00"} ج.م
-              </h3>
-            </div>
+          <h2 className="text-xl font-black text-slate-900">لوحة التحكم والأداء</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">المبيعات</p><h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(completedOrders.reduce((a,b)=>a+b.total,0))} ج.م</h3></div>
+            <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">عدد الفواتير</p><h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.length} فاتورة</h3></div>
           </div>
         </div>
       )}
@@ -375,157 +273,89 @@ export default function SmartPOSApp() {
       {/* POS VIEW */}
       {currentView === "pos" && (
         <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
-          <main className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l border-slate-100">
-            <div className="px-4 sm:px-6 py-3 flex flex-wrap gap-2 justify-between items-center bg-white border-b border-slate-100">
-              <div className="flex gap-1.5 overflow-x-auto">
+          <main className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l">
+            <div className="px-6 py-3 flex justify-between bg-white border-b">
+              <div className="flex gap-1.5">
                 {CATEGORIES.map((c) => (
-                  <button key={c.id} onClick={() => setActiveCat(c.id)} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${activeCat === c.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-50 text-slate-600 border-slate-200"}`}>
-                    <c.icon size={14} /> {c.label}
+                  <button key={c.id} onClick={() => setActiveCat(c.id)} className={`px-3.5 py-2 rounded-xl text-xs font-bold border ${activeCat === c.id ? "bg-indigo-600 text-white" : "bg-slate-50"}`}>
+                    <c.icon size={14} className="inline mr-1" /> {c.label}
                   </button>
                 ))}
               </div>
-              <div className="relative w-full sm:w-60 mt-2 sm:mt-0">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث صنف..." className="w-full h-9 bg-slate-100 rounded-xl pr-8 pl-3 text-xs outline-none border focus:bg-white focus:border-indigo-500" />
-              </div>
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث..." className="h-9 bg-slate-100 rounded-xl pr-4 pl-3 text-xs outline-none" />
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
                 {products.filter(p=>p.cat===activeCat && p.name.includes(query)).map((p) => (
-                  <button key={p.id} onClick={() => handleProductClick(p)}
-                    className="bg-white rounded-2xl border border-slate-100 p-3 flex flex-col items-center text-center relative hover:shadow-md transition-all">
-                    <span className="absolute top-2 left-2 text-[9px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{p.stock}</span>
-                    <div className="text-3xl mb-2 mt-1">{p.emoji}</div>
-                    <div className="font-bold text-xs text-slate-800 leading-snug">{p.name}</div>
+                  <button key={p.id} onClick={() => addToCartDirect(p)} disabled={p.stock <= 0} className={`bg-white rounded-2xl border p-4 flex flex-col items-center text-center relative hover:shadow-md ${p.stock <= 0 ? "opacity-50" : ""}`}>
+                    <span className={`absolute top-2 left-2 text-[9px] font-black px-1.5 py-0.5 rounded ${p.stock <= 0 ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-400"}`}>
+                      {p.stock <= 0 ? "نفذت" : p.stock}
+                    </span>
+                    <div className="text-3xl mb-2">{p.emoji}</div>
+                    <div className="font-bold text-xs">{p.name}</div>
                     <div className="text-indigo-600 font-black text-xs mt-1">{fmt(p.price)} ج.م</div>
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="md:hidden bg-white border-t p-3 flex justify-between items-center shadow-lg">
-              <span className="font-black text-indigo-600 text-sm">{fmt(total)} ج.م</span>
-              <button onClick={() => setMobileCartOpen(true)} className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-xl">عرض الفاتورة ({cart.length})</button>
-            </div>
           </main>
 
-          <aside className={`w-full md:w-[360px] shrink-0 bg-white flex flex-col shadow-xl border-r fixed md:relative inset-y-0 right-0 z-30 transition-transform ${mobileCartOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}>
-            <div className="p-3 border-b bg-slate-50/70 space-y-2">
-              <div className="flex justify-between items-center">
-                
-                {/* 📌 رقم الفاتورة التسلسلي التلقائي بناءً على الواقع */}
-                <span className="text-xs font-black text-slate-900">فاتورة جديد #{currentTicketNo}</span>
-                
-                {cart.length > 0 && <button onClick={clearCart} className="text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md font-bold flex items-center gap-1"><Trash2 size={12} /> تصفير</button>}
-              </div>
-
-              {/* أزرار نوع الطلب */}
-              <div className="grid grid-cols-3 gap-1 bg-slate-200/60 p-1 rounded-xl">
-                {ORDER_TYPES.map((t) => (
-                  <button key={t.id} onClick={() => setOrderType(t.id)} className={`py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1 ${orderType === t.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600"}`}>
-                    <t.icon size={13} /> {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 📌 إظهار حقول بيانات الدليفري بشكل دائم عند اختيار دليفري */}
-              {orderType === "delivery" && (
-                <div className="p-2.5 bg-indigo-50/80 border border-indigo-100 rounded-xl space-y-1.5 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <Phone size={13} className="text-indigo-600" />
-                    <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="flex-1 h-7 rounded-lg border px-2 font-mono bg-white outline-none" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <User size={13} className="text-indigo-600" />
-                    <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="flex-1 h-7 rounded-lg border px-2 bg-white outline-none" />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <MapPin size={13} className="text-indigo-600" />
-                    <input value={customerAddressInput} onChange={(e) => setCustomerAddressInput(e.target.value)} placeholder="العنوان..." className="flex-1 h-7 rounded-lg border px-2 bg-white outline-none" />
-                  </div>
-                </div>
-              )}
+          <aside className="w-[360px] bg-white flex flex-col border-r shadow-xl">
+            <div className="p-3 border-b bg-slate-50 space-y-2">
+              <span className="text-xs font-black">فاتورة جديد #{currentTicketNo}</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {cart.map((item) => (
-                <div key={item.itemKey} className="bg-slate-50 rounded-xl p-2.5 border flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-xs text-slate-800">{item.name} {item.sizeName && `(${item.sizeName})`}</h4>
-                    <span className="text-[11px] text-slate-400">{fmt(item.unitPrice)} ج.م × {item.qty}</span>
-                  </div>
-                  <span className="font-black text-xs text-slate-900">{fmt(item.unitPrice * item.qty)} ج.م</span>
+                <div key={item.id} className="bg-slate-50 rounded-xl p-2.5 border flex justify-between">
+                  <div><h4 className="font-bold text-xs">{item.name}</h4><span className="text-[11px] text-slate-400">{fmt(item.unitPrice)} ج.م × {item.qty}</span></div>
+                  <span className="font-black text-xs">{fmt(item.unitPrice * item.qty)} ج.م</span>
                 </div>
               ))}
             </div>
 
-            <div className="p-4 border-t bg-slate-50/50 space-y-3">
-              <div className="space-y-1 text-xs font-semibold text-slate-500">
-                <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
-                
-                {/* 📌 الضريبة غير مفعلة كخيار افتراضي */}
-                <div className="flex justify-between items-center text-xs">
-                  <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-700">
-                    <input type="checkbox" checked={applyTax} onChange={(e) => setApplyTax(e.target.checked)} className="rounded text-indigo-600" />
-                    <span>الضريبة (14%):</span>
-                  </label>
-                  <span className={applyTax ? "text-slate-900" : "text-slate-400 line-through"}>{fmt(tax)} ج.م</span>
-                </div>
-
-                {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>التوصيل:</span><span>{fmt(currentDeliveryFee)} ج.م</span></div>}
-                <div className="flex justify-between text-slate-900 font-black text-sm pt-1 border-t"><span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span></div>
+            <div className="p-4 border-t bg-slate-50 space-y-3">
+              <div className="space-y-1 text-xs font-semibold">
+                <div className="flex justify-between"><span>الإجمالي:</span><span className="text-indigo-600 font-black">{fmt(total)} ج.م</span></div>
               </div>
-              <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white font-black text-xs rounded-xl shadow-md">إتمام البيع والطباعة</button>
+              <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl">إتمام البيع والطباعة</button>
             </div>
           </aside>
         </div>
       )}
 
-      {/* CRM CUSTOMERS VIEW */}
-      {currentView === "crm" && (
-        <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
-          <h2 className="text-xl font-black text-slate-900">إدارة العملاء ونقاط الولاء (CRM)</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {customers.map((c) => (
-              <div key={c.id} className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
-                <div className="flex justify-between">
-                  <h3 className="font-black text-sm text-slate-900">{c.name}</h3>
-                  <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{c.phone}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
-                  <div className="bg-amber-50 p-2 rounded-xl text-amber-700">النقاط: {c.points}</div>
-                  <div className="bg-teal-50 p-2 rounded-xl text-teal-700">المحفظة: {fmt(c.balance)}</div>
-                  <div className="bg-rose-50 p-2 rounded-xl text-rose-700">الديون: {fmt(c.debt)}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* INVENTORY VIEW */}
+      {/* 📦 INVENTORY VIEW WITH RESTOCK BUTTON */}
       {currentView === "inventory" && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black text-slate-900">إدارة المخزون والمنتجات</h2>
-            <button onClick={() => setShowAddProductModal(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
-              <Plus size={15} /> إضافة صنف جديد
-            </button>
+            <h2 className="text-xl font-black text-slate-900">إدارة المخزون وتزويد الاصناف</h2>
           </div>
 
           <div className="bg-white rounded-2xl border shadow-xs overflow-hidden">
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-50 border-b font-black text-slate-600">
-                <tr><th className="p-3">الصنف</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3">الحالة</th></tr>
+                <tr><th className="p-3">الصنف</th><th className="p-3">السعر</th><th className="p-3">المخزن الحالي</th><th className="p-3">الحالة</th><th className="p-3 text-center">إجراءات</th></tr>
               </thead>
               <tbody className="divide-y font-bold">
                 {products.map((p) => (
                   <tr key={p.id}>
                     <td className="p-3 flex items-center gap-2"><span className="text-xl">{p.emoji}</span><span>{p.name}</span></td>
                     <td className="p-3">{fmt(p.price)} ج.م</td>
-                    <td className="p-3 font-black">{p.stock} قطعه</td>
-                    <td className="p-3">{p.stock > 0 ? <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">متوفر</span> : <span className="bg-rose-50 text-rose-700 px-2 py-0.5 rounded">منتهي</span>}</td>
+                    <td className="p-3 font-black">{p.stock} قطعة</td>
+                    <td className="p-3">
+                      {p.stock > 0 ? (
+                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[10px]">متوفر</span>
+                      ) : (
+                        <span className="bg-rose-50 text-rose-700 px-2 py-0.5 rounded text-[10px]">منتهي المخزون ⚠️</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-center">
+                      {/* 📌 زر إعادة شحن وتزويد المخزون للصنف */}
+                      <button onClick={() => setRestockProduct(p)} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-xl font-bold flex items-center gap-1 mx-auto transition-all">
+                        <PlusCircle size={13} /> تزويد الكمية +
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -534,89 +364,133 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* 📌 REPORTS & REAL SAVED ORDERS HISTORY */}
-      {currentView === "reports" && (
-        <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
-          <h2 className="text-xl font-black text-slate-900">سجل الفواتير والتقارير الحقيقية ({completedOrders.length})</h2>
+      {/* ⚙️ SETTINGS VIEW (تبويب الإعدادات الشامل) */}
+      {currentView === "settings" && permissions.canSettings && (
+        <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-8">
           
-          <div className="bg-white rounded-2xl border shadow-xs overflow-hidden">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-50 border-b font-black text-slate-600">
-                <tr><th className="p-3">رقم الفاتورة</th><th className="p-3">التاريخ والوقت</th><th className="p-3">النوع</th><th className="p-3">العميل</th><th className="p-3">الكاشير</th><th className="p-3">الإجمالي</th></tr>
-              </thead>
-              <tbody className="divide-y font-bold">
-                {completedOrders.length === 0 ? (
-                  <tr><td colSpan={6} className="p-6 text-center text-slate-400">لا توجد فواتير منفذة بعد. قم بعملية بيع لتظهر الفواتير هنا تلقائياً!</td></tr>
-                ) : (
-                  completedOrders.map((o) => (
-                    <tr key={o.id}>
-                      <td className="p-3 font-mono font-black text-indigo-600">#{o.ticketNo}</td>
-                      <td className="p-3 text-slate-500">{o.date} - {o.time}</td>
-                      <td className="p-3">{o.orderType}</td>
-                      <td className="p-3">{o.customerName}</td>
-                      <td className="p-3">{o.cashier}</td>
-                      <td className="p-3 font-black text-emerald-600">{fmt(o.total)} ج.م</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">إعدادات المطعم والنظام</h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* 1. إعدادات بيانات المطعم */}
+            <div className="bg-white p-6 rounded-3xl border shadow-xs space-y-4">
+              <h3 className="font-extrabold text-base text-slate-900 border-b pb-3 flex items-center gap-2">
+                <Settings size={18} className="text-indigo-600" /> ملف المطعم واللوجو
+              </h3>
+              
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
+                  <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-10 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">اللوجو (رمز تعبيري Emoji)</label>
+                  <input type="text" value={restaurantInfo.logo} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, logo: e.target.value })} className="w-full h-10 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">العنوان التفصيلي</label>
+                  <input type="text" value={restaurantInfo.address} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })} className="w-full h-10 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">رقم الهاتف التواصل</label>
+                  <input type="text" value={restaurantInfo.phone} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })} className="w-full h-10 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">رسالة الترحيب أسفل الفاتورة</label>
+                  <input type="text" value={restaurantInfo.receiptFooter} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, receiptFooter: e.target.value })} className="w-full h-10 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. التحكم بالحسابات والباسوردات */}
+            <div className="bg-white p-6 rounded-3xl border shadow-xs space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                  <Shield size={18} className="text-indigo-600" /> المستخدمين وكلمات السر
+                </h3>
+                <button onClick={() => setNewUserModal(true)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-1">
+                  <Plus size={14} /> إضافة مستخدم
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {usersDb.map((u) => (
+                  <div key={u.id} className="p-3 bg-slate-50 rounded-2xl border flex justify-between items-center text-xs">
+                    <div>
+                      <div className="font-bold text-slate-900">{u.name} ({u.roleLabel})</div>
+                      <div className="text-[11px] text-slate-400 font-mono">Username: {u.username}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        defaultValue={u.password}
+                        onBlur={(e) => handleUpdatePassword(u.id, e.target.value)}
+                        className="w-24 h-8 bg-white border rounded-lg px-2 text-center font-mono font-bold"
+                        title="تغيير كلمة السر ثم اضغط خارج الحقل للتأكيد"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* MODAL: ADD PRODUCT */}
-      {showAddProductModal && (
+      {/* MODAL 1: تزويد الكمية للمخزون */}
+      {restockProduct && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleAddNewProduct} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleRestockSubmit} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>إضافة صنف جديد (دائم)</span>
-              <button type="button" onClick={() => setShowAddProductModal(false)}><X size={18} /></button>
+              <span>تزويد مخزون: {restockProduct.name}</span>
+              <button type="button" onClick={() => setRestockProduct(null)}><X size={18} /></button>
             </div>
-            <div className="space-y-3 text-xs">
+            <div className="space-y-2 text-xs">
+              <p className="text-slate-500 font-bold">الكمية الحالية المتوفرة بالمخزن: <span className="text-indigo-600 font-black">{restockProduct.stock} قطعة</span></p>
               <div>
-                <label className="font-bold text-slate-600 block mb-1">اسم الصنف</label>
-                <input type="text" required value={newProdName} onChange={(e) => setNewProdName(e.target.value)} placeholder="مثال: شاي لبتون" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
-              </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">السعر (ج.م)</label>
-                <input type="number" required value={newProdPrice} onChange={(e) => setNewProdPrice(e.target.value)} placeholder="20" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
-              </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">الكمية بالمخزن</label>
-                <input type="number" required value={newProdStock} onChange={(e) => setNewProdStock(e.target.value)} placeholder="30" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
+                <label className="font-bold text-slate-600 block mb-1">الكمية المضافة جديدة (+)</label>
+                <input type="number" required value={restockQty} onChange={(e) => setRestockQty(e.target.value)} placeholder="مثال: 50" className="w-full h-10 border rounded-xl px-3 font-black outline-none text-base text-indigo-600" />
               </div>
             </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ وإضافة للمخزون</button>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">تأكيد التزويد وإعادة التفعيل</button>
           </form>
         </div>
       )}
 
-      {/* MODAL: PRODUCT SIZES */}
-      {selectedProduct && (
+      {/* MODAL 2: إضافة مستخدم جديد */}
+      {newUserModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleAddUserSubmit} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span className="text-base flex items-center gap-2">{selectedProduct.emoji} {selectedProduct.name}</span>
-              <button onClick={() => setSelectedProduct(null)} className="text-slate-400"><X size={18} /></button>
+              <span>إضافة موظف / مستخدم جديد</span>
+              <button type="button" onClick={() => setNewUserModal(false)}><X size={18} /></button>
             </div>
-            {selectedProduct.sizes && (
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="text-xs font-black text-slate-400 block mb-2">اختر الحجم المطلـوب:</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {selectedProduct.sizes.map((s) => (
-                    <button key={s.id} onClick={() => setActiveSize(s)} className={`py-2 rounded-xl border text-xs font-bold ${activeSize?.id === s.id ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-black" : "border-slate-200"}`}>
-                      <div>{s.name}</div>
-                      {s.extra > 0 && <div className="text-[10px] text-slate-400">+{s.extra} ج.م</div>}
-                    </button>
-                  ))}
-                </div>
+                <label className="font-bold text-slate-600 block mb-1">اسم الموظف الثلاثي</label>
+                <input type="text" required value={newURealName} onChange={(e) => setNewURealName(e.target.value)} placeholder="أحمد علي" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
               </div>
-            )}
-            <button onClick={() => addToCartDirect(selectedProduct, activeSize, selectedMods)} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-lg shadow-indigo-600/30">
-              تأكيد وإضافة للسلة
-            </button>
-          </div>
+              <div>
+                <label className="font-bold text-slate-600 block mb-1">اسم المستخدم (Username)</label>
+                <input type="text" required value={newUName} onChange={(e) => setNewUName(e.target.value)} placeholder="ahmed123" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-600 block mb-1">كلمة السر</label>
+                <input type="password" required value={newUPass} onChange={(e) => setNewUPass(e.target.value)} placeholder="••••••••" className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-600 block mb-1">الدور والصلاحية</label>
+                <select value={newURole} onChange={(e) => setNewURole(e.target.value)} className="w-full h-9 border rounded-xl px-2 font-bold outline-none bg-white">
+                  <option value="cashier">الكاشير (Cashier)</option>
+                  <option value="waiter">الويتر (Waiter)</option>
+                  <option value="manager">المدير (Manager)</option>
+                  <option value="admin">مدير النظام (Admin)</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ الكارنية والمستخدم</button>
+          </form>
         </div>
       )}
 
