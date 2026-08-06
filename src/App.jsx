@@ -6,20 +6,27 @@ import {
   PauseCircle, PlayCircle, Clock, Flame, CheckCircle2, ArrowRight,
   Lock, Unlock, FileText, Printer, LayoutDashboard, Users, Package,
   Wifi, WifiOff, RefreshCw, TrendingUp, DollarSign, Wallet, Award,
-  ShieldCheck, UserCheck, Gift, History, TrendingDown, Menu
+  ShieldCheck, UserCheck, Gift, History, TrendingDown, MapPin, LogOut, Key
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-/* ---------------- Master Data ---------------- */
-const ROLES = [
-  { id: "admin", label: "👑 Admin", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  { id: "manager", label: "👔 Manager", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
-  { id: "cashier", label: "💳 Cashier", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  { id: "waiter", label: "🍽️ Waiter", color: "bg-amber-100 text-amber-700 border-amber-200" },
+/* ---------------- 1. USER ACCOUNTS & CREDENTIALS ---------------- */
+const USERS_DB = [
+  { id: 1, username: "admin", password: "admin123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin (مدير النظام)" },
+  { id: 2, username: "manager", password: "mgr123", name: "أحمد علي", role: "manager", roleLabel: "👔 Manager (المدير)" },
+  { id: 3, username: "cashier", password: "cash123", name: "محمود الكاشير", role: "cashier", roleLabel: "💳 Cashier (الكاشير)" },
+  { id: 4, username: "waiter", password: "waiter123", name: "مصطفى الويتر", role: "waiter", roleLabel: "🍽️ Waiter (الويتر)" },
 ];
+
+const ROLE_PERMISSIONS = {
+  admin: { canViewDashboard: true, canCheckout: true, canKDS: true, canCRM: true, canInventory: true },
+  manager: { canViewDashboard: true, canCheckout: true, canKDS: true, canCRM: true, canInventory: true },
+  cashier: { canViewDashboard: false, canCheckout: true, canKDS: true, canCRM: true, canInventory: false },
+  waiter: { canViewDashboard: false, canCheckout: false, canKDS: true, canCRM: false, canInventory: false },
+};
 
 const CATEGORIES = [
   { id: "hot", label: "ساخن", icon: Coffee },
@@ -52,21 +59,58 @@ const SALES_TIMELINE_DATA = [
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
-  const [currentView, setCurrentView] = useState("dashboard");
-  const [currentRole, setCurrentRole] = useState("admin");
-  const [showRoleModal, setShowRoleModal] = useState(false);
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(null); // null = Auth Screen Active
+  const [usernameInput, setUsernameInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
 
+  const [currentView, setCurrentView] = useState("pos");
   const [isOnline] = useState(navigator.onLine);
   const [cart, setCart] = useState([]);
   const [activeCat, setActiveCat] = useState("hot");
   const [query, setQuery] = useState("");
   const [ticketNo, setTicketNo] = useState(1060);
+  
   const [orderType, setOrderType] = useState("takeaway");
+  const [customerNameInput, setCustomerNameInput] = useState("");
+  const [customerPhoneInput, setCustomerPhoneInput] = useState("");
+  const [customerAddressInput, setCustomerAddressInput] = useState("");
+  const [deliveryFee] = useState(15);
+
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+
+  // Authentication Logic
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const user = USERS_DB.find(
+      (u) => u.username.toLowerCase() === usernameInput.trim().toLowerCase() && u.password === passwordInput
+    );
+
+    if (user) {
+      setCurrentUser(user);
+      setLoginError("");
+      const permissions = ROLE_PERMISSIONS[user.role];
+      setCurrentView(permissions.canViewDashboard ? "dashboard" : "pos");
+    } else {
+      setLoginError("اسم المستخدم أو كلمة السر غير صحيحة!");
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setUsernameInput("");
+    setPasswordInput("");
+    setLoginError("");
+    setCart([]);
+  };
+
+  const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const tax = subtotal * 0.14;
-  const total = subtotal + tax;
+  const currentDeliveryFee = orderType === "delivery" ? Number(deliveryFee) || 0 : 0;
+  const total = subtotal + tax + currentDeliveryFee;
 
   const addToCart = (product) => {
     if (product.stock <= 0) return;
@@ -80,14 +124,91 @@ export default function SmartPOSApp() {
   const checkout = () => {
     if (cart.length === 0) return;
     setCart([]);
+    setCustomerNameInput("");
+    setCustomerPhoneInput("");
+    setCustomerAddressInput("");
     setTicketNo((t) => t + 1);
     setMobileCartOpen(false);
   };
 
+  // 🔑 1. AUTHENTICATION LOGIN SCREEN (شاشة تسجيل الدخول)
+  if (!currentUser) {
+    return (
+      <div dir="rtl" className="h-screen w-full bg-slate-900 flex items-center justify-center p-4 font-sans select-none">
+        <div className="bg-white rounded-3xl max-w-md w-full p-8 space-y-6 shadow-2xl border border-slate-100">
+          
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto shadow-lg shadow-indigo-600/30 text-xl">
+              POS
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">تسجيل الدخول للنظام</h2>
+            <p className="text-xs text-slate-400 font-semibold">أدخل اسم المستخدم وكلمة السر المخصصة لدورك</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            {loginError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold text-center">
+                {loginError}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-black text-slate-600 block">اسم المستخدم (Username)</label>
+              <div className="relative">
+                <User size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder="admin / manager / cashier / waiter"
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-black text-slate-600 block">كلمة السر (Password)</label>
+              <div className="relative">
+                <Key size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="password"
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 transition-all"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all"
+            >
+              دخول النظام
+            </button>
+          </form>
+
+          {/* Quick Demo Credentials Guide */}
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1.5 text-[11px] font-semibold text-slate-500">
+            <p className="font-bold text-slate-700 mb-1">💡 الحسابات الافتراضية للتجربة:</p>
+            <div className="flex justify-between"><span>👑 Admin:</span><span className="font-mono font-bold text-slate-900">admin / admin123</span></div>
+            <div className="flex justify-between"><span>👔 Manager:</span><span className="font-mono font-bold text-slate-900">manager / mgr123</span></div>
+            <div className="flex justify-between"><span>💳 Cashier:</span><span className="font-mono font-bold text-slate-900">cashier / cash123</span></div>
+            <div className="flex justify-between"><span>🍽️ Waiter:</span><span className="font-mono font-bold text-slate-900">waiter / waiter123</span></div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // 🔐 2. MAIN POS & DASHBOARD SYSTEM APPLICATION
   return (
     <div dir="rtl" className="h-screen w-full bg-slate-50 flex flex-col font-sans select-none overflow-hidden text-slate-800">
       
-      {/* Upper Navigation Bar (Fully Responsive) */}
+      {/* Navigation Header */}
       <header className="min-h-16 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 shrink-0 shadow-xs z-20 gap-2">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2">
@@ -96,49 +217,54 @@ export default function SmartPOSApp() {
             </div>
             <div>
               <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">النظام المالي الذكي</h1>
-              <p className="text-[10px] text-slate-400 font-semibold">ElHadary FIN Ecosystem</p>
+              <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                ElHadary FIN • <span className="text-indigo-600 font-mono font-bold">v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.1'}</span>
+              </p>
             </div>
           </div>
 
-          {/* Navigation Switcher */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60 text-xs font-bold overflow-x-auto">
-            <button onClick={() => setCurrentView("dashboard")} className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${currentView === "dashboard" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
-              <LayoutDashboard size={14} className="inline mr-1" /> لوحة التحكم
-            </button>
+            {permissions.canViewDashboard && (
+              <button onClick={() => setCurrentView("dashboard")} className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${currentView === "dashboard" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
+                <LayoutDashboard size={14} className="inline mr-1" /> لوحة التحكم
+              </button>
+            )}
             <button onClick={() => setCurrentView("pos")} className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${currentView === "pos" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
               <Receipt size={14} className="inline mr-1" /> نقطة البيع
             </button>
-            <button onClick={() => setCurrentView("kitchen")} className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${currentView === "kitchen" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
-              <Flame size={14} className="inline mr-1 text-amber-500" /> المطبخ
-            </button>
+            {permissions.canKDS && (
+              <button onClick={() => setCurrentView("kitchen")} className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${currentView === "kitchen" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
+                <Flame size={14} className="inline mr-1 text-amber-500" /> المطبخ
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Right Status */}
+        {/* User Info & Logout Button */}
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowRoleModal(true)} className={`px-2.5 py-1 rounded-lg border text-xs font-bold flex items-center gap-1 ${ROLES.find(r=>r.id===currentRole)?.color}`}>
-            <UserCheck size={14} />
-            <span className="hidden sm:inline">{ROLES.find(r=>r.id===currentRole)?.label}</span>
-          </button>
-
-          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"}`}>
-            {isOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
-            <span className="hidden sm:inline">{isOnline ? "متصل" : "أوفلاين"}</span>
+          <div className="bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-xl text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+            <User size={14} />
+            <span>{currentUser.name}</span>
+            <span className="text-[10px] opacity-75">({currentUser.roleLabel})</span>
           </div>
+
+          <button
+            onClick={handleLogout}
+            title="تسجيل الخروج"
+            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </header>
 
-      {/* VIEW SWITCHER */}
-      
-      {/* 🟢 1. DASHBOARD VIEW (Responsive Grid) */}
-      {currentView === "dashboard" && (
+      {/* DASHBOARD VIEW */}
+      {currentView === "dashboard" && permissions.canViewDashboard && (
         <div className="flex-1 bg-slate-50 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6">
-          
-          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">لوحة التحكم والأداء</h2>
-              <p className="text-xs text-slate-400 font-semibold">نظرة عامة على الإيرادات والأداء المالي لليوم</p>
+              <p className="text-xs text-slate-400 font-semibold">أهلاً بك، {currentUser.name}</p>
             </div>
             <div className="flex bg-white p-1 rounded-xl border border-slate-200 text-xs font-bold shadow-xs">
               <button className="px-3 py-1 bg-indigo-600 text-white rounded-lg shadow-sm">اليوم</button>
@@ -147,7 +273,6 @@ export default function SmartPOSApp() {
             </div>
           </div>
 
-          {/* Responsive KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
@@ -194,7 +319,6 @@ export default function SmartPOSApp() {
             </div>
           </div>
 
-          {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
               <div className="flex justify-between items-center">
@@ -238,11 +362,10 @@ export default function SmartPOSApp() {
               </div>
             </div>
           </div>
-
         </div>
       )}
 
-      {/* 🟢 2. POS VIEW (Responsive Grid with Drawer on Mobile) */}
+      {/* POS VIEW */}
       {currentView === "pos" && (
         <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
           <main className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l border-slate-100">
@@ -276,7 +399,6 @@ export default function SmartPOSApp() {
               </div>
             </div>
 
-            {/* Mobile Bottom Bar for Cart Trigger */}
             <div className="md:hidden bg-white border-t border-slate-200 p-3 flex justify-between items-center shadow-lg">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold block">إجمالي السلة</span>
@@ -288,11 +410,29 @@ export default function SmartPOSApp() {
             </div>
           </main>
 
-          {/* Responsive Cart Sidebar / Mobile Drawer */}
           <aside className={`w-full md:w-[360px] shrink-0 bg-white flex flex-col shadow-xl border-r border-slate-100 fixed md:relative inset-y-0 right-0 z-30 transition-transform ${mobileCartOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}>
-            <div className="p-3.5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <span className="font-black text-slate-900 text-xs">فاتورة جديد #{ticketNo}</span>
-              <button onClick={() => setMobileCartOpen(false)} className="md:hidden text-slate-400"><X size={18} /></button>
+            <div className="p-3 border-b border-slate-100 bg-slate-50/70 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-black text-slate-900">فاتورة جديد #{ticketNo}</span>
+                <button onClick={() => setMobileCartOpen(false)} className="md:hidden text-slate-400"><X size={18} /></button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1 bg-slate-200/60 p-1 rounded-xl">
+                {ORDER_TYPES.map((t) => (
+                  <button key={t.id} onClick={() => setOrderType(t.id)}
+                    className={`py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1 transition-all ${orderType === t.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600"}`}>
+                    <t.icon size={13} /> {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {orderType === "delivery" && (
+                <div className="p-2.5 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-1.5 text-xs">
+                  <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 rounded-lg border px-2 font-mono bg-white outline-none" />
+                  <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 rounded-lg border px-2 bg-white outline-none" />
+                  <input value={customerAddressInput} onChange={(e) => setCustomerAddressInput(e.target.value)} placeholder="العنوان..." className="w-full h-7 rounded-lg border px-2 bg-white outline-none" />
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
@@ -316,33 +456,24 @@ export default function SmartPOSApp() {
             <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3">
               <div className="space-y-1 text-xs font-semibold text-slate-500">
                 <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
+                <div className="flex justify-between"><span>الضريبة (14%):</span><span>{fmt(tax)} ج.م</span></div>
+                {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>التوصيل:</span><span>{fmt(currentDeliveryFee)} ج.م</span></div>}
                 <div className="flex justify-between text-slate-900 font-black text-sm pt-1 border-t">
                   <span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span>
                 </div>
               </div>
 
-              <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20">
-                إتمام البيع والطباعة
-              </button>
+              {permissions.canCheckout ? (
+                <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white font-black text-xs rounded-xl shadow-md shadow-indigo-600/20">
+                  إتمام البيع والطباعة
+                </button>
+              ) : (
+                <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-200 text-white font-black text-xs rounded-xl shadow-md shadow-amber-600/20">
+                  إرسال الطلب للمطبخ فقط (Waiter Mode)
+                </button>
+              )}
             </div>
           </aside>
-        </div>
-      )}
-
-      {/* 🔴 ROLE MODAL */}
-      {showRoleModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-xs w-full p-5 space-y-3 shadow-2xl">
-            <h3 className="font-black text-slate-900 text-xs border-b pb-2">تبديل دور المستخدم</h3>
-            <div className="space-y-1.5">
-              {ROLES.map((role) => (
-                <button key={role.id} onClick={() => { setCurrentRole(role.id); setShowRoleModal(false); }}
-                  className={`w-full p-2.5 rounded-xl border text-right font-bold text-xs flex justify-between ${currentRole === role.id ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-black" : "border-slate-200"}`}>
-                  <span>{role.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
