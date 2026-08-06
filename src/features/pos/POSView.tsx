@@ -173,185 +173,212 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ تصميم احترافي وجذاب للفاتورة الحرارية
+  // 🖨️ تصميم سوبر احترافي وعالي التباين للفاتورة الحرارية
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
       const logoUrl = window.location.origin + '/logo.png';
 
       printWindow.document.write(`
-        <html dir="rtl">
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
         <head>
           <meta charset="utf-8" />
           <title>فاتورة ${inv.orderType}</title>
           <style>
             @media print {
               @page { margin: 0; size: auto; }
-              body { margin: 0; padding: 8px; }
+              body { margin: 0; padding: 4px; }
             }
+            * { box-sizing: border-box; }
             body {
-              font-family: 'Courier New', Courier, Tahoma, Arial, sans-serif;
+              font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
               width: 270px;
-              margin: auto;
-              padding: 10px;
+              margin: 0 auto;
+              padding: 8px;
               color: #000;
               background: #fff;
               direction: rtl;
               text-align: right;
+              font-size: 11px;
+              line-height: 1.3;
             }
             .header {
               text-align: center;
               border-bottom: 2px solid #000;
-              padding-bottom: 10px;
-              margin-bottom: 10px;
+              padding-bottom: 8px;
+              margin-bottom: 8px;
             }
             .logo {
-              width: 80px;
-              height: 80px;
-              margin: 0 auto 6px auto;
+              width: 70px;
+              height: 70px;
+              margin: 0 auto 4px auto;
               display: block;
-              filter: grayscale(100%) contrast(200%);
+              filter: grayscale(100%) contrast(300%);
             }
-            .brand-name {
-              font-size: 18px;
+            .brand-title {
+              font-size: 17px;
               font-weight: 900;
-              letter-spacing: 1px;
-              margin: 2px 0;
+              letter-spacing: 0.5px;
+              margin: 0;
+              text-transform: uppercase;
             }
-            .tagline {
-              font-size: 10px;
-              font-weight: bold;
-              margin-bottom: 6px;
+            .brand-sub {
+              font-size: 9px;
+              font-weight: 800;
+              color: #222;
+              margin-top: 1px;
             }
-            .order-type-badge {
+            .badge-wrap {
+              margin-top: 6px;
+            }
+            .badge {
               display: inline-block;
-              border: 2px solid #000;
-              padding: 3px 12px;
-              font-size: 14px;
+              background-color: #000;
+              color: #fff;
+              font-size: 13px;
               font-weight: 900;
-              border-radius: 4px;
-              margin-top: 4px;
+              padding: 3px 14px;
+              border-radius: 20px;
+              letter-spacing: 0.5px;
             }
-            .info-block {
-              font-size: 11px;
-              font-weight: bold;
+            .details-box {
+              background: #f8f8f8;
+              border: 1px border-slate-300;
+              border-radius: 6px;
+              padding: 6px 8px;
               margin-bottom: 8px;
-              border-bottom: 1px dashed #000;
-              padding-bottom: 8px;
+              font-size: 10px;
+              font-weight: 700;
             }
-            .info-row {
+            .details-row {
               display: flex;
               justify-content: space-between;
               margin-bottom: 3px;
             }
-            .items-table {
+            .details-row:last-child { margin-bottom: 0; }
+            .address-row {
+              border-top: 1px dashed #ccc;
+              margin-top: 4px;
+              padding-top: 4px;
+              font-size: 11px;
+              font-weight: 800;
+            }
+            .table {
               width: 100%;
               border-collapse: collapse;
-              margin-bottom: 8px;
+              margin-bottom: 6px;
             }
-            .items-table th {
+            .table th {
               border-bottom: 2px solid #000;
-              font-size: 11px;
+              font-size: 10px;
               font-weight: 900;
-              padding-bottom: 4px;
+              padding: 4px 2px;
               text-align: right;
             }
-            .items-table td {
+            .table td {
+              padding: 5px 2px;
+              border-bottom: 1px #eee solid;
               font-size: 11px;
-              font-weight: bold;
-              padding: 4px 0;
-              vertical-align: top;
+              font-weight: 700;
             }
-            .item-qty {
+            .qty-pill {
+              display: inline-block;
               font-weight: 900;
-              font-size: 12px;
+              font-size: 11px;
             }
-            .divider {
-              border-top: 2px dashed #000;
-              margin: 8px 0;
-            }
-            .totals-section {
-              font-size: 12px;
-              font-weight: bold;
-            }
-            .grand-total {
-              font-size: 16px;
-              font-weight: 900;
+            .total-box {
               border: 2px solid #000;
-              text-align: center;
+              border-radius: 6px;
               padding: 6px;
+              text-align: center;
               margin-top: 6px;
-              background-color: #f9f9f9;
+            }
+            .total-label {
+              font-size: 10px;
+              font-weight: 800;
+              margin-bottom: 1px;
+            }
+            .total-val {
+              font-size: 18px;
+              font-weight: 900;
+            }
+            .summary-line {
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              font-weight: 800;
+              margin-bottom: 2px;
             }
             .footer {
               text-align: center;
-              font-size: 10px;
-              font-weight: bold;
-              margin-top: 12px;
+              font-size: 9px;
+              font-weight: 800;
+              margin-top: 10px;
               border-top: 1px dashed #000;
-              padding-top: 8px;
+              padding-top: 6px;
             }
           </style>
         </head>
         <body>
           <div class="header">
             <img src="${logoUrl}" class="logo" alt="DC Logo" />
-            <div class="brand-name">DREAM CORNER</div>
-            <div class="tagline">بيتزا - برجر - كريب</div>
-            <div class="order-type-badge">*** ${inv.orderType} ***</div>
+            <h1 class="brand-title">DREAM CORNER</h1>
+            <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
+            <div class="badge-wrap">
+              <span class="badge">${inv.orderType}</span>
+            </div>
           </div>
 
-          <div class="info-block">
-            <div class="info-row">
+          <div class="details-box">
+            <div class="details-row">
               <span>التاريخ: ${new Date(inv.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
               <span>الوقت: ${new Date(inv.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            ${inv.driverName ? `<div class="info-row"><span>🛵 الطيار:</span><span>${inv.driverName}</span></div>` : ''}
-            ${inv.customerName ? `<div class="info-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
-            ${inv.customerPhone ? `<div class="info-row"><span>📞 التليفون:</span><span>${inv.customerPhone}</span></div>` : ''}
-            ${inv.customerAddress ? `<div style="margin-top:2px;">🏠 العنوان: <b>${inv.customerAddress}</b></div>` : ''}
+            ${inv.driverName ? `<div class="details-row"><span>🛵 الطيار المسؤول:</span><span><b>${inv.driverName}</b></span></div>` : ''}
+            ${inv.customerName ? `<div class="details-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
+            ${inv.customerPhone ? `<div class="details-row"><span>📞 الهاتف:</span><span>${inv.customerPhone}</span></div>` : ''}
+            ${inv.customerAddress ? `<div class="address-row">🏠 العنوان: ${inv.customerAddress}</div>` : ''}
           </div>
 
-          <table class="items-table">
+          <table class="table">
             <thead>
               <tr>
-                <th style="width: 55%;">الصنف</th>
-                <th style="width: 15%; text-align: center;">العدد</th>
-                <th style="width: 30%; text-align: left;">المبلغ</th>
+                <th style="width: 58%;">الصنف</th>
+                <th style="width: 14%; text-align: center;">العدد</th>
+                <th style="width: 28%; text-align: left;">المبلغ</th>
               </tr>
             </thead>
             <tbody>
               ${inv.items.map((i: any) => `
-                <tr style="border-bottom: 1px #eee solid;">
+                <tr>
                   <td>${i.name}</td>
-                  <td style="text-align: center;" class="item-qty">${i.quantity}</td>
-                  <td style="text-align: left;">${i.price * i.quantity} ج.م</td>
+                  <td style="text-align: center;"><span class="qty-pill">${i.quantity}</span></td>
+                  <td style="text-align: left; font-weight:900;">${i.price * i.quantity} ج.م</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
 
-          <div class="divider"></div>
-
-          <div class="totals-section">
-            ${inv.deliveryFee > 0 ? `
-              <div class="info-row">
-                <span>المجموع:</span>
-                <span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span>
-              </div>
-              <div class="info-row">
-                <span>خدمة التوصيل (${inv.zoneName || ''}):</span>
-                <span>${inv.deliveryFee} ج.م</span>
-              </div>
-            ` : ''}
-            <div class="grand-total">
-              الإجمالي الكلي: ${inv.total} ج.م
+          ${inv.deliveryFee > 0 ? `
+            <div class="summary-line">
+              <span>إجمالي الطلبات:</span>
+              <span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span>
             </div>
+            <div class="summary-line">
+              <span>خدمة التوصيل (${inv.zoneName || ''}):</span>
+              <span>${inv.deliveryFee} ج.م</span>
+            </div>
+          ` : ''}
+
+          <div class="total-box">
+            <div class="total-label">الإجمالي النهائي المطلوب</div>
+            <div class="total-val">${inv.total} ج.م</div>
           </div>
 
           <div class="footer">
             طعم يفرق .. جودة تليق بيك ❤️<br/>
-            شكراً لطلبكم من DREAM CORNER
+            شكراً لتسوقكم من DREAM CORNER
           </div>
         </body>
         </html>
