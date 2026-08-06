@@ -10,8 +10,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 
-/* ---------------- 📌 VERSION CONTROL (v8.0.0 ABSOLUTE UNLOCK) ---------------- */
-const APP_VERSION = "8.0.0"; 
+/* ---------------- 📌 VERSION CONTROL (v9.0.0 COMPLETE ENGINE) ---------------- */
+const APP_VERSION = "9.0.0"; 
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -55,9 +55,8 @@ const DEFAULT_CUSTOMERS = [
   { id: 2, name: "أحمد علي", phone: "01122334455", address: "سرسو البرامون", points: 45, debt: 80.0 },
 ];
 
-// 📌 2. المنيو الكامل والخاص بـ دريم كورنر بالكامل دون اختصار
 const DEFAULT_PRODUCTS = [
-  // --- البيتزا ---
+  // --- قسم البيتزا ---
   { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 45 }, { id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 90 }] },
   { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
   { id: "p3", cat: "البيتزا", name: "بيتزا خضروات", price: 60, emoji: "🥦", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
@@ -72,7 +71,7 @@ const DEFAULT_PRODUCTS = [
   { id: "p12", cat: "البيتزا", name: "بيتزا كرانشي (حار/بارد)", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 130 }] },
   { id: "p13", cat: "البيتزا", name: "بيتزا ميكس دجاج", price: 85, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 85 }, { id: "md", name: "وسط", price: 105 }, { id: "lg", name: "كبير", price: 135 }] },
 
-  // --- السندوتشات ---
+  // --- قسم السندوتشات ---
   { id: "s1", cat: "السندوتشات", name: "كفتة مشوية", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
   { id: "s2", cat: "السندوتشات", name: "سجق مشوي", price: 60, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 60 }, { id: "lg", name: "كبير", price: 70 }] },
   { id: "s3", cat: "السندوتشات", name: "كبدة إسكندراني", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
@@ -107,15 +106,14 @@ const SALES_CHART_TIMELINE = [
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
-  // ⚡ إجبار الكاش والتخزين على التحديث الفوري v8.0.0
   useEffect(() => {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.setItem("pos_products_v80", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v80", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v80", JSON.stringify(DEFAULT_CATEGORIES));
-      localStorage.setItem("pos_customers_v80", JSON.stringify(DEFAULT_CUSTOMERS));
+      localStorage.setItem("pos_products_v90", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v90", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v90", JSON.stringify(DEFAULT_CATEGORIES));
+      localStorage.setItem("pos_customers_v90", JSON.stringify(DEFAULT_CUSTOMERS));
     }
   }, []);
 
@@ -125,12 +123,12 @@ export default function SmartPOSApp() {
   });
 
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
-  const [usersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v80") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v80") || JSON.stringify(DEFAULT_PRODUCTS)));
-  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders_v80") || "[]"));
-  const [deliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v80") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
-  const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem("pos_customers_v80") || JSON.stringify(DEFAULT_CUSTOMERS)));
+  const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v90") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v90") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders_v90") || "[]"));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v90") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem("pos_customers_v90") || JSON.stringify(DEFAULT_CUSTOMERS)));
 
   const [activeShift, setActiveShift] = useState(() => JSON.parse(localStorage.getItem("pos_active_shift") || "null"));
   const [openingCashInput, setOpeningCashInput] = useState("");
@@ -139,10 +137,12 @@ export default function SmartPOSApp() {
   const [shiftReport, setShiftReport] = useState(null);
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
-  useEffect(() => { localStorage.setItem("pos_categories_v80", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v80", JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem("pos_orders_v80", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_customers_v80", JSON.stringify(customers)); }, [customers]);
+  useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
+  useEffect(() => { localStorage.setItem("pos_categories_v90", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v90", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_orders_v90", JSON.stringify(completedOrders)); }, [completedOrders]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v90", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_customers_v90", JSON.stringify(customers)); }, [customers]);
   useEffect(() => { localStorage.setItem("pos_active_shift", JSON.stringify(activeShift)); }, [activeShift]);
 
   // Auth & UI States
@@ -174,6 +174,7 @@ export default function SmartPOSApp() {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [editProductModal, setEditProductModal] = useState(null);
 
   const [newCatLabel, setNewCatLabel] = useState("");
@@ -188,6 +189,14 @@ export default function SmartPOSApp() {
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
   const [newCustAddr, setNewCustAddress] = useState("");
+
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneFee, setNewZoneFee] = useState("");
+
+  const [newURealName, setNewURealName] = useState("");
+  const [newUName, setNewUName] = useState("");
+  const [newUPass, setNewUPass] = useState("");
+  const [newURole, setNewURole] = useState("cashier");
 
   const [settleDebtCustomer, setSettleDebtCustomer] = useState(null);
   const [settleAmountInput, setSettleAmountInput] = useState("");
@@ -370,6 +379,35 @@ export default function SmartPOSApp() {
     setShowAddCustomerModal(false);
   };
 
+  const handleAddZoneSubmit = (e) => {
+    e.preventDefault();
+    if (!newZoneName || !newZoneFee) return;
+    const zoneObj = { id: Date.now(), name: newZoneName, fee: Number(newZoneFee) };
+    setDeliveryZones((prev) => [...prev, zoneObj]);
+    setNewZoneName(""); setNewZoneFee("");
+  };
+
+  const handleAddUserSubmit = (e) => {
+    e.preventDefault();
+    if (!newUName || !newUPass) return;
+    const newUser = {
+      id: Date.now(),
+      username: newUName.trim(),
+      password: newUPass,
+      name: newURealName || newUName,
+      role: newURole,
+      roleLabel: newURole === "admin" ? "👑 Admin" : newURole === "manager" ? "👔 Manager" : "💳 Cashier"
+    };
+    setUsersDb((prev) => [...prev, newUser]);
+    setNewUName(""); setNewUPass(""); setNewURealName("");
+    setShowAddUserModal(false);
+  };
+
+  const handleUpdatePassword = (userId, newPass) => {
+    setUsersDb((prev) => prev.map((u) => u.id === userId ? { ...u, password: newPass } : u));
+    alert("✅ تم حديث كلمة السر بنجاح!");
+  };
+
   const handleSettleCustomerDebt = (e) => {
     e.preventDefault();
     if (!settleDebtCustomer || !settleAmountInput) return;
@@ -378,6 +416,47 @@ export default function SmartPOSApp() {
     setSettleDebtCustomer(null);
     setSettleAmountInput("");
     alert("✅ تم تسجيل السداد بنجاح!");
+  };
+
+  const handlePrintReceipt = (orderData) => {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html dir="rtl">
+        <head>
+          <title>فاتورة #${orderData.ticketNo}</title>
+          <style>
+            body { font-family: sans-serif; width: ${restaurantInfo.paperWidth || "80mm"}; margin: 0 auto; padding: 8px; font-size: 11px; }
+            .text-center { text-align: center; }
+            .border-b { border-bottom: 1px dashed #000; margin: 6px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { text-align: right; padding: 3px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="text-center">
+            <h2>${restaurantInfo.name}</h2>
+            <p>${restaurantInfo.address}<br/>تليفون: ${restaurantInfo.phone}</p>
+          </div>
+          <div class="border-b"></div>
+          <p>رقم الفاتورة: #${orderData.ticketNo}<br/>التاريخ: ${orderData.date} - ${orderData.time}<br/>الكاشير: ${orderData.cashier}</p>
+          <div class="border-b"></div>
+          <table>
+            <thead><tr><th>الصنف</th><th>العدد</th><th>السعر</th></tr></thead>
+            <tbody>
+              ${orderData.items.map(i => `<tr><td>${i.name} ${i.sizeName ? `(${i.sizeName})` : ''}</td><td>${i.qty}</td><td>${i.unitPrice * i.qty} ج.م</td></tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="border-b"></div>
+          <div style="font-weight: bold; font-size: 13px;">الإجمالي النهائي: ${orderData.total} ج.م</div>
+          <div class="border-b"></div>
+          <div class="text-center"><p>${restaurantInfo.receiptFooter}</p></div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
 
   const handleFactoryReset = () => {
@@ -396,7 +475,7 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Absolute Unlocked v{APP_VERSION}</p>
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Complete v{APP_VERSION}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -420,12 +499,10 @@ export default function SmartPOSApp() {
             <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
               <Unlock size={32} />
             </div>
-
             <div>
               <h3 className="text-xl font-black text-slate-900">فتح وردية جديدة</h3>
               <p className="text-xs text-slate-400 font-bold mt-1">المستخدم الحالي: {currentUser.name}</p>
             </div>
-
             <div className="text-right space-y-1.5 text-xs">
               <label className="font-bold text-slate-700 block">النقدية الافتتاحية بالدرج (الرصيد/الفكة)</label>
               <input
@@ -437,7 +514,6 @@ export default function SmartPOSApp() {
                 className="w-full h-11 bg-slate-50 border rounded-xl px-4 font-black text-indigo-600 text-base outline-none"
               />
             </div>
-
             <button type="submit" className="w-full h-12 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">
               تأكيد فتح الوردية 🚀
             </button>
@@ -774,23 +850,135 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* SETTINGS VIEW */}
+        {/* ⚙️ FULL SETTINGS VIEW - COMPLETE UNABRIDGED */}
         {currentView === "settings" && (
-          <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والتهيئة</h2>
-            <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-4 max-w-lg text-xs font-bold">
-              <div>
-                <label className="text-slate-600 block mb-1">اسم المطعم</label>
-                <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+          <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-8">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والطباعة الشاملة</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* 1. بيانات المطعم واللوجو */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
+                  <Settings size={16} className="text-indigo-600" /> بيانات المطعم والتواصل
+                </h3>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
+                  <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">رابط صورة اللوجو (Logo URL)</label>
+                  <input type="text" value={restaurantInfo.logoUrl} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, logoUrl: e.target.value })} placeholder="https://example.com/logo.png" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">العنوان التفصيلي</label>
+                  <input type="text" value={restaurantInfo.address} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">رقم الهاتف للتواصل</label>
+                  <input type="text" value={restaurantInfo.phone} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
               </div>
-              <button onClick={handleFactoryReset} className="w-full h-11 bg-rose-600 text-white font-black text-xs rounded-xl shadow-lg">
-                ⚠️ إعادة تصفير النظام والبيانات بالكامل
-              </button>
+
+              {/* 2. إعدادات الطباعة */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
+                  <Printer size={16} className="text-indigo-600" /> إعدادات طباعة الفواتير
+                </h3>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">اسم الطابعة المتصلة (Printer Name)</label>
+                  <input type="text" value={restaurantInfo.printerName} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, printerName: e.target.value })} placeholder="POS-80 Printer" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">عرض ورق الطابعة Thermal Paper</label>
+                  <select value={restaurantInfo.paperWidth} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, paperWidth: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none bg-white">
+                    <option value="80mm">80mm (طابعة كاشير قياسية)</option>
+                    <option value="58mm">58mm (طابعة صغيرة)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">تذييل ورسالة الفاتورة</label>
+                  <input type="text" value={restaurantInfo.receiptFooter} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, receiptFooter: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <button onClick={() => handlePrintReceipt({ ticketNo: 999, date: "اليوم", time: "12:00", cashier: "تجربة", items: [{ name: "تجربة طابعة", qty: 1, unitPrice: 10 }], total: 10 })} className="w-full h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl mt-2">
+                  🖨️ تجربة طباعة إيصال اختباري
+                </button>
+              </div>
+
+              {/* 3. المستخدمين والباسوردات */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-4 text-xs">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2"><Shield size={16} className="text-indigo-600" /> المستخدمين وكلمات السر</h3>
+                  <button onClick={() => setShowAddUserModal(true)} className="px-3 py-1 bg-indigo-600 text-white rounded-lg font-bold">+ موظف جديد</button>
+                </div>
+                <div className="space-y-2">
+                  {usersDb.map((u) => (
+                    <div key={u.id} className="p-2.5 bg-slate-50 rounded-xl border flex justify-between items-center">
+                      <div>
+                        <div className="font-bold text-slate-900">{u.name} ({u.roleLabel})</div>
+                        <div className="text-[10px] text-slate-400 font-mono">User: {u.username}</div>
+                      </div>
+                      <input type="password" defaultValue={u.password} onBlur={(e) => handleUpdatePassword(u.id, e.target.value)} className="w-24 h-7 bg-white border rounded-lg px-2 text-center font-mono font-bold" title="تغير كلمة السر واضغط خارج الحقل" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. مناطق التوصيل */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2">مناطق وأسعار التوصيل</h3>
+                <form onSubmit={handleAddZoneSubmit} className="flex gap-2">
+                  <input type="text" required value={newZoneName} onChange={(e) => setNewZoneName(e.target.value)} placeholder="اسم المنطقة..." className="flex-1 h-9 border rounded-xl px-3 font-bold outline-none" />
+                  <input type="number" required value={newZoneFee} onChange={(e) => setNewZoneFee(e.target.value)} placeholder="السعر" className="w-20 h-9 border rounded-xl px-3 font-bold outline-none" />
+                  <button type="submit" className="px-3 bg-indigo-600 text-white rounded-xl font-bold">+ إضافة</button>
+                </form>
+                <div className="space-y-1 pt-1 max-h-40 overflow-y-auto">
+                  {deliveryZones.map((z) => (
+                    <div key={z.id} className="p-2 bg-slate-50 rounded-xl border flex justify-between items-center font-bold">
+                      <span>{z.name}</span><span className="text-indigo-600">{z.fee} ج.م</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. التهيئة والتصفير */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs border-rose-100 lg:col-span-2">
+                <h3 className="font-extrabold text-sm text-rose-600 border-b pb-2 flex items-center gap-2">
+                  <RotateCcw size={16} /> تهيئة وإعادة تصفير النظام
+                </h3>
+                <button onClick={handleFactoryReset} className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-lg shadow-rose-600/20">
+                  ⚠️ إعادة تصفير النظام والبيانات بالكامل
+                </button>
+              </div>
+
             </div>
           </div>
         )}
 
       </main>
+
+      {/* MODAL: إضافة موظف جديد */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleAddUserSubmit} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
+              <span>إضافة موظف جديد</span>
+              <button type="button" onClick={() => setShowAddUserModal(false)}><X size={18} /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <input type="text" required value={newURealName} onChange={(e) => setNewURealName(e.target.value)} placeholder="اسم الموظف..." className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
+              <input type="text" required value={newUName} onChange={(e) => setNewUName(e.target.value)} placeholder="اسم المستخدم (Username)..." className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
+              <input type="password" required value={newUPass} onChange={(e) => setNewUPass(e.target.value)} placeholder="كلمة السر..." className="w-full h-9 border rounded-xl px-2 font-bold outline-none" />
+              <select value={newURole} onChange={(e) => setNewURole(e.target.value)} className="w-full h-9 border rounded-xl px-2 font-bold outline-none bg-white">
+                <option value="cashier">الكاشير (Cashier)</option>
+                <option value="manager">المدير (Manager)</option>
+                <option value="admin">مدير النظام (Admin)</option>
+              </select>
+            </div>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ الحساب</button>
+          </form>
+        </div>
+      )}
 
       {/* MODAL: إضافة عميل جديد */}
       {showAddCustomerModal && (
@@ -901,6 +1089,24 @@ export default function SmartPOSApp() {
               تأكيد وإضافة للسلة
             </button>
           </div>
+        </div>
+      )}
+
+      {/* MODAL: تعديل صنف */}
+      {editProductModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={(e) => { e.preventDefault(); setProducts(products.map(p => p.id === editProductModal.id ? editProductModal : p)); setEditProductModal(null); }} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
+              <span>تعديل بيانات الصنف</span>
+              <button type="button" onClick={() => setEditProductModal(null)}><X size={18} /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <input type="text" required value={editProductModal.name} onChange={(e) => setEditProductModal({ ...editProductModal, name: e.target.value })} placeholder="اسم الصنف" className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={editProductModal.price} onChange={(e) => setEditProductModal({ ...editProductModal, price: Number(e.target.value) })} placeholder="السعر" className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={editProductModal.stock} onChange={(e) => setEditProductModal({ ...editProductModal, stock: Number(e.target.value) })} placeholder="المخزن" className="w-full h-9 border rounded-xl px-3 font-bold" />
+            </div>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ التعديلات</button>
+          </form>
         </div>
       )}
 
