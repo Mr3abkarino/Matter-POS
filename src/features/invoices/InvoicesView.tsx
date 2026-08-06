@@ -1,205 +1,235 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../db/dexie';
-import { Invoice } from '../../types';
-import { ThermalReceipt } from '../../components/print/ThermalReceipt';
-import { Eye, Printer, RotateCcw, Search, FileText } from 'lucide-react';
+import { FileText, Printer, Trash2, Edit3, Plus, Minus, Check } from 'lucide-react';
 
-export const InvoicesView: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+export function InvoicesView() {
+  const invoices = useLiveQuery(() => db.invoices.toArray()) || [];
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
 
-  // جلب الفواتير مباشرة من Dexie وتنسيق ترتيبها من الأحدث للأقدم
-  const invoices = useLiveQuery(
-    () => db.invoices.orderBy('createdAt').reverse().toArray(),
-    []
-  ) || [];
-
-  // دالة معالجة المرتجع وإرجاع الكميات للمخزن
-  const handleRefundInvoice = async (invoice: Invoice) => {
-    if (!invoice.id) return;
-    if (!window.confirm(`هل أنت متأكد من إلغاء الفاتورة #${invoice.ticketNo} وإرجاع الأصناف للمخزن؟`)) return;
-
-    // 1. تحديث حالة الفاتورة إلى cancelled
-    await db.invoices.update(invoice.id, { status: 'cancelled' });
-
-    // 2. إرجاع كميات المخزن تلقائياً بداخل Dexie
-    for (const item of invoice.items) {
-      const prod = await db.products.get(item.productId);
-      if (prod) {
-        await db.products.update(item.productId, { stock: prod.stock + item.qty });
-      }
+  // دالة إعادة الطباعة
+  const handleReprint = (inv: any) => {
+    const printWindow = window.open('', '_blank', 'width=350,height=600');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html dir="rtl">
+          <head>
+            <title>فاتورة رقم #${inv.id} - دريم كورنر</title>
+            <style>
+              body { font-family: 'Cairo', sans-serif; padding: 10px; width: 280px; margin: auto; color: #000; }
+              h2, h4 { text-align: center; margin: 4px 0; }
+              hr { border: dashed 1px #000; }
+              .info { font-size: 12px; margin-bottom: 5px; }
+              .item-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+              .total-row { font-weight: bold; font-size: 15px; margin-top: 8px; display: flex; justify-content: space-between; }
+              .footer { text-align: center; font-size: 12px; margin-top: 10px; }
+            </style>
+          </head>
+          <body>
+            <h2>دريم كورنر</h2>
+            <h4>طعم يفرق .. جودة تليق بك</h4>
+            <div class="footer" style="font-size: 10px;">البرامون - بجوار عيادة د. إلهام العشري</div>
+            <hr/>
+            <div class="info">رقم الفاتورة: #${inv.id} (نسخة اعادة طباعة)</div>
+            <div class="info">النوع: ${inv.orderType}</div>
+            <div class="info">التاريخ: ${new Date(inv.createdAt).toLocaleString('ar-EG')}</div>
+            <hr/>
+            <div>
+              ${inv.items.map((item: any) => `
+                <div class="item-row">
+                  <span>${item.name} (${item.quantity}x)</span>
+                  <span>${item.price * item.quantity} ج.م</span>
+                </div>
+              `).join('')}
+            </div>
+            <hr/>
+            <div class="total-row">
+              <span>الإجمالي الصافي:</span>
+              <span>${inv.total} ج.م</span>
+            </div>
+            <hr/>
+            <div class="footer">
+              01006113627
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 400);
     }
-
-    alert('✅ تم إلغاء الفاتورة وإعادة الأصناف إلى المخزون بنجاح!');
   };
 
-  // دالة إرسال الفاتورة للطباعة
-  const handlePrint = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setTimeout(() => {
-      window.print();
-    }, 200);
+  // إلغاء/حذف الفاتورة بالكامل
+  const handleDeleteInvoice = async (id: number) => {
+    if (confirm('هل أنت تأكد من إلغاء وحذف هذه الفاتورة؟')) {
+      await db.invoices.delete(id);
+    }
   };
 
-  const filteredInvoices = invoices.filter((inv) =>
-    inv.ticketNo.toString().includes(searchQuery) ||
-    (inv.customerPhone && inv.customerPhone.includes(searchQuery))
-  );
+  // تعديل كمية صنف داخل الفاتورة
+  const handleUpdateItemQty = (itemKey: string, delta: number) => {
+    if (!editingInvoice) return;
+    const updatedItems = editingInvoice.items.map((item: any) => {
+      if (item.itemKey === itemKey) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : null;
+      }
+      return item;
+    }).filter(Boolean);
+
+    const newTotal = updatedItems.reduce((sum: number, i: any) => sum + (i.price * i.quantity), 0);
+    setEditingInvoice({
+      ...editingInvoice,
+      items: updatedItems,
+      total: newTotal
+    });
+  };
+
+  // حفظ التعديلات على الفاتورة في قاعدة البيانات
+  const handleSaveEdit = async () => {
+    if (!editingInvoice) return;
+    await db.invoices.update(editingInvoice.id, {
+      items: editingInvoice.items,
+      total: editingInvoice.total
+    });
+    setEditingInvoice(null);
+  };
 
   return (
-    <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6 dir-rtl">
-      
-      {/* عنوان الشاشة والبحث */}
-      <div className="flex flex-wrap justify-between items-center gap-4 border-b pb-4">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FileText className="text-indigo-600" /> سجل الفواتير والمرتجعات
-          </h2>
-          <p className="text-xs text-slate-400 font-bold mt-1">
-            إجمالي الفواتير المسجلة: {invoices.length} فاتورة
-          </p>
-        </div>
+    <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
+      <h1 className="text-xl md:text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
+        <FileText className="text-indigo-600" size={28} />
+        <span>سجل الفواتير والمبيعات</span>
+      </h1>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute right-3 top-2.5 text-slate-400" size={16} />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث برقم الفاتورة أو تليفون العميل..."
-            className="w-full h-10 bg-white border border-slate-200 rounded-xl pr-9 pl-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+      {invoices.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-200 shadow-sm">
+          <FileText size={48} className="mx-auto mb-3 text-slate-300" />
+          <p className="font-bold">لا توجد فواتير مسجلة حتى الآن</p>
         </div>
-      </div>
-
-      {/* جدول الفواتير */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-xs">
-        <table className="w-full text-right text-xs">
-          <thead className="bg-slate-50 border-b font-black text-slate-600">
-            <tr>
-              <th className="p-3">رقم الفاتورة</th>
-              <th className="p-3">التاريخ والوقت</th>
-              <th className="p-3">نوع الطلب</th>
-              <th className="p-3">الكاشير</th>
-              <th className="p-3">الإجمالي</th>
-              <th className="p-3">الحالة</th>
-              <th className="p-3 text-center">إجراءات التحكم</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y font-bold">
-            {filteredInvoices.map((inv) => (
-              <tr key={inv.id} className={inv.status === 'cancelled' ? 'bg-rose-50/50 opacity-60' : ''}>
-                <td className="p-3 font-mono font-black text-indigo-600">#{inv.ticketNo}</td>
-                <td className="p-3 text-slate-500">{inv.dateStr} - {inv.timeStr}</td>
-                <td className="p-3">
-                  <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px]">
-                    {inv.orderType === 'delivery' ? '🛵 دليفري' : '🛍️ تيك أواي'}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {invoices.map((inv: any) => (
+            <div key={inv.id} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between gap-4">
+              <div>
+                <div className="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+                  <div>
+                    <span className="font-black text-slate-900 text-base">فاتورة #{inv.id}</span>
+                    <span className="mr-2 text-xs bg-indigo-50 text-indigo-600 font-bold px-2 py-0.5 rounded-md">
+                      {inv.orderType}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    {new Date(inv.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                </td>
-                <td className="p-3 text-slate-700">{inv.cashierName}</td>
-                <td className="p-3 font-black text-emerald-600">{inv.total} ج.م</td>
-                <td className="p-3">
-                  {inv.status === 'cancelled' ? (
-                    <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px]">مرتجع / ملغاة</span>
-                  ) : (
-                    <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px]">مكتملة</span>
-                  )}
-                </td>
-                <td className="p-3 text-center space-x-1.5 space-x-reverse">
-                  <button
-                    onClick={() => setSelectedInvoice(inv)}
-                    className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100"
-                    title="معاينة"
-                  >
-                    <Eye size={15} />
-                  </button>
-                  <button
-                    onClick={() => handlePrint(inv)}
-                    className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
-                    title="طباعة"
-                  >
-                    <Printer size={15} />
-                  </button>
-                  {inv.status !== 'cancelled' && (
-                    <button
-                      onClick={() => handleRefundInvoice(inv)}
-                      className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100"
-                      title="إلغاء ومرتجع"
-                    >
-                      <RotateCcw size={15} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
 
-      {/* Modal معاينة وتفاصيل الفاتورة */}
-      {selectedInvoice && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>معاينة فاتورة #{selectedInvoice.ticketNo}</span>
-              <button onClick={() => setSelectedInvoice(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+                {/* أصناف الفاتورة */}
+                <div className="flex flex-col gap-1.5 mb-3">
+                  {inv.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-xs text-slate-700 font-semibold">
+                      <span>{item.name} x{item.quantity}</span>
+                      <span>{item.price * item.quantity} ج.م</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* الإجمالي والأزرار */}
+              <div className="border-t border-slate-100 pt-3">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs text-slate-500 font-bold">الإجمالي:</span>
+                  <span className="text-base font-black text-indigo-600">{inv.total} ج.م</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => handleReprint(inv)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Printer size={14} />
+                    <span>طباعة</span>
+                  </button>
+                  <button
+                    onClick={() => setEditingInvoice(inv)}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 p-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Edit3 size={14} />
+                    <span>تعديل</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteInvoice(inv.id)}
+                    className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all"
+                  >
+                    <Trash2 size={14} />
+                    <span>إلغاء</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* نافذة تعديل الفاتورة */}
+      {editingInvoice && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl border border-slate-100 flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-black text-slate-900 text-base">تعديل الفاتورة #{editingInvoice.id}</h3>
+              <button
+                onClick={() => setEditingInvoice(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm"
+              >
+                إغلاق
+              </button>
             </div>
 
-            <div className="space-y-2 text-xs font-bold">
-              <div className="flex justify-between text-slate-500">
-                <span>التاريخ والوقت:</span>
-                <span>{selectedInvoice.dateStr} - {selectedInvoice.timeStr}</span>
-              </div>
-              <div className="flex justify-between text-slate-500">
-                <span>الكاشير:</span>
-                <span>{selectedInvoice.cashierName}</span>
-              </div>
-
-              <div className="border-t pt-2 space-y-1">
-                {selectedInvoice.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between bg-slate-50 p-2 rounded-lg">
-                    <span>{item.name}</span>
-                    <span>{item.qty} × {item.unitPrice} = {item.qty * item.unitPrice} ج.م</span>
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+              {editingInvoice.items.map((item: any) => (
+                <div key={item.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-xs">{item.name}</h4>
+                    <span className="text-indigo-600 text-xs font-bold">{item.price * item.quantity} ج.م</span>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleUpdateItemQty(item.itemKey, -1)}
+                      className="w-6 h-6 bg-white border border-slate-200 rounded-md flex items-center justify-center text-slate-600"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <span className="font-bold text-xs">{item.quantity}</span>
+                    <button
+                      onClick={() => handleUpdateItemQty(item.itemKey, 1)}
+                      className="w-6 h-6 bg-white border border-slate-200 rounded-md flex items-center justify-center text-slate-600"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              <div className="border-t pt-2 flex justify-between font-black text-sm text-indigo-600">
-                <span>الإجمالي الكلي:</span>
-                <span>{selectedInvoice.total} ج.م</span>
-              </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+              <span className="font-bold text-sm text-slate-600">الإجمالي الجديد:</span>
+              <span className="font-black text-lg text-indigo-600">{editingInvoice.total} ج.م</span>
             </div>
 
             <button
-              onClick={() => handlePrint(selectedInvoice)}
-              className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2"
+              onClick={handleSaveEdit}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 transition-all"
             >
-              <Printer size={15} />
-              <span>طباعة الإيصال الحراري</span>
+              <Check size={18} />
+              <span>حفظ التعديلات</span>
             </button>
           </div>
         </div>
       )}
-
-      {/* طباعة حرارية خفية في الخلفية للتنفيذ اللحظي */}
-      <div className="hidden print:block font-mono">
-        {selectedInvoice && (
-          <ThermalReceipt
-            invoice={selectedInvoice}
-            settings={{
-              name: 'دريم كورنر - Dream Corner',
-              address: 'البرامون - الدقهلية',
-              phone: '01012345678',
-              printerName: 'POS-80',
-              paperWidth: '80mm',
-              receiptFooter: 'شكراً لزيارتكم دريم كورنر!',
-              autoPrint: true,
-              language: 'ar',
-              theme: 'light'
-            }}
-          />
-        )}
-      </div>
     </div>
   );
-};
+}
