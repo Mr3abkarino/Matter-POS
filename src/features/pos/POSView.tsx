@@ -9,21 +9,17 @@ export function POSView() {
   const [orderType, orderTypeSetter] = useState('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
   
-  // حالة لإدارة النافذة المنبثقة للأحجام
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
 
-  // جلب التصنيفات وكل المنتجات من قاعدة البيانات المحلية
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const allProducts = useLiveQuery(() => db.products.toArray()) || [];
 
-  // تصفية المنتجات حسب القسم المحدد وحسب بحث المستخدم بمرونة كاملة
   const filteredProducts = allProducts.filter(p => {
     const matchCategory = p.catId === selectedCategory;
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
-  // إضافة منتج للسلة
   const addToCart = (product: any, size?: any) => {
     const itemKey = size ? `${product.id}-${size.id}` : `${product.id}`;
     const itemName = size ? `${product.name} (${size.name})` : product.name;
@@ -39,11 +35,9 @@ export function POSView() {
       return [...prevCart, { itemKey, productId: product.id, name: itemName, price: itemPrice, quantity: 1 }];
     });
 
-    // غلق النافذة المنبثقة بعد الاختيار
     setActiveProductForSizes(null);
   };
 
-  // تعديل الكمية
   const updateQuantity = (itemKey: string, delta: number) => {
     setCart(prevCart => {
       return prevCart.map(i => {
@@ -56,7 +50,6 @@ export function POSView() {
     });
   };
 
-  // إتمام الطلب والطباعة الحرارية الحقيقية
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
@@ -69,10 +62,8 @@ export function POSView() {
       createdAt: Date.now()
     };
 
-    // حفظ الفاتورة في قاعدة البيانات
     const newInvoiceId = await db.invoices.add(invoiceData);
 
-    // طباعة الفاتورة الحرارية
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
       printWindow.document.write(`
@@ -96,7 +87,7 @@ export function POSView() {
             <hr/>
             <div class="info">رقم الفاتورة: #${newInvoiceId}</div>
             <div class="info">النوع: ${orderType}</div>
-            <div class="info">التاريخ: ${new Date().toLocaleString('en-US')}</div>
+            <div class="info">التاريخ: ${new Date().toLocaleString('ar-EG')}</div>
             <hr/>
             <div>
               ${cart.map(item => `
@@ -113,8 +104,6 @@ export function POSView() {
             </div>
             <hr/>
             <div class="footer">
-              شكراً لزيارتكم!<br/>
-              خدمة سريعة - جودة عالية<br/>
               01006113627
             </div>
           </body>
@@ -128,7 +117,6 @@ export function POSView() {
       }, 400);
     }
 
-    // تفريغ السلة
     setCart([]);
   };
 
@@ -138,7 +126,6 @@ export function POSView() {
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 relative">
       {/* القسم الأول: المنتجات والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
-        {/* شريط البحث */}
         <div className="relative mb-3">
           <Search className="absolute right-3 top-3 text-slate-400" size={18} />
           <input
@@ -150,7 +137,6 @@ export function POSView() {
           />
         </div>
 
-        {/* أقسام المنيو */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
           {categories.map(cat => (
             <button
@@ -168,7 +154,6 @@ export function POSView() {
           ))}
         </div>
 
-        {/* شبكة المنتجات */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pr-1">
           {filteredProducts.map(product => (
             <div
@@ -204,9 +189,9 @@ export function POSView() {
         </div>
       </div>
 
-      {/* القسم الثاني: سلة الطلبات الجانبية */}
-      <div className="w-full lg:w-96 bg-weight bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-52 lg:h-full">
-        {/* أزرار نوع الطلب (تيك أواي، دليفري، صالة) */}
+      {/* القسم الثاني: السلة + أزرار التيك أواي والـ دليفري والصالة */}
+      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-60 lg:h-full">
+        {/* أزرار نوع الطلب */}
         <div className="p-2 border-b border-slate-100 bg-slate-50">
           <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
             {['تيك أواي', 'دليفري', 'صالة'].map(type => (
@@ -273,7 +258,7 @@ export function POSView() {
         </div>
       </div>
 
-      {/* النافذة المنبثقة لاختيار الحجم (Modal) */}
+      {/* النافذة المنبثقة لاختيار الحجم */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
