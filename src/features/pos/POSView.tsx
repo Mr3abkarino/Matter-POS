@@ -6,17 +6,19 @@ import { ShoppingCart, Plus, Minus, Printer, Search } from 'lucide-react';
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState('البيتزا');
   const [searchQuery, setSearchQuery] = useState('');
-  const [orderType, setOrderType] = useState('تيك أواي');
+  const [orderType, orderTypeSetter] = useState('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
 
-  // جلب التصنيفات والمنتجات من قاعدة البيانات المحلية
+  // جلب التصنيفات وكل المنتجات من قاعدة البيانات المحلية
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
-  const products = useLiveQuery(() => db.products.where('catId').equals(selectedCategory).toArray()) || [];
+  const allProducts = useLiveQuery(() => db.products.toArray()) || [];
 
-  // تصفية المنتجات بالبحث
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // تصفية المنتجات حسب القسم المحدد وحسب بحث المستخدم بمرونة كاملة
+  const filteredProducts = allProducts.filter(p => {
+    const matchCategory = p.catId === selectedCategory;
+    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   // إضافة منتج للسلة
   const addToCart = (product: any, size?: any) => {
@@ -94,7 +96,7 @@ export function POSView() {
               ${cart.map(item => `
                 <div class="item-row">
                   <span>${item.name} (${item.quantity}x)</span>
-                  <span>${item.price * item.quantity} ج.M</span>
+                  <span>${item.price * item.quantity} ج.م</span>
                 </div>
               `).join('')}
             </div>
@@ -221,7 +223,7 @@ export function POSView() {
             {['تيك أواي', 'دليفري', 'صالة'].map(type => (
               <button
                 key={type}
-                onClick={() => setOrderType(type)}
+                onClick={() => orderTypeSetter(type)}
                 className={`py-2 text-xs font-bold rounded-xl transition-all ${
                   orderType === type ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
