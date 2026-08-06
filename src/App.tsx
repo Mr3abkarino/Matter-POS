@@ -5,10 +5,19 @@ import { ReportsView } from './features/reports/ReportsView';
 import { CRMView } from './features/crm/CRMView';
 import { SettingsView } from './features/settings/SettingsView';
 import { ShiftView } from './features/shift/ShiftView';
-import { Store, FileText, BarChart3, Users, Settings, Clock } from 'lucide-react';
+import { MenuManagementView } from './features/menu/MenuManagementView';
+import { LoginView } from './features/auth/LoginView';
+import { Store, FileText, BarChart3, Users, Settings, Clock, Utensils, LogOut } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'pos' | 'invoices' | 'reports' | 'crm' | 'settings' | 'shift'>('pos');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'pos' | 'invoices' | 'reports' | 'crm' | 'settings' | 'shift' | 'menu'>('pos');
+
+  if (!currentUser) {
+    return <LoginView onLogin={(user) => setCurrentUser(user)} />;
+  }
+
+  const isAdmin = currentUser.role === 'admin';
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-100 font-sans dir-rtl dir-rtl-force">
@@ -18,88 +27,88 @@ export default function App() {
             DC
           </div>
 
-          <nav className="flex flex-col gap-3 w-full px-2">
+          <nav className="flex flex-col gap-2 w-full px-2">
             <button
               onClick={() => setActiveTab('pos')}
-              title="الكاشير"
-              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                activeTab === 'pos' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
-              }`}
+              className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'pos' ? 'bg-indigo-600' : 'text-slate-400'}`}
             >
-              <Store size={22} />
-              <span className="text-[10px] font-bold mt-1 hidden md:block">الكاشير</span>
+              <Store size={20} />
+              <span className="text-[9px] font-bold mt-1 hidden md:block">الكاشير</span>
             </button>
 
             <button
               onClick={() => setActiveTab('shift')}
-              title="الوردية والدرج"
-              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                activeTab === 'shift' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
-              }`}
+              className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'shift' ? 'bg-indigo-600' : 'text-slate-400'}`}
             >
-              <Clock size={22} />
-              <span className="text-[10px] font-bold mt-1 hidden md:block">الوردية</span>
+              <Clock size={20} />
+              <span className="text-[9px] font-bold mt-1 hidden md:block">الوردية</span>
             </button>
+
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setActiveTab('menu')}
+                  className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'menu' ? 'bg-indigo-600' : 'text-slate-400'}`}
+                >
+                  <Utensils size={20} />
+                  <span className="text-[9px] font-bold mt-1 hidden md:block">المنيو</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('reports')}
+                  className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'reports' ? 'bg-indigo-600' : 'text-slate-400'}`}
+                >
+                  <BarChart3 size={20} />
+                  <span className="text-[9px] font-bold mt-1 hidden md:block">التقارير</span>
+                </button>
+              </>
+            )}
 
             <button
               onClick={() => setActiveTab('invoices')}
-              title="الفواتير"
-              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                activeTab === 'invoices' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
-              }`}
+              className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'invoices' ? 'bg-indigo-600' : 'text-slate-400'}`}
             >
-              <FileText size={22} />
-              <span className="text-[10px] font-bold mt-1 hidden md:block">الفواتير</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('reports')}
-              title="التقارير"
-              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                activeTab === 'reports' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <BarChart3 size={22} />
-              <span className="text-[10px] font-bold mt-1 hidden md:block">التقارير</span>
+              <FileText size={20} />
+              <span className="text-[9px] font-bold mt-1 hidden md:block">الفواتير</span>
             </button>
 
             <button
               onClick={() => setActiveTab('crm')}
-              title="العملاء والدليفري"
-              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                activeTab === 'crm' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
-              }`}
+              className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'crm' ? 'bg-indigo-600' : 'text-slate-400'}`}
             >
-              <Users size={22} />
-              <span className="text-[10px] font-bold mt-1 hidden md:block">العملاء</span>
+              <Users size={20} />
+              <span className="text-[9px] font-bold mt-1 hidden md:block">العملاء</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('settings')}
-              title="الإعدادات"
-              className={`p-3 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <Settings size={22} />
-              <span className="text-[10px] font-bold mt-1 hidden md:block">الإعدادات</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`p-2.5 rounded-2xl flex flex-col items-center justify-center ${activeTab === 'settings' ? 'bg-indigo-600' : 'text-slate-400'}`}
+              >
+                <Settings size={20} />
+                <span className="text-[9px] font-bold mt-1 hidden md:block">الإعدادات</span>
+              </button>
+            )}
           </nav>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[9px] text-slate-500 font-bold hidden md:block">نشط</span>
-        </div>
+        <button
+          onClick={() => setCurrentUser(null)}
+          className="text-slate-400 hover:text-rose-400 p-2"
+          title="خروج"
+        >
+          <LogOut size={20} />
+        </button>
       </aside>
 
       <main className="flex-1 h-full overflow-hidden flex flex-col">
         {activeTab === 'pos' && <POSView />}
         {activeTab === 'shift' && <ShiftView />}
         {activeTab === 'invoices' && <InvoicesView />}
-        {activeTab === 'reports' && <ReportsView />}
+        {activeTab === 'reports' && isAdmin && <ReportsView />}
         {activeTab === 'crm' && <CRMView />}
-        {activeTab === 'settings' && <SettingsView />}
+        {activeTab === 'settings' && isAdmin && <SettingsView />}
+        {activeTab === 'menu' && isAdmin && <MenuManagementView />}
       </main>
     </div>
   );
