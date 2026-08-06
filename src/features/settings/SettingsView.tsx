@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { Settings, Printer, Store, Save, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Settings, Printer, Store, Save, CheckCircle2, UserCheck, Plus, Trash2 } from 'lucide-react';
 
 export function SettingsView() {
   const [storeName, setStoreName] = useState('DREAM CORNER');
@@ -10,10 +10,15 @@ export function SettingsView() {
   const [receiptFooter, setReceiptFooter] = useState('طعم يفرق .. جودة تليق بيك ❤️');
   const [paperWidth, setPaperWidth] = useState<'80mm' | '58mm'>('80mm');
   const [autoPrint, setAutoPrint] = useState(true);
+  
+  // 🛵 إدارة الطيارين
+  const [drivers, setDrivers] = useState<string[]>(['أحمد', 'محمد']);
+  const [newDriverName, setNewDriverName] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // 🔄 تحميل الإعدادات الحالية من Firebase / LocalStorage
+  // 🔄 تحميل الإعدادات والطيارين من السحابة والكاش المحلي
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -27,15 +32,39 @@ export function SettingsView() {
           setReceiptFooter(data.receiptFooter || 'طعم يفرق .. جودة تليق بيك ❤️');
           setPaperWidth(data.paperWidth || '80mm');
           setAutoPrint(data.autoPrint ?? true);
+          if (Array.isArray(data.drivers) && data.drivers.length > 0) {
+            setDrivers(data.drivers);
+            localStorage.setItem('dc_drivers', JSON.stringify(data.drivers));
+          }
         }
       } catch (e) {
         console.error("Error loading settings:", e);
       }
     };
+
+    const savedDrivers = localStorage.getItem('dc_drivers');
+    if (savedDrivers) setDrivers(JSON.parse(savedDrivers));
+
     loadSettings();
   }, []);
 
-  // 💾 حفظ الإعدادات
+  // 🛵 إضافة طيار جديد
+  const handleAddDriver = () => {
+    if (!newDriverName.trim()) return;
+    const updated = Array.from(new Set([...drivers, newDriverName.trim()]));
+    setDrivers(updated);
+    setNewDriverName('');
+    localStorage.setItem('dc_drivers', JSON.stringify(updated));
+  };
+
+  // 🗑️ حذف طيار
+  const handleDeleteDriver = (name: string) => {
+    const updated = drivers.filter(d => d !== name);
+    setDrivers(updated);
+    localStorage.setItem('dc_drivers', JSON.stringify(updated));
+  };
+
+  // 💾 حفظ الإعدادات بالكامل
   const handleSave = async () => {
     setLoading(true);
     const settingsData = {
@@ -45,12 +74,14 @@ export function SettingsView() {
       receiptFooter,
       paperWidth,
       autoPrint,
+      drivers,
       updatedAt: Date.now()
     };
 
     try {
       await setDoc(doc(dbCloud, "settings", "general"), settingsData);
       localStorage.setItem('dc_settings', JSON.stringify(settingsData));
+      localStorage.setItem('dc_drivers', JSON.stringify(drivers));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e: any) {
@@ -60,7 +91,7 @@ export function SettingsView() {
     }
   };
 
-  // 🖨️ تجربة طباعة فاتورة تجريبية
+  // 🖨️ فاتورة اختبارية
   const handleTestPrint = () => {
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
@@ -95,14 +126,13 @@ export function SettingsView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
-      
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
             <Settings className="text-indigo-600" size={28} />
             <span>إعدادات النظام والطابعة</span>
           </h1>
-          <p className="text-xs text-slate-500 font-bold mt-1">تعديل بيانات المطعم وتكوين طابعة الفواتير الحرارية</p>
+          <p className="text-xs text-slate-500 font-bold mt-1">تعديل بيانات المطعم، الطابعة، وقائمة طيارين الدليفري</p>
         </div>
 
         <button
@@ -116,7 +146,6 @@ export function SettingsView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* 🏪 بيانات المطعم */}
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
           <h3 className="font-bold text-slate-900 text-sm border-b pb-3 flex items-center gap-2">
@@ -155,7 +184,7 @@ export function SettingsView() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-slate-600">جملة الترحيب بأسفل الفاتورة (Footer)</label>
+            <label className="text-xs font-bold text-slate-600">جملة الترحيب بأسفل الفاتورة</label>
             <input
               type="text"
               value={receiptFooter}
@@ -165,63 +194,86 @@ export function SettingsView() {
           </div>
         </div>
 
-        {/* 🖨️ إعدادات طابعة الفواتير */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
-          <h3 className="font-bold text-slate-900 text-sm border-b pb-3 flex items-center gap-2">
-            <Printer className="text-indigo-600" size={20} />
-            <span>إعدادات طابعة الفواتير الحرارية (Receipt Printer)</span>
-          </h3>
+        {/* 🛵 إدارة طيارين الدليفري والطابعة */}
+        <div className="flex flex-col gap-6">
+          {/* قسم إدارة الطيارين */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
+            <h3 className="font-bold text-slate-900 text-sm border-b pb-3 flex items-center gap-2">
+              <UserCheck className="text-indigo-600" size={20} />
+              <span>إدارة طيارين الدليفري</span>
+            </h3>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-600">عرض ورق الطابعة الحرارية</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="اسم الطيار الجديد..."
+                value={newDriverName}
+                onChange={(e) => setNewDriverName(e.target.value)}
+                className="flex-1 p-2.5 rounded-2xl border text-xs font-bold bg-slate-50 focus:outline-none focus:bg-white"
+              />
               <button
                 type="button"
-                onClick={() => setPaperWidth('80mm')}
-                className={`p-3 rounded-2xl font-black text-xs border transition-all ${
-                  paperWidth === '80mm' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-700'
-                }`}
+                onClick={handleAddDriver}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl font-black text-xs flex items-center gap-1"
               >
-                80mm (ورق عريض قياسي)
+                <Plus size={16} />
+                <span>إضافة</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setPaperWidth('58mm')}
-                className={`p-3 rounded-2xl font-black text-xs border transition-all ${
-                  paperWidth === '58mm' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-700'
-                }`}
-              >
-                58mm (ورق صغير)
-              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {drivers.map(d => (
+                <span key={d} className="bg-slate-50 text-slate-800 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 border border-slate-200">
+                  <span>🛵 {d}</span>
+                  <button onClick={() => handleDeleteDriver(d)} className="text-rose-600 hover:text-rose-800 font-black p-0.5">
+                    <Trash2 size={14} />
+                  </button>
+                </span>
+              ))}
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border">
-            <div>
-              <p className="font-bold text-xs text-slate-800">فتح نافذة الطباعة تلقائياً</p>
-              <p className="text-[10px] text-slate-400 font-bold">إظهار أمرين الطباعة فور الضغط على حفظ الفاتورة</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={autoPrint}
-              onChange={(e) => setAutoPrint(e.target.checked)}
-              className="w-5 h-5 accent-indigo-600 cursor-pointer"
-            />
-          </div>
+          {/* قسم الطابعة */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
+            <h3 className="font-bold text-slate-900 text-sm border-b pb-3 flex items-center gap-2">
+              <Printer className="text-indigo-600" size={20} />
+              <span>إعدادات طابعة الفواتير الحرارية</span>
+            </h3>
 
-          <div className="mt-auto pt-4 border-t flex justify-end">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-bold text-slate-600">عرض ورق الطابعة</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaperWidth('80mm')}
+                  className={`p-3 rounded-2xl font-black text-xs border transition-all ${
+                    paperWidth === '80mm' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  80mm (ورق عريض)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaperWidth('58mm')}
+                  className={`p-3 rounded-2xl font-black text-xs border transition-all ${
+                    paperWidth === '58mm' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  58mm (ورق صغير)
+                </button>
+              </div>
+            </div>
+
             <button
               onClick={handleTestPrint}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-2xl font-black text-xs flex items-center gap-2 transition-all active:scale-95"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 transition-all active:scale-95 mt-2"
             >
               <Printer size={16} />
               <span>تجربة طباعة فاتورة اختبارية 🖨️</span>
             </button>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 }
