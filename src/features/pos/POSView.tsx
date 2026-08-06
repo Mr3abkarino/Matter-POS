@@ -130,27 +130,27 @@ export function POSView() {
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100">
-      {/* القسم الأول: المنتجات والأقسام */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden">
+      {/* القسم الأول: المنتجات والأقسام (يأخذ المساحة الأكبر على الهاتف) */}
+      <div className="flex-1 flex flex-col p-3 overflow-hidden">
         {/* شريط البحث */}
-        <div className="relative mb-4">
-          <Search className="absolute right-3 top-3 text-slate-400" size={20} />
+        <div className="relative mb-3">
+          <Search className="absolute right-3 top-3 text-slate-400" size={18} />
           <input
             type="text"
             placeholder="بحث عن صنف أو باركود..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white pr-10 pl-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+            className="w-full bg-white pr-9 pl-4 py-2 rounded-xl border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 text-sm"
           />
         </div>
 
         {/* أقسام المنيو */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
           {categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-5 py-2.5 rounded-2xl font-bold flex items-center gap-2 whitespace-nowrap transition-all shadow-sm ${
+              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 whitespace-nowrap transition-all shadow-sm ${
                 selectedCategory === cat.id
                   ? 'bg-indigo-600 text-white shadow-indigo-200 shadow-md'
                   : 'bg-white text-slate-700 hover:bg-slate-50'
@@ -163,11 +163,11 @@ export function POSView() {
         </div>
 
         {/* شبكة المنتجات */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 pr-1">
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pr-1">
           {filteredProducts.map(product => (
             <div
               key={product.id}
-              className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-500 transition-all cursor-pointer group"
+              className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-500 transition-all cursor-pointer group"
               onClick={() => {
                 if (product.sizes && product.sizes.length > 0) {
                   addToCart(product, product.sizes[1] || product.sizes[0]);
@@ -177,20 +177,20 @@ export function POSView() {
               }}
             >
               <div>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-2xl">{product.emoji}</span>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-semibold">
-                    {product.stock} قطعة
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-xl">{product.emoji}</span>
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-semibold">
+                    {product.stock}
                   </span>
                 </div>
-                <h3 className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
+                <h3 className="font-bold text-slate-800 text-xs group-hover:text-indigo-600 transition-colors line-clamp-1">
                   {product.name}
                 </h3>
               </div>
               
-              <div className="mt-3">
+              <div className="mt-2">
                 {product.sizes && product.sizes.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 mb-2">
+                  <div className="flex flex-wrap gap-1">
                     {product.sizes.map((s: any) => (
                       <button
                         key={s.id}
@@ -198,14 +198,14 @@ export function POSView() {
                           e.stopPropagation();
                           addToCart(product, s);
                         }}
-                        className="text-[11px] bg-slate-100 hover:bg-indigo-600 hover:text-white px-2 py-0.5 rounded-lg transition-colors font-bold text-slate-700"
+                        className="text-[10px] bg-slate-100 hover:bg-indigo-600 hover:text-white px-1.5 py-0.5 rounded transition-colors font-bold text-slate-700"
                       >
-                        {s.name}: {s.price} ج.م
+                        {s.name}: {s.price}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-indigo-600 font-black text-sm">
+                  <div className="text-indigo-600 font-black text-xs">
                     {product.price} ج.م
                   </div>
                 )}
@@ -215,16 +215,16 @@ export function POSView() {
         </div>
       </div>
 
-      {/* القسم الثاني: سلة الطلبات الجانبية */}
-      <div className="w-full lg:w-96 bg-white border-r border-slate-200 flex flex-col shadow-lg h-1/2 lg:h-full">
+      {/* القسم الثاني: سلة الطلبات الجانبية (مدمجة وصغيرة على الهاتف h-48، وكاملة على الكمبيوتر lg:w-96) */}
+      <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-lg h-44 lg:h-full">
         {/* نوع الطلب */}
-        <div className="p-4 border-b border-slate-100">
-          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl">
+        <div className="p-2 border-b border-slate-100 hidden lg:block">
+          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
             {['تيك أواي', 'دليفري', 'صالة'].map(type => (
               <button
                 key={type}
                 onClick={() => orderTypeSetter(type)}
-                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
                   orderType === type ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -235,32 +235,32 @@ export function POSView() {
         </div>
 
         {/* عناصر السلة */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
           {cart.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 py-6">
-              <ShoppingCart size={40} strokeWidth={1.5} />
-              <p className="font-semibold text-sm">السلة فارغة حالياً</p>
+            <div className="flex-1 flex items-center justify-center text-slate-400 gap-2 py-2">
+              <ShoppingCart size={22} strokeWidth={1.5} />
+              <p className="font-semibold text-xs">السلة فارغة حالياً</p>
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.itemKey} className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
+              <div key={item.itemKey} className="flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
                 <div className="flex-1">
-                  <h4 className="font-bold text-slate-800 text-sm">{item.name}</h4>
-                  <span className="text-indigo-600 font-bold text-xs">{item.price * item.quantity} ج.م</span>
+                  <h4 className="font-bold text-slate-800 text-xs">{item.name}</h4>
+                  <span className="text-indigo-600 font-bold text-[11px]">{item.price * item.quantity} ج.م</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => updateQuantity(item.itemKey, -1)}
-                    className="w-7 h-7 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 shadow-sm"
+                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"
                   >
-                    <Minus size={14} />
+                    <Minus size={12} />
                   </button>
-                  <span className="font-bold text-sm w-5 text-center">{item.quantity}</span>
+                  <span className="font-bold text-xs w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => updateQuantity(item.itemKey, 1)}
-                    className="w-7 h-7 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 shadow-sm"
+                    className="w-6 h-6 bg-white rounded-md border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm"
                   >
-                    <Plus size={14} />
+                    <Plus size={12} />
                   </button>
                 </div>
               </div>
@@ -269,17 +269,17 @@ export function POSView() {
         </div>
 
         {/* الملخص وإتمام الدفع */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50">
-          <div className="flex justify-between items-center mb-4">
-            <span className="font-bold text-slate-600">الإجمالي النهائي:</span>
-            <span className="font-black text-xl text-indigo-600">{totalCartPrice} ج.م</span>
+        <div className="p-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between lg:flex-col lg:items-stretch gap-2">
+          <div className="flex lg:justify-between items-center gap-2">
+            <span className="font-bold text-slate-600 text-xs">الإجمالي:</span>
+            <span className="font-black text-base text-indigo-600">{totalCartPrice} ج.م</span>
           </div>
           <button
             onClick={handleCheckout}
             disabled={cart.length === 0}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 transition-all"
+            className="flex-1 lg:flex-none bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-200 transition-all"
           >
-            <Printer size={20} />
+            <Printer size={16} />
             <span>حفظ وطباعة الفاتورة</span>
           </button>
         </div>
