@@ -101,7 +101,7 @@ export default function App() {
           {/* 🍔 اللوجو في أعلى القائمة الجانبية */}
           <div className="flex items-center gap-3 mb-8 px-2">
             <div className="bg-black p-1 rounded-2xl border border-slate-700 w-11 h-11 flex items-center justify-center overflow-hidden shrink-0">
-              <img src="/logoo.png" alt="DC Logo" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="DC Logo" className="w-full h-full object-contain" />
             </div>
             <div className="hidden lg:block">
               <h2 className="font-black text-sm text-white">DREAM CORNER</h2>
