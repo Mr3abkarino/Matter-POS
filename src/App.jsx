@@ -4,14 +4,14 @@ import {
   Coffee, IceCream, Sandwich, UtensilsCrossed, GlassWater,
   Receipt, Sparkles, Bike, ShoppingBag, Utensils, Phone, User,
   Flame, Printer, LayoutDashboard, Users, Package,
-  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag, ShoppingCart, Eye, Lock, Edit3
+  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database, Settings, Shield, PlusCircle, RefreshCw, Image, Layers, ChevronRight, Menu, Tag, ShoppingCart, Eye, Lock, Edit3, Calendar, RotateCcw, Award
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 
-/* ---------------- 📌 VERSION CONTROL & SESSION LOCK ---------------- */
-const APP_VERSION = "3.1.0"; // تغيير النسخة لإجبار جميع الأجهزة على التحديث والتسجيل من جديد
+/* ---------------- 📌 VERSION CONTROL & ENTERPRISE ENGINE ---------------- */
+const APP_VERSION = "4.0.0"; // تحديث شامل: تقارير زمنية، جرد خزينة، إدارة عملاء، وتعديل الأحجام
 
 /* ---------------- 1. INITIAL MASTER DATA ---------------- */
 const DEFAULT_RESTAURANT = {
@@ -20,6 +20,7 @@ const DEFAULT_RESTAURANT = {
   logoUrl: "",
   address: "البرامون - الدقهلية",
   phone: "01012345678",
+  printerName: "POS-80 Thermal Printer",
   receiptFooter: "شكراً لزيارتكم دريم كورنر! نتمنى لكم وجبة شهية ❤️",
   paperWidth: "80mm",
   autoPrint: true
@@ -57,6 +58,11 @@ const DEFAULT_DELIVERY_ZONES = [
   { id: 8, name: "شربين", fee: 80 }
 ];
 
+const DEFAULT_CUSTOMERS = [
+  { id: 1, name: "محمد مطر", phone: "01012345678", address: "البرامون - شارع البحر", points: 150, debt: 0.0 },
+  { id: 2, name: "أحمد علي", phone: "01122334455", address: "سرسو البرامون", points: 45, debt: 80.0 },
+];
+
 const DEFAULT_PRODUCTS = [
   { id: "p1", cat: "البيتزا", name: "بيتزا مارجريتا", price: 45, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 45 }, { id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 90 }] },
   { id: "p2", cat: "البيتزا", name: "بيتزا ميكس جبنة ⭐", price: 60, emoji: "🧀", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 60 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 120 }] },
@@ -64,44 +70,11 @@ const DEFAULT_PRODUCTS = [
   { id: "p4", cat: "البيتزا", name: "بيتزا هوت دوج", price: 70, emoji: "🌭", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 135 }] },
   { id: "p5", cat: "البيتزا", name: "بيتزا سجق", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 135 }] },
   { id: "p6", cat: "البيتزا", name: "بيتزا لحمة مفرومة", price: 75, emoji: "🥩", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 75 }, { id: "md", name: "وسط", price: 110 }, { id: "lg", name: "كبير", price: 145 }] },
-  { id: "p7", cat: "البيتزا", name: "بيتزا بيروني", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 110 }] },
-  { id: "p8", cat: "البيتزا", name: "بيتزا سلامي", price: 70, emoji: "🍕", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 70 }, { id: "md", name: "وسط", price: 90 }, { id: "lg", name: "كبير", price: 110 }] },
   { id: "p9", cat: "البيتزا", name: "بيتزا شاورما دجاج ⭐", price: 80, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 120 }, { id: "lg", name: "كبير", price: 155 }] },
-  { id: "p10", cat: "البيتزا", name: "بيتزا دجاج رانش", price: 80, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 120 }, { id: "lg", name: "كبير", price: 155 }] },
-  { id: "p11", cat: "البيتزا", name: "بيتزا دريم كورنر سبيشال ⭐", price: 90, emoji: "⭐", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 90 }, { id: "md", name: "وسط", price: 130 }, { id: "lg", name: "كبير", price: 170 }] },
-  { id: "p12", cat: "البيتزا", name: "بيتزا كرانشي (حار/بارد)", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 80 }, { id: "md", name: "وسط", price: 100 }, { id: "lg", name: "كبير", price: 130 }] },
-  { id: "p13", cat: "البيتزا", name: "بيتزا ميكس دجاج", price: 85, emoji: "🍗", stock: 50, sizes: [{ id: "sm", name: "صغير", price: 85 }, { id: "md", name: "وسط", price: 105 }, { id: "lg", name: "كبير", price: 135 }] },
-
-  // --- السندوتشات ---
   { id: "s1", cat: "السندوتشات", name: "كفتة مشوية", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
-  { id: "s2", cat: "السندوتشات", name: "سجق مشوي", price: 60, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 60 }, { id: "lg", name: "كبير", price: 70 }] },
-  { id: "s3", cat: "السندوتشات", name: "كبدة إسكندراني", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
-  { id: "s4", cat: "السندوتشات", name: "ميكس لحوم (سجق+كبدة)", price: 65, emoji: "🥙", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
-  { id: "s5", cat: "السندوتشات", name: "حواوشي دبل طعم", price: 45, emoji: "🫓", stock: 50 },
-  { id: "s6", cat: "السندوتشات", name: "تشكن بانية", price: 70, emoji: "🥪", stock: 50, sizes: [{ id: "md", name: "وسط", price: 70 }, { id: "lg", name: "كبير", price: 85 }] },
   { id: "s7", cat: "السندوتشات", name: "زنجر سوبريم ⭐", price: 80, emoji: "🌶️", stock: 50, sizes: [{ id: "md", name: "وسط", price: 80 }, { id: "lg", name: "كبير", price: 95 }] },
-  { id: "s8", cat: "السندوتشات", name: "سوبر كرانشي", price: 80, emoji: "🥪", stock: 50, sizes: [{ id: "md", name: "وسط", price: 80 }, { id: "lg", name: "كبير", price: 95 }] },
-  { id: "s9", cat: "السندوتشات", name: "شيش طاووق", price: 75, emoji: "🍢", stock: 50, sizes: [{ id: "md", name: "وسط", price: 75 }, { id: "lg", name: "كبير", price: 90 }] },
-  { id: "s10", cat: "السندوتشات", name: "تشكن رانش", price: 75, emoji: "🥪", stock: 50, sizes: [{ id: "md", name: "وسط", price: 75 }, { id: "lg", name: "كبير", price: 90 }] },
-  { id: "s11", cat: "السندوتشات", name: "كلاسيك برجر", price: 55, emoji: "🍔", stock: 50, sizes: [{ id: "md", name: "وسط", price: 55 }, { id: "lg", name: "كبير", price: 65 }] },
-  { id: "s12", cat: "السندوتشات", name: "تشيز برجر ليدر", price: 65, emoji: "🍔", stock: 50, sizes: [{ id: "md", name: "وسط", price: 65 }, { id: "lg", name: "كبير", price: 75 }] },
-  { id: "s13", cat: "السندوتشات", name: "تشكن برجر مقرمش", price: 50, emoji: "🍔", stock: 50, sizes: [{ id: "md", name: "وسط", price: 50 }, { id: "lg", name: "كبير", price: 65 }] },
-  { id: "s14", cat: "السندوتشات", name: "ميكس توست جبن", price: 60, emoji: "🥪", stock: 50 },
-
-  // --- الأصناف الجانبية والمشروبات ---
   { id: "sd1", cat: "الأصناف الجانبية", name: "بطاطس مقلية ذهبية", price: 35, emoji: "🍟", stock: 100 },
-  { id: "sd2", cat: "الأصناف الجانبية", name: "بطاطس بالجبنة الشيدر", price: 45, emoji: "🍟", stock: 100 },
-  { id: "sd3", cat: "الأصناف الجانبية", name: "صوص رانش هوم ميد", price: 10, emoji: "🥣", stock: 200 },
-  { id: "d1", cat: "المشروبات", name: "بيبسي كانز", price: 15, emoji: "🥤", stock: 100 },
-  { id: "d2", cat: "المشروبات", name: "سفن أب كانز", price: 15, emoji: "🥤", stock: 100 },
-  { id: "d3", cat: "المشروبات", name: "ميرندا برتقال كانز", price: 15, emoji: "🥤", stock: 100 },
-  { id: "d4", cat: "المشروبات", name: "مياة معدنية صغيرة", price: 6, emoji: "🍾", stock: 200 }
-];
-
-const SALES_CHART_TIMELINE = [
-  { time: "10 ص", sales: 120 }, { time: "12 ظ", sales: 450 },
-  { time: "02 م", sales: 890 }, { time: "04 م", sales: 600 },
-  { time: "06 م", sales: 1200 }, { time: "08 م", sales: 2100 }, { time: "10 م", sales: 1800 },
+  { id: "d1", cat: "المشروبات", name: "بيبسي كانز", price: 15, emoji: "🥤", stock: 100 }
 ];
 
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -111,17 +84,15 @@ export default function SmartPOSApp() {
   useEffect(() => {
     const savedVersion = localStorage.getItem("pos_app_version");
     if (savedVersion !== APP_VERSION) {
-      console.log(`🚀 تم اكتشاف نسخة جديدة (${APP_VERSION})... جاري الخروج والتحديث الإجباري`);
       localStorage.setItem("pos_app_version", APP_VERSION);
-      localStorage.removeItem("pos_session_user"); // الخروج الإجباري للتحديث
-      localStorage.setItem("pos_products_v31", JSON.stringify(DEFAULT_PRODUCTS));
-      localStorage.setItem("pos_delivery_zones_v31", JSON.stringify(DEFAULT_DELIVERY_ZONES));
-      localStorage.setItem("pos_categories_v31", JSON.stringify(DEFAULT_CATEGORIES));
-      window.location.reload();
+      localStorage.setItem("pos_products_v40", JSON.stringify(DEFAULT_PRODUCTS));
+      localStorage.setItem("pos_delivery_zones_v40", JSON.stringify(DEFAULT_DELIVERY_ZONES));
+      localStorage.setItem("pos_categories_v40", JSON.stringify(DEFAULT_CATEGORIES));
+      localStorage.setItem("pos_customers_v40", JSON.stringify(DEFAULT_CUSTOMERS));
     }
   }, []);
 
-  // 🔒 2. استرجاع الجلسة المحفوظة تلقائياً من الـ Storage عند الـ Refresh
+  // 🔒 2. استرجاع الجلسة المحفوظة تلقائياً عند الـ Refresh
   const [currentUser, setCurrentUser] = useState(() => {
     const sessionUser = localStorage.getItem("pos_session_user");
     return sessionUser ? JSON.parse(sessionUser) : null;
@@ -129,29 +100,32 @@ export default function SmartPOSApp() {
 
   const [restaurantInfo, setRestaurantInfo] = useState(() => JSON.parse(localStorage.getItem("pos_restaurant") || JSON.stringify(DEFAULT_RESTAURANT)));
   const [usersDb, setUsersDb] = useState(() => JSON.parse(localStorage.getItem("pos_users") || JSON.stringify(DEFAULT_USERS_DB)));
-  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v31") || JSON.stringify(DEFAULT_CATEGORIES)));
-  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v31") || JSON.stringify(DEFAULT_PRODUCTS)));
+  const [categories, setCategories] = useState(() => JSON.parse(localStorage.getItem("pos_categories_v40") || JSON.stringify(DEFAULT_CATEGORIES)));
+  const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem("pos_products_v40") || JSON.stringify(DEFAULT_PRODUCTS)));
   const [completedOrders, setCompletedOrders] = useState(() => JSON.parse(localStorage.getItem("pos_orders") || "[]"));
-  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v31") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [deliveryZones, setDeliveryZones] = useState(() => JSON.parse(localStorage.getItem("pos_delivery_zones_v40") || JSON.stringify(DEFAULT_DELIVERY_ZONES)));
+  const [customers, setCustomers] = useState(() => JSON.parse(localStorage.getItem("pos_customers_v40") || JSON.stringify(DEFAULT_CUSTOMERS)));
 
   useEffect(() => { localStorage.setItem("pos_restaurant", JSON.stringify(restaurantInfo)); }, [restaurantInfo]);
   useEffect(() => { localStorage.setItem("pos_users", JSON.stringify(usersDb)); }, [usersDb]);
-  useEffect(() => { localStorage.setItem("pos_categories_v31", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("pos_products_v31", JSON.stringify(products)); }, [products]);
+  useEffect(() => { localStorage.setItem("pos_categories_v40", JSON.stringify(categories)); }, [categories]);
+  useEffect(() => { localStorage.setItem("pos_products_v40", JSON.stringify(products)); }, [products]);
   useEffect(() => { localStorage.setItem("pos_orders", JSON.stringify(completedOrders)); }, [completedOrders]);
-  useEffect(() => { localStorage.setItem("pos_delivery_zones_v31", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_delivery_zones_v40", JSON.stringify(deliveryZones)); }, [deliveryZones]);
+  useEffect(() => { localStorage.setItem("pos_customers_v40", JSON.stringify(customers)); }, [customers]);
 
   // Auth & UI States
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const [currentView, setCurrentView] = useState("pos");
+  const [currentView, setCurrentView] = useState("pos"); // pos, dashboard, invoices, inventory, crm, settings, reports
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileCartDrawerOpen, setMobileCartDrawerOpen] = useState(false);
 
   // Cart & Orders
   const [cart, setCart] = useState([]);
+  const [editingOrderId, setEditingOrderId] = useState(null); // معرف الفاتورة الجاري تعديلها
   const [activeCat, setActiveCat] = useState("البيتزا");
   const [query, setQuery] = useState("");
   const [orderType, setOrderType] = useState("takeaway");
@@ -166,11 +140,19 @@ export default function SmartPOSApp() {
   const [activeSize, setActiveSize] = useState(null);
   const [stuffedCrust, setStuffedCrust] = useState(false);
 
+  // Modals التحكم
   const [editProductModal, setEditProductModal] = useState(null);
   const [viewInvoiceModal, setViewInvoiceModal] = useState(null);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [shiftClosedReport, setShiftClosedReport] = useState(null);
+  const [showAddCustomerModal, setShowAddCategoryModalCustomerModal] = useState(false);
 
+  // 📅 التقارير الزمنية
+  const [reportTimeFilter, setReportTimeFilter] = useState("today"); // today, yesterday, week, month, all
+  const [cashDrawerInput, setCashDrawerInput] = useState("");
+  const [cashDrawerResult, setCashDrawerResult] = useState(null);
+
+  // Form States
   const [restockProduct, setRestockProduct] = useState(null);
   const [restockQty, setRestockQty] = useState("");
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -179,21 +161,29 @@ export default function SmartPOSApp() {
   const [newCatLabel, setNewCatLabel] = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("🍽️");
 
+  // New Product with Custom Sizes
   const [newProdName, setNewProdName] = useState("");
   const [newProdPrice, setNewProdPrice] = useState("");
   const [newProdStock, setNewProdStock] = useState("");
   const [newProdCat, setNewProdCat] = useState("البيتزا");
   const [newProdImage, setNewProdImage] = useState("");
+  const [hasSizesCheck, setHasSizesCheck] = useState(false);
+  const [sizeSmallP, setSizeSmallPrice] = useState("");
+  const [sizeMediumP, setSizeMediumPrice] = useState("");
+  const [sizeLargeP, setSizeLargePrice] = useState("");
+
+  const [newCustName, setNewCustName] = useState("");
+  const [newCustPhone, setNewCustPhone] = useState("");
+  const [newCustAddr, setNewCustAddress] = useState("");
 
   const currentTicketNo = completedOrders.length + 1;
 
-  // 🔑 تسجيل الدخول وحفظ الجلسة
   const handleLogin = (e) => {
     e.preventDefault();
     const user = usersDb.find((u) => u.username.toLowerCase() === usernameInput.trim().toLowerCase() && u.password === passwordInput);
     if (user) {
       setCurrentUser(user);
-      localStorage.setItem("pos_session_user", JSON.stringify(user)); // حفظ الجلسة
+      localStorage.setItem("pos_session_user", JSON.stringify(user));
       setLoginError("");
       const permissions = ROLE_PERMISSIONS[user.role];
       setCurrentView(permissions.canViewDashboard ? "dashboard" : "pos");
@@ -202,13 +192,10 @@ export default function SmartPOSApp() {
     }
   };
 
-  // 🚪 الخروج الصريح بناءً على طلب المستخدم فقط
   const handleLogout = () => {
-    localStorage.removeItem("pos_session_user"); // مسح الجلسة
+    localStorage.removeItem("pos_session_user");
     setCurrentUser(null);
-    setUsernameInput("");
-    setPasswordInput("");
-    setCart([]);
+    setUsernameInput(""); setPasswordInput(""); setCart([]);
   };
 
   const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
@@ -254,37 +241,106 @@ export default function SmartPOSApp() {
     setSelectedProductModal(null);
   };
 
+  // 🖨️ محرك الطباعة الشامل
+  const handlePrintReceipt = (orderData) => {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html dir="rtl">
+        <head>
+          <title>فاتورة #${orderData.ticketNo}</title>
+          <style>
+            body { font-family: sans-serif; width: ${restaurantInfo.paperWidth || "80mm"}; margin: 0 auto; padding: 8px; font-size: 11px; }
+            .text-center { text-align: center; }
+            .border-b { border-bottom: 1px dashed #000; margin: 6px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { text-align: right; padding: 3px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="text-center">
+            <h2>${restaurantInfo.name}</h2>
+            <p>${restaurantInfo.address}<br/>تليفون: ${restaurantInfo.phone}</p>
+          </div>
+          <div class="border-b"></div>
+          <p>رقم الفاتورة: #${orderData.ticketNo}<br/>التاريخ: ${orderData.date} - ${orderData.time}<br/>الكاشير: ${orderData.cashier}</p>
+          <div class="border-b"></div>
+          <table>
+            <thead><tr><th>الصنف</th><th>العدد</th><th>السعر</th></tr></thead>
+            <tbody>
+              ${orderData.items.map(i => `<tr><td>${i.name} ${i.sizeName ? `(${i.sizeName})` : ''}</td><td>${i.qty}</td><td>${i.unitPrice * i.qty} ج.م</td></tr>`).join('')}
+            </tbody>
+          </table>
+          <div class="border-b"></div>
+          <div style="font-weight: bold; font-size: 13px;">الإجمالي النهائي: ${orderData.total} ج.م</div>
+          <div class="border-b"></div>
+          <div class="text-center"><p>${restaurantInfo.receiptFooter}</p></div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
   const checkout = () => {
     if (cart.length === 0) return;
 
-    const newOrder = {
-      id: Date.now(),
-      ticketNo: currentTicketNo,
-      total,
-      subtotal,
-      deliveryFee: deliveryFeeCalculated,
-      zoneName: orderType === "delivery" ? selectedZone?.name : null,
-      orderType,
-      customerName: customerNameInput || "عميل نقدًا",
-      customerPhone: customerPhoneInput || "",
-      customerAddress: customerAddressInput || "",
-      items: [...cart],
-      status: "completed",
-      date: new Date().toLocaleDateString("ar-EG"),
-      time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
-      cashier: currentUser.name
-    };
+    if (editingOrderId) {
+      // ✏️ حفظ التعديلات على الفاتورة الحالية
+      setCompletedOrders((prev) => prev.map((ord) => ord.id === editingOrderId ? {
+        ...ord, total, subtotal, deliveryFee: deliveryFeeCalculated, items: [...cart],
+        customerName: customerNameInput || ord.customerName, customerPhone: customerPhoneInput || ord.customerPhone
+      } : ord));
+      setEditingOrderId(null);
+      alert("✅ تم تعديل الفاتورة بنجاح!");
+    } else {
+      // إتمام فاتورة جديدة
+      const newOrder = {
+        id: Date.now(),
+        ticketNo: currentTicketNo,
+        total,
+        subtotal,
+        deliveryFee: deliveryFeeCalculated,
+        zoneName: orderType === "delivery" ? selectedZone?.name : null,
+        orderType,
+        customerName: customerNameInput || "عميل نقدًا",
+        customerPhone: customerPhoneInput || "",
+        customerAddress: customerAddressInput || "",
+        items: [...cart],
+        status: "completed",
+        date: new Date().toLocaleDateString("ar-EG"),
+        time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+        cashier: currentUser.name,
+        timestamp: Date.now()
+      };
 
-    setCompletedOrders((prev) => [newOrder, ...prev]);
+      setCompletedOrders((prev) => [newOrder, ...prev]);
 
-    setProducts((prev) => prev.map((prod) => {
-      const cartItem = cart.find((i) => i.id === prod.id);
-      return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
-    }));
+      setProducts((prev) => prev.map((prod) => {
+        const cartItem = cart.find((i) => i.id === prod.id);
+        return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
+      }));
+
+      if (restaurantInfo.autoPrint) {
+        handlePrintReceipt(newOrder);
+      }
+    }
 
     setCart([]);
     setCustomerNameInput(""); setCustomerPhoneInput(""); setCustomerAddressInput("");
     setMobileCartDrawerOpen(false);
+  };
+
+  // ✏️ استرجاع الفاتورة للتعديل في السلة
+  const handleStartEditInvoice = (order) => {
+    setEditingOrderId(order.id);
+    setCart([...order.items]);
+    setOrderType(order.orderType);
+    setCustomerNameInput(order.customerName);
+    setCustomerPhoneInput(order.customerPhone);
+    setCurrentView("pos");
+    setViewInvoiceModal(null);
   };
 
   const handleCancelInvoice = (orderId) => {
@@ -301,10 +357,29 @@ export default function SmartPOSApp() {
     setViewInvoiceModal(null);
   };
 
+  // 🧹 تصفير وإعادة تهيئة النظام بالكامل (Factory Reset)
+  const handleFactoryReset = () => {
+    if (window.confirm("⚠️ تحذير خطير: هل أنت متأكد من إعادة تصفير النظام وتهيئة كافة المبيعات والفواتير؟")) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
+  // ➕ إضافة صنف مع تفعيل الأحجام
   const handleAddNewProduct = (e) => {
     e.preventDefault();
     if (!newProdName || !newProdPrice) return;
     const basePrice = Number(newProdPrice);
+
+    let sizesArr = null;
+    if (hasSizesCheck) {
+      sizesArr = [
+        { id: "sm", name: "صغير", price: Number(sizeSmallP) || basePrice },
+        { id: "md", name: "وسط", price: Number(sizeMediumP) || (basePrice + 25) },
+        { id: "lg", name: "كبير", price: Number(sizeLargeP) || (basePrice + 45) },
+      ];
+    }
+
     const newProd = {
       id: Date.now(),
       cat: newProdCat,
@@ -313,14 +388,12 @@ export default function SmartPOSApp() {
       stock: Number(newProdStock) || 10,
       emoji: "📦",
       imageUrl: newProdImage.trim(),
-      sizes: newProdCat === "البيتزا" ? [
-        { id: "sm", name: "صغير", price: basePrice },
-        { id: "md", name: "وسط", price: basePrice + 25 },
-        { id: "lg", name: "كبير", price: basePrice + 45 }
-      ] : null
+      sizes: sizesArr
     };
+
     setProducts((prev) => [newProd, ...prev]);
     setNewProdName(""); setNewProdPrice(""); setNewProdStock(""); setNewProdImage("");
+    setHasSizesCheck(false); setSizeSmallPrice(""); setSizeMediumPrice(""); setSizeLargePrice("");
     setShowAddProductModal(false);
   };
 
@@ -334,29 +407,54 @@ export default function SmartPOSApp() {
     setShowAddCategoryModal(false);
   };
 
-  const handleCloseShift = () => {
-    const active = completedOrders.filter(o => o.status !== "cancelled");
-    setShiftClosedReport({
-      cashier: currentUser.name,
-      time: new Date().toLocaleTimeString("ar-EG"),
-      date: new Date().toLocaleDateString("ar-EG"),
-      totalRevenue: active.reduce((a, b) => a + b.total, 0),
-      totalOrdersCount: active.length,
-      takeawayCount: active.filter(o => o.orderType === "takeaway").length,
-      deliveryCount: active.filter(o => o.orderType === "delivery").length,
-    });
-    setShowCloseShiftModal(true);
+  const handleAddCustomerSubmit = (e) => {
+    e.preventDefault();
+    if (!newCustName || !newCustPhone) return;
+    const newCust = {
+      id: Date.now(),
+      name: newCustName,
+      phone: newCustPhone,
+      address: newCustAddr,
+      points: 10,
+      debt: 0.0
+    };
+    setCustomers((prev) => [...prev, newCust]);
+    setNewCustName(""); setNewCustPhone(""); setNewCustAddress("");
+    setShowAddCategoryModalCustomerModal(false);
   };
 
-  const getTopSellingProducts = () => {
-    const itemMap = {};
-    completedOrders.filter(o => o.status !== "cancelled").forEach((ord) => {
-      ord.items.forEach((item) => {
-        if (!itemMap[item.name]) itemMap[item.name] = 0;
-        itemMap[item.name] += item.qty;
-      });
+  // 📅 فلترة الفواتير حسب التقارير الزمنية
+  const getFilteredOrdersByTime = () => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterdayStart = todayStart - 86400000;
+    const weekStart = todayStart - (86400000 * 7);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    return completedOrders.filter((ord) => {
+      if (ord.status === "cancelled") return false;
+      const t = ord.timestamp || Date.now();
+      if (reportTimeFilter === "today") return t >= todayStart;
+      if (reportTimeFilter === "yesterday") return t >= yesterdayStart && t < todayStart;
+      if (reportTimeFilter === "week") return t >= weekStart;
+      if (reportTimeFilter === "month") return t >= monthStart;
+      return true; // all
     });
-    return Object.entries(itemMap).map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty).slice(0, 5);
+  };
+
+  // 💰 جرد الخزينة المقارن
+  const handleCalculateCashDrawer = () => {
+    const active = getFilteredOrdersByTime();
+    const expectedRevenue = active.reduce((a, b) => a + b.total, 0);
+    const entered = Number(cashDrawerInput) || 0;
+    const diff = entered - expectedRevenue;
+
+    setCashDrawerResult({
+      expected: expectedRevenue,
+      entered,
+      diff,
+      status: diff === 0 ? "متطابق تماماً ✅" : diff > 0 ? `زيادة قدرها +${diff} ج.م 📈` : `عجز قدره ${diff} ج.م ⚠️`
+    });
   };
 
   if (!currentUser) {
@@ -368,7 +466,7 @@ export default function SmartPOSApp() {
               {restaurantInfo.logoUrl ? <img src={restaurantInfo.logoUrl} alt="logo" className="w-full h-full object-cover rounded-2xl" /> : restaurantInfo.logo}
             </div>
             <h2 className="text-xl font-black text-slate-900">{restaurantInfo.name}</h2>
-            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">v{APP_VERSION}</p>
+            <p className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-block">Enterprise v{APP_VERSION}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -410,7 +508,7 @@ export default function SmartPOSApp() {
               </div>
               <div className="truncate">
                 <h1 className="font-extrabold text-white text-sm truncate">{restaurantInfo.name}</h1>
-                <p className="text-[10px] text-emerald-400 font-bold truncate">محدث v{APP_VERSION}</p>
+                <p className="text-[10px] text-emerald-400 font-bold truncate">Enterprise v{APP_VERSION}</p>
               </div>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 p-1">
@@ -435,9 +533,23 @@ export default function SmartPOSApp() {
               </button>
             )}
 
+            {/* 📌 1. صفحة إدارة العملاء CRM */}
+            {permissions.canCRM && (
+              <button onClick={() => { setCurrentView("crm"); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all ${currentView === "crm" ? "bg-indigo-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-400"}`}>
+                <Users size={18} /> <span>دليل العملاء ({customers.length})</span>
+              </button>
+            )}
+
             {permissions.canInventory && (
               <button onClick={() => { setCurrentView("inventory"); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all ${currentView === "inventory" ? "bg-indigo-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-400"}`}>
                 <Package size={18} /> <span>المخزون والمنتجات</span>
+              </button>
+            )}
+
+            {/* 📌 6. صفحة التقارير الشاملة والجرد */}
+            {permissions.canReports && (
+              <button onClick={() => { setCurrentView("reports"); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all ${currentView === "reports" ? "bg-indigo-600 text-white shadow-md" : "hover:bg-slate-800 text-slate-400"}`}>
+                <TrendingUp size={18} /> <span>التقارير وجرد الخزينة</span>
               </button>
             )}
 
@@ -450,9 +562,6 @@ export default function SmartPOSApp() {
         </div>
 
         <div className="p-4 border-t border-slate-800 space-y-2">
-          <button onClick={handleCloseShift} className="w-full py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600 hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
-            <Lock size={14} /> <span>تقفيل الوردية</span>
-          </button>
           <div className="flex items-center justify-between pt-1">
             <div className="truncate">
               <p className="text-xs font-black text-white truncate">{currentUser.name}</p>
@@ -473,56 +582,11 @@ export default function SmartPOSApp() {
         {/* DASHBOARD VIEW */}
         {currentView === "dashboard" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">لوحة التحكم والأداء اليومي</h2>
-              <button onClick={handleCloseShift} className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md">
-                <Lock size={15} /> تقفيل الوردية
-              </button>
-            </div>
-            
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">لوحة التحكم والأداء اليومي</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p><h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(completedOrders.filter(o=>o.status!=="cancelled").reduce((a,b)=>a+b.total, 0))} ج.م</h3></div>
               <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">عدد الفواتير النشطة</p><h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.filter(o=>o.status!=="cancelled").length} فاتورة</h3></div>
-              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">الفواتير الملغاة</p><h3 className="text-2xl font-black text-rose-600 mt-1">{completedOrders.filter(o=>o.status==="cancelled").length} فاتورة</h3></div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white p-5 rounded-2xl border shadow-xs space-y-4">
-                <h3 className="font-extrabold text-sm text-slate-900">تطور المبيعات الساعية</h3>
-                <div className="h-60 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={SALES_CHART_TIMELINE}>
-                      <defs>
-                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} />
-                      <YAxis stroke="#94a3b8" fontSize={11} axisLine={false} />
-                      <Tooltip formatter={(val) => [`${val} ج.م`, "المبيعات"]} />
-                      <Area type="monotone" dataKey="sales" stroke="#4f46e5" strokeWidth={2.5} fill="url(#colorSales)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2">⭐ الأصناف الأكثر مبيعاً</h3>
-                <div className="space-y-2.5">
-                  {getTopSellingProducts().length === 0 ? (
-                    <p className="text-xs text-slate-400 font-semibold text-center py-6">لا توجد مبيعات مسجلة</p>
-                  ) : (
-                    getTopSellingProducts().map((prod, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
-                        <span className="font-bold text-slate-800">{idx+1}. {prod.name}</span>
-                        <span className="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{prod.qty} قطعة</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">عدد العملاء</p><h3 className="text-2xl font-black text-amber-600 mt-1">{customers.length} عميل</h3></div>
             </div>
           </div>
         )}
@@ -531,7 +595,6 @@ export default function SmartPOSApp() {
         {currentView === "pos" && (
           <div className="flex-1 flex flex-col md:flex-row min-h-0 relative pb-24 md:pb-0">
             <div className="flex-1 flex flex-col min-w-0 bg-slate-50 border-l">
-              
               <div className="sticky top-0 z-10 px-4 sm:px-6 py-3 flex flex-wrap justify-between bg-white border-b items-center gap-2 shadow-xs">
                 <div className="flex gap-1.5 overflow-x-auto items-center w-full sm:w-auto">
                   {categories.map((c) => (
@@ -540,11 +603,10 @@ export default function SmartPOSApp() {
                     </button>
                   ))}
                 </div>
-
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث صنف..." className="h-8 bg-slate-100 rounded-xl px-3 text-xs outline-none w-full sm:w-48" />
               </div>
 
-              {/* Grid Products with pb-32 */}
+              {/* Grid Products */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
                 <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))" }}>
                   {products.filter(p=>p.cat===activeCat && p.name.includes(query)).map((p) => (
@@ -567,12 +629,14 @@ export default function SmartPOSApp() {
               </div>
             </div>
 
-            {/* CART PANEL FOR DESKTOP */}
+            {/* CART PANEL */}
             <aside className="hidden md:flex w-[340px] shrink-0 bg-white flex-col border-r shadow-xl">
               <div className="p-3 border-b bg-slate-50 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black">فاتورة جديد #{currentTicketNo}</span>
-                  {cart.length > 0 && <button onClick={() => setCart([])} className="text-xs text-rose-600 font-bold">تصفير</button>}
+                  <span className="text-xs font-black">
+                    {editingOrderId ? `تعديل فاتورة #${completedOrders.find(o=>o.id===editingOrderId)?.ticketNo}` : `فاتورة جديد #${currentTicketNo}`}
+                  </span>
+                  {cart.length > 0 && <button onClick={() => { setCart([]); setEditingOrderId(null); }} className="text-xs text-rose-600 font-bold">تصفير</button>}
                 </div>
                 
                 <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
@@ -585,22 +649,17 @@ export default function SmartPOSApp() {
 
                 {orderType === "delivery" && (
                   <div className="p-2.5 bg-indigo-50 border border-indigo-100 rounded-xl space-y-2 text-xs">
-                    <div>
-                      <label className="font-bold text-indigo-900 block mb-1">اختر منطقة التوصيل:</label>
-                      <select
-                        value={selectedZone?.id}
-                        onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
-                        className="w-full h-8 bg-white border border-indigo-200 rounded-lg px-2 font-bold outline-none"
-                      >
-                        {deliveryZones.map((z) => (
-                          <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold outline-none" />
-                    <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold outline-none" />
-                    <input value={customerAddressInput} onChange={(e) => setCustomerAddressInput(e.target.value)} placeholder="العنوان..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold outline-none" />
+                    <select
+                      value={selectedZone?.id}
+                      onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
+                      className="w-full h-8 bg-white border rounded-lg px-2 font-bold outline-none"
+                    >
+                      {deliveryZones.map((z) => (
+                        <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
+                      ))}
+                    </select>
+                    <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
+                    <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
                   </div>
                 )}
               </div>
@@ -620,10 +679,12 @@ export default function SmartPOSApp() {
               <div className="p-3 border-t bg-slate-50 space-y-2">
                 <div className="space-y-1 text-xs font-semibold">
                   <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
-                  {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>خدمة توصيل ({selectedZone?.name}):</span><span>{fmt(deliveryFeeCalculated)} ج.م</span></div>}
+                  {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>خدمة توصيل:</span><span>{fmt(deliveryFeeCalculated)} ج.م</span></div>}
                   <div className="flex justify-between font-black text-sm pt-1 border-t"><span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span></div>
                 </div>
-                <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">إتمام البيع والطباعة</button>
+                <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">
+                  {editingOrderId ? "حفظ التعديلات والتحديث" : "إتمام البيع والطباعة"}
+                </button>
               </div>
             </aside>
 
@@ -633,19 +694,52 @@ export default function SmartPOSApp() {
                 <span className="text-[10px] text-slate-400 font-bold block">إجمالي السلة ({totalCartQty} صنف)</span>
                 <span className="font-black text-emerald-400 text-base">{fmt(total)} ج.م</span>
               </div>
-              <button onClick={() => setMobileCartDrawerOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
+              <button onClick={() => setMobileCartDrawerOpen(true)} className="bg-indigo-600 text-white font-black text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-lg">
                 <ShoppingCart size={16} /> عرض الفاتورة والإنهاء
               </button>
             </div>
           </div>
         )}
 
-        {/* INVOICES HUB */}
+        {/* 👥 1. CRM CUSTOMERS VIEW */}
+        {currentView === "crm" && permissions.canCRM && (
+          <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">دليل وإدارة العملاء (CRM)</h2>
+                <p className="text-xs text-slate-400 font-semibold">متابعة سجل الطلبات، الديون، ونقاط الولاء</p>
+              </div>
+              <button onClick={() => setShowAddCategoryModalCustomerModal(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                <Plus size={15} /> إضافة عميل جديد
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customers.map((c) => (
+                <div key={c.id} className="bg-white p-5 rounded-2xl border shadow-xs space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-black text-sm text-slate-900">{c.name}</h3>
+                      <p className="text-xs text-slate-400">{c.address}</p>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">{c.phone}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs font-bold pt-2 border-t">
+                    <div className="bg-amber-50 p-2 rounded-xl text-amber-700">نقاط الولاء: {c.points} ⭐</div>
+                    <div className="bg-rose-50 p-2 rounded-xl text-rose-700">الديون: {fmt(c.debt)} ج.م</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 📜 2. INVOICES HUB WITH EDIT & REPRINT */}
         {currentView === "invoices" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة والتحكم بها ({completedOrders.length})</h2>
+            <h2 className="text-xl font-black text-slate-900">سجل الفواتير المنفذة والتحكم الكامل ({completedOrders.length})</h2>
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
-              <table className="w-full text-right text-xs min-w-[550px]">
+              <table className="w-full text-right text-xs min-w-[600px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
                   <tr>
                     <th className="p-3">رقم الفاتورة</th>
@@ -654,7 +748,7 @@ export default function SmartPOSApp() {
                     <th className="p-3">الكاشير</th>
                     <th className="p-3">الإجمالي</th>
                     <th className="p-3">الحالة</th>
-                    <th className="p-3 text-center">إجراءات التحكم</th>
+                    <th className="p-3 text-center">التحكم والإجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y font-bold">
@@ -670,6 +764,16 @@ export default function SmartPOSApp() {
                       </td>
                       <td className="p-3 text-center space-x-1.5 space-x-reverse">
                         <button onClick={() => setViewInvoiceModal(o)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100" title="معاينة وتفاصيل"><Eye size={15} /></button>
+                        
+                        {/* 📌 إعادة الطباعة */}
+                        <button onClick={() => handlePrintReceipt(o)} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200" title="إعادة الطباعة"><Printer size={15} /></button>
+                        
+                        {/* 📌 التعديل على الفاتورة */}
+                        {o.status !== "cancelled" && (
+                          <button onClick={() => handleStartEditInvoice(o)} className="p-1.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100" title="تعديل الفاتورة"><Edit3 size={15} /></button>
+                        )}
+
+                        {/* 📌 إلغاء الفاتورة */}
                         {o.status !== "cancelled" && (
                           <button onClick={() => handleCancelInvoice(o.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100" title="إلغاء الفاتورة"><Trash2 size={15} /></button>
                         )}
@@ -682,7 +786,7 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* INVENTORY VIEW */}
+        {/* 📦 INVENTORY VIEW WITH FULL SIZES & EDIT */}
         {currentView === "inventory" && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
             <div className="flex flex-wrap justify-between items-center gap-2">
@@ -700,7 +804,7 @@ export default function SmartPOSApp() {
             <div className="bg-white rounded-2xl border shadow-xs overflow-x-auto">
               <table className="w-full text-right text-xs min-w-[550px]">
                 <thead className="bg-slate-50 border-b font-black text-slate-600">
-                  <tr><th className="p-3">الصنف</th><th className="p-3">القسم</th><th className="p-3">السعر</th><th className="p-3">المخزن</th><th className="p-3 text-center">إجراءات</th></tr>
+                  <tr><th className="p-3">الصنف</th><th className="p-3">القسم</th><th className="p-3">السعر الأساسي</th><th className="p-3">أسعار الأحجام</th><th className="p-3">المخزن</th><th className="p-3 text-center">إجراءات</th></tr>
                 </thead>
                 <tbody className="divide-y font-bold">
                   {products.map((p) => (
@@ -713,6 +817,9 @@ export default function SmartPOSApp() {
                       </td>
                       <td className="p-3 text-indigo-600">{p.cat}</td>
                       <td className="p-3">{fmt(p.price)} ج.م</td>
+                      <td className="p-3 text-slate-500">
+                        {p.sizes ? p.sizes.map(s=>`${s.name}:${s.price}ج`).join(" | ") : "حجم موحد"}
+                      </td>
                       <td className="p-3 font-black">{p.stock} قطعة</td>
                       <td className="p-3 text-center space-x-1.5 space-x-reverse">
                         <button onClick={() => setEditProductModal(p)} className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-xl font-bold">✏️ تعديل</button>
@@ -726,95 +833,141 @@ export default function SmartPOSApp() {
           </div>
         )}
 
-        {/* SETTINGS VIEW */}
+        {/* 📅 6. REPORTS & CASH DRAWER RECONCILIATION */}
+        {currentView === "reports" && permissions.canReports && (
+          <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
+            <div className="flex flex-wrap justify-between items-center gap-2 border-b pb-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">التقارير الشاملة وجرد الخزينة</h2>
+                <p className="text-xs text-slate-400 font-semibold">اختر النطاق الزمني لعرض التقارير والجرد</p>
+              </div>
+
+              {/* 📌 الفلتر الزمني للتقارير */}
+              <div className="flex bg-white p-1 rounded-xl border text-xs font-bold">
+                {[
+                  { id: "today", label: "اليوم" },
+                  { id: "yesterday", label: "أمس" },
+                  { id: "week", label: "آخر أسبوع" },
+                  { id: "month", label: "هذا الشهر" },
+                  { id: "all", label: "كل الوقت" }
+                ].map((f) => (
+                  <button key={f.id} onClick={() => setReportTimeFilter(f.id)} className={`px-3 py-1.5 rounded-lg ${reportTimeFilter === f.id ? "bg-indigo-600 text-white" : "text-slate-500"}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* كروت الإحصائيات الزمنية */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white p-5 rounded-2xl border shadow-xs">
+                <p className="text-xs font-semibold text-slate-400">إجمالي المبيعات بالفترة المختارة</p>
+                <h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(getFilteredOrdersByTime().reduce((a,b)=>a+b.total,0))} ج.م</h3>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs">
+                <p className="text-xs font-semibold text-slate-400">عدد الفواتير المنفذة</p>
+                <h3 className="text-2xl font-black text-indigo-600 mt-1">{getFilteredOrdersByTime().length} فاتورة</h3>
+              </div>
+              <div className="bg-white p-5 rounded-2xl border shadow-xs">
+                <p className="text-xs font-semibold text-slate-400">متوسط قيمة الفاتورة</p>
+                <h3 className="text-2xl font-black text-emerald-600 mt-1">
+                  {getFilteredOrdersByTime().length > 0 ? fmt(getFilteredOrdersByTime().reduce((a,b)=>a+b.total,0) / getFilteredOrdersByTime().length) : "0.00"} ج.م
+                </h3>
+              </div>
+            </div>
+
+            {/* 💰 7. جرد الخزينة (Cash Reconciliation Box) */}
+            <div className="bg-white p-6 rounded-3xl border shadow-xs space-y-4 max-w-lg">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <DollarSign size={18} className="text-indigo-600" /> حاسبة جرد وتطبيق الخزينة
+              </h3>
+              <p className="text-xs text-slate-400 font-semibold">أدخل المبلغ النخدي الموجود بالدرج لمطابقته مع النظام</p>
+
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={cashDrawerInput}
+                  onChange={(e) => setCashDrawerInput(e.target.value)}
+                  placeholder="المبلغ المادي بالدرج (ج.م)..."
+                  className="flex-1 h-10 border rounded-xl px-3 font-bold text-xs outline-none"
+                />
+                <button onClick={handleCalculateCashDrawer} className="px-4 bg-indigo-600 text-white rounded-xl text-xs font-bold">جرد الآن</button>
+              </div>
+
+              {cashDrawerResult && (
+                <div className="p-4 bg-slate-50 rounded-2xl border space-y-1.5 text-xs font-bold">
+                  <div className="flex justify-between"><span>المتوقع بالسيستم:</span><span>{fmt(cashDrawerResult.expected)} ج.م</span></div>
+                  <div className="flex justify-between"><span>الموجود بالدرج:</span><span>{fmt(cashDrawerResult.entered)} ج.م</span></div>
+                  <div className="flex justify-between border-t pt-2 text-indigo-600 font-black">
+                    <span>نتيجة المطابقة:</span><span>{cashDrawerResult.status}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ⚙️ SETTINGS & FACTORY RESET VIEW */}
         {currentView === "settings" && permissions.canSettings && (
           <div className="flex-1 bg-slate-50 p-4 sm:p-6 overflow-y-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات المطعم والنظام</h2>
-            <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs max-w-lg">
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
-                <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">إعدادات النظام والطباعة والتهيئة</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* بيانات المطعم والطباعة */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2 flex items-center gap-2">
+                  <Settings size={16} className="text-indigo-600" /> بيانات المطعم والطابعة
+                </h3>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">اسم المطعم</label>
+                  <input type="text" value={restaurantInfo.name} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">اسم الطابعة المتصلة (Printer Device Name)</label>
+                  <input type="text" value={restaurantInfo.printerName} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, printerName: e.target.value })} placeholder="POS-80 Printer" className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">مقاس الورق الحراري Thermal Paper</label>
+                  <select value={restaurantInfo.paperWidth} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, paperWidth: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none bg-white">
+                    <option value="80mm">80mm (طابعة كاشير قياسية)</option>
+                    <option value="58mm">58mm (طابعة صغيرة)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-600 block mb-1">تذييل ورسالة الفاتورة</label>
+                  <input type="text" value={restaurantInfo.receiptFooter} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, receiptFooter: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+                </div>
+                <button onClick={() => handlePrintReceipt({ ticketNo: 999, date: "اليوم", time: "12:00", cashier: "تجربة", items: [{ name: "تجربة طابعة", qty: 1, unitPrice: 10 }], total: 10 })} className="w-full h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl mt-2">
+                  🖨️ تجربة طباعة إيصال اختباري
+                </button>
               </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">عنوان المطعم</label>
-                <input type="text" value={restaurantInfo.address} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
+
+              {/* 📌 5. زر التهيئة وإعادة التصفير الشامل */}
+              <div className="bg-white p-5 rounded-3xl border shadow-xs space-y-3 text-xs border-rose-100">
+                <h3 className="font-extrabold text-sm text-rose-600 border-b pb-2 flex items-center gap-2">
+                  <RotateCcw size={16} /> تهيئة وإعادة تصفير النظام
+                </h3>
+                <p className="text-slate-400 font-semibold leading-relaxed">
+                  عند الضغط على هذا الزر سيتم مسح كافة الفواتير المسجلة والسجل المالي للبدء بموسم أو يوم جديد بالكامل.
+                </p>
+                <button onClick={handleFactoryReset} className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-lg shadow-rose-600/20">
+                  ⚠️ تهيئة وتصفير النظام الآن
+                </button>
               </div>
-              <div>
-                <label className="font-bold text-slate-600 block mb-1">رقم الهاتف</label>
-                <input type="text" value={restaurantInfo.phone} onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })} className="w-full h-9 border rounded-xl px-3 font-bold outline-none" />
-              </div>
+
             </div>
           </div>
         )}
 
       </main>
 
-      {/* 📌 MODAL: MOBILE CART DRAWER */}
-      {mobileCartDrawerOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex flex-col justify-end md:hidden">
-          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
-            <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-              <span className="font-black text-sm text-slate-900">سلة الطلبات #{currentTicketNo}</span>
-              <button onClick={() => setMobileCartDrawerOpen(false)} className="p-1 text-slate-400"><X size={20} /></button>
-            </div>
-
-            <div className="p-3 space-y-2 border-b">
-              <div className="grid grid-cols-3 gap-1 bg-slate-200 p-1 rounded-xl">
-                {["takeaway", "delivery", "dinein"].map((t) => (
-                  <button key={t} onClick={() => setOrderType(t)} className={`py-1.5 rounded-lg text-xs font-black ${orderType === t ? "bg-indigo-600 text-white" : "text-slate-600"}`}>
-                    {t === "takeaway" ? "تيك أواي" : t === "delivery" ? "دليفري" : "صالة"}
-                  </button>
-                ))}
-              </div>
-
-              {orderType === "delivery" && (
-                <div className="p-2.5 bg-indigo-50 border rounded-xl space-y-2 text-xs">
-                  <select
-                    value={selectedZone?.id}
-                    onChange={(e) => setSelectedDeliveryZone(deliveryZones.find(z => z.id === Number(e.target.value)))}
-                    className="w-full h-8 bg-white border rounded-lg px-2 font-bold outline-none"
-                  >
-                    {deliveryZones.map((z) => (
-                      <option key={z.id} value={z.id}>{z.name} (+{z.fee} ج.م)</option>
-                    ))}
-                  </select>
-                  <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
-                  <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
-                  <input value={customerAddressInput} onChange={(e) => setCustomerAddressInput(e.target.value)} placeholder="العنوان..." className="w-full h-7 bg-white border rounded-lg px-2 text-xs font-bold" />
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-60">
-              {cart.map((item) => (
-                <div key={item.itemKey} className="bg-slate-50 rounded-xl p-2.5 border flex justify-between items-center">
-                  <div>
-                    <h4 className="font-bold text-xs">{item.name}</h4>
-                    <span className="text-[11px] text-slate-400">{fmt(item.unitPrice)} ج.م × {item.qty}</span>
-                  </div>
-                  <span className="font-black text-xs">{fmt(item.unitPrice * item.qty)} ج.م</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 border-t bg-slate-50 space-y-2">
-              <div className="space-y-1 text-xs font-semibold">
-                <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
-                {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>التوصيل:</span><span>{fmt(deliveryFeeCalculated)} ج.م</span></div>}
-                <div className="flex justify-between font-black text-sm pt-1 border-t"><span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span></div>
-              </div>
-              <button onClick={checkout} disabled={cart.length === 0} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">إتمام البيع والطباعة</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 📌 MODAL: إضافة صنف جديد */}
+      {/* 📌 MODAL: إضافة صنف مع تفعيل وتحديد أسعار الأحجام */}
       {showAddProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleAddNewProduct} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleAddNewProduct} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>إضافة صنف جديد</span>
+              <span>إضافة صنف جديد وتحديد الأحجام</span>
               <button type="button" onClick={() => setShowAddProductModal(false)}><X size={18} /></button>
             </div>
             <div className="space-y-3 text-xs">
@@ -822,33 +975,77 @@ export default function SmartPOSApp() {
                 {categories.map((c) => (<option key={c.id} value={c.id}>{c.emoji} {c.label}</option>))}
               </select>
               <input type="text" required value={newProdName} onChange={(e) => setNewProdName(e.target.value)} placeholder="اسم الصنف..." className="w-full h-9 border rounded-xl px-3 font-bold" />
-              <input type="number" required value={newProdPrice} onChange={(e) => setNewProdPrice(e.target.value)} placeholder="السعر الأساسي (ج.م)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={newProdPrice} onChange={(e) => setNewProdPrice(e.target.value)} placeholder="السعر الأساسي / الصغير (ج.م)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
               <input type="number" required value={newProdStock} onChange={(e) => setNewProdStock(e.target.value)} placeholder="الكمية بالمخزن..." className="w-full h-9 border rounded-xl px-3 font-bold" />
               <input type="text" value={newProdImage} onChange={(e) => setNewProdImage(e.target.value)} placeholder="رابط صورة الصنف (اختياري)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+
+              {/* 📐 تفعيل الأحجام المخصصة للصنف */}
+              <div className="pt-2 border-t">
+                <label className="flex items-center gap-2 font-bold text-indigo-700 cursor-pointer">
+                  <input type="checkbox" checked={hasSizesCheck} onChange={(e) => setHasSizesCheck(e.target.checked)} className="rounded text-indigo-600" />
+                  <span>تفعيل أحجام متعددة (صغير / وسط / كبير)</span>
+                </label>
+
+                {hasSizesCheck && (
+                  <div className="mt-2 space-y-2 p-2.5 bg-indigo-50/60 rounded-xl border border-indigo-100">
+                    <div className="flex justify-between items-center">
+                      <span>سعر الصغير:</span>
+                      <input type="number" value={sizeSmallP} onChange={(e) => setSizeSmallPrice(e.target.value)} placeholder={newProdPrice || "45"} className="w-20 h-7 border rounded px-2 text-center bg-white font-bold" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>سعر الوسط:</span>
+                      <input type="number" value={sizeMediumP} onChange={(e) => setSizeMediumPrice(e.target.value)} placeholder="70" className="w-20 h-7 border rounded px-2 text-center bg-white font-bold" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>سعر الكبير:</span>
+                      <input type="number" value={sizeLargeP} onChange={(e) => setSizeLargePrice(e.target.value)} placeholder="90" className="w-20 h-7 border rounded px-2 text-center bg-white font-bold" />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ الصنف</button>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ الصنف والأحجام</button>
           </form>
         </div>
       )}
 
-      {/* 📌 MODAL: إضافة قسم جديد */}
-      {showAddCategoryModal && (
+      {/* MODAL: إضافة عميل جديد */}
+      {showAddCustomerModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleAddNewCategory} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleAddCustomerSubmit} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>إضافة قسم جديد</span>
-              <button type="button" onClick={() => setShowAddCategoryModal(false)}><X size={18} /></button>
+              <span>إضافة عميل جديد</span>
+              <button type="button" onClick={() => setShowAddCategoryModalCustomerModal(false)}><X size={18} /></button>
             </div>
             <div className="space-y-3 text-xs">
-              <input type="text" required value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} placeholder="اسم القسم..." className="w-full h-9 border rounded-xl px-3 font-bold" />
-              <input type="text" value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} placeholder="رمز (Emoji)..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="text" required value={newCustName} onChange={(e) => setNewCustName(e.target.value)} placeholder="اسم العميل..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="text" required value={newCustPhone} onChange={(e) => setNewCustPhone(e.target.value)} placeholder="رقم الهاتف..." className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="text" value={newCustAddr} onChange={(e) => setNewCustAddress(e.target.value)} placeholder="العنوان التفصيلي..." className="w-full h-9 border rounded-xl px-3 font-bold" />
             </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ القسم</button>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ العميل</button>
           </form>
         </div>
       )}
 
-      {/* MODAL: اختيار الأحجام وحشو الأطراف */}
+      {/* MODAL: تعديل صنف وأحجامه من المخزون */}
+      {editProductModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={(e) => { e.preventDefault(); setProducts(products.map(p => p.id === editProductModal.id ? editProductModal : p)); setEditProductModal(null); }} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
+              <span>تعديل بيانات الصنف والأحجام</span>
+              <button type="button" onClick={() => setEditProductModal(null)}><X size={18} /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <input type="text" required value={editProductModal.name} onChange={(e) => setEditProductModal({ ...editProductModal, name: e.target.value })} placeholder="اسم الصنف" className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={editProductModal.price} onChange={(e) => setEditProductModal({ ...editProductModal, price: Number(e.target.value) })} placeholder="السعر الأساسي" className="w-full h-9 border rounded-xl px-3 font-bold" />
+              <input type="number" required value={editProductModal.stock} onChange={(e) => setEditProductModal({ ...editProductModal, stock: Number(e.target.value) })} placeholder="الكمية بالمخزن" className="w-full h-9 border rounded-xl px-3 font-bold" />
+            </div>
+            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ التعديلات</button>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: اختيار الأحجام عند البيع */}
       {selectedProductModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
@@ -887,7 +1084,7 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* MODAL: معاينة الفاتورة */}
+      {/* MODAL: معاينة التفاصيل */}
       {viewInvoiceModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
@@ -911,58 +1108,20 @@ export default function SmartPOSApp() {
               </div>
 
               <div className="border-t pt-2 flex justify-between font-black text-sm text-indigo-600">
-                <span>الإجمالي:</span><span>{fmt(viewInvoiceModal.total)} ج.م</span>
+                <span>الإجمالي الكلي:</span><span>{fmt(viewInvoiceModal.total)} ج.م</span>
               </div>
             </div>
 
             <div className="flex gap-2 pt-2">
+              <button onClick={() => handlePrintReceipt(viewInvoiceModal)} className="flex-1 h-10 bg-indigo-600 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5">
+                <Printer size={15} /> طباعة
+              </button>
               {viewInvoiceModal.status !== "cancelled" && (
-                <button onClick={() => handleCancelInvoice(viewInvoiceModal.id)} className="w-full h-10 bg-rose-50 text-rose-600 font-black text-xs rounded-xl">
-                  إلغاء الفاتورة
+                <button onClick={() => handleCancelInvoice(viewInvoiceModal.id)} className="h-10 px-4 bg-rose-50 text-rose-600 font-black text-xs rounded-xl">
+                  إلغاء
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: تعديل صنف */}
-      {editProductModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={(e) => { e.preventDefault(); setProducts(products.map(p => p.id === editProductModal.id ? editProductModal : p)); setEditProductModal(null); }} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>تعديل بيانات الصنف</span>
-              <button type="button" onClick={() => setEditProductModal(null)}><X size={18} /></button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <input type="text" required value={editProductModal.name} onChange={(e) => setEditProductModal({ ...editProductModal, name: e.target.value })} placeholder="اسم الصنف" className="w-full h-9 border rounded-xl px-3 font-bold" />
-              <input type="number" required value={editProductModal.price} onChange={(e) => setEditProductModal({ ...editProductModal, price: Number(e.target.value) })} placeholder="السعر" className="w-full h-9 border rounded-xl px-3 font-bold" />
-              <input type="number" required value={editProductModal.stock} onChange={(e) => setEditProductModal({ ...editProductModal, stock: Number(e.target.value) })} placeholder="المخزن" className="w-full h-9 border rounded-xl px-3 font-bold" />
-            </div>
-            <button type="submit" className="w-full h-10 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-md">حفظ التعديلات</button>
-          </form>
-        </div>
-      )}
-
-      {/* MODAL: تقفيل الوردية */}
-      {showCloseShiftModal && shiftClosedReport && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-center">
-            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
-              <Lock size={24} />
-            </div>
-            <div>
-              <h3 className="text-lg font-black text-slate-900">تقرير تقفيل الوردية</h3>
-              <p className="text-xs text-slate-400 font-semibold">{shiftClosedReport.date} - {shiftClosedReport.time}</p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-xs font-bold text-slate-700 text-right">
-              <div className="flex justify-between"><span>الكاشير:</span><span>{shiftClosedReport.cashier}</span></div>
-              <div className="flex justify-between"><span>عدد الفواتير:</span><span>{shiftClosedReport.totalOrdersCount}</span></div>
-              <div className="flex justify-between text-indigo-600 font-black text-sm pt-2 border-t">
-                <span>الصافي:</span><span>{fmt(shiftClosedReport.totalRevenue)} ج.م</span>
-              </div>
-            </div>
-            <button onClick={() => setShowCloseShiftModal(false)} className="w-full h-11 bg-indigo-600 text-white font-black text-xs rounded-xl shadow-lg">تأكيد الاستلام</button>
           </div>
         </div>
       )}
