@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search, Plus, Minus, Trash2, Banknote, CreditCard, X, Check,
   Coffee, IceCream, Sandwich, UtensilsCrossed, GlassWater,
   Receipt, Sparkles, Bike, ShoppingBag, Utensils, Phone, User,
   Flame, Printer, LayoutDashboard, Users, Package,
-  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText
+  Wifi, WifiOff, TrendingUp, DollarSign, UserCheck, Key, LogOut, MapPin, TrendingDown, FileText, Database
 } from "lucide-react";
 
-/* ---------------- 1. USERS DATABASE (SECURE) ---------------- */
-const USERS_DB = [
+/* ---------------- 1. USERS DATABASE ---------------- */
+const DEFAULT_USERS_DB = [
   { id: 1, username: "admin", password: "admin123", name: "محمد مطر", role: "admin", roleLabel: "👑 Admin" },
   { id: 2, username: "manager", password: "mgr123", name: "أحمد علي", role: "manager", roleLabel: "👔 Manager" },
   { id: 3, username: "cashier", password: "cash123", name: "محمود الكاشير", role: "cashier", roleLabel: "💳 Cashier" },
@@ -29,7 +29,7 @@ const CATEGORIES = [
   { id: "meal", label: "وجبات", icon: UtensilsCrossed },
 ];
 
-const INITIAL_PRODUCTS = [
+const DEFAULT_PRODUCTS = [
   {
     id: 1, cat: "hot", name: "قهوة تركي", price: 25, emoji: "☕", stock: 50,
     sizes: [{ id: "s", name: "سينجل", extra: 0 }, { id: "d", name: "دبل", extra: 10 }],
@@ -46,7 +46,7 @@ const INITIAL_PRODUCTS = [
   { id: 11, cat: "sand", name: "ساندوتش فراخ", price: 55, emoji: "🌯", stock: 0 },
 ];
 
-const MOCK_CUSTOMERS = [
+const DEFAULT_CUSTOMERS = [
   { id: 1, name: "محمد مطر", phone: "01012345678", address: "شربين - شارع الجمهورية", points: 120, balance: 50.0, debt: 0.0 },
   { id: 2, name: "أحمد علي", phone: "01122334455", address: "شربين - بورسعيد", points: 45, balance: 0.0, debt: 110.0 },
 ];
@@ -60,6 +60,41 @@ const ORDER_TYPES = [
 const fmt = (n) => n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function SmartPOSApp() {
+  // 💾 1. التحميل من LocalStorage للحفاظ على استمرارية البيانات الواقعية
+  const [usersDb] = useState(() => {
+    const saved = localStorage.getItem("pos_users");
+    return saved ? JSON.parse(saved) : DEFAULT_USERS_DB;
+  });
+
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem("pos_products");
+    return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
+  });
+
+  const [customers, setCustomers] = useState(() => {
+    const saved = localStorage.getItem("pos_customers");
+    return saved ? JSON.parse(saved) : DEFAULT_CUSTOMERS;
+  });
+
+  const [completedOrders, setCompletedOrders] = useState(() => {
+    const saved = localStorage.getItem("pos_orders");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 💾 2. حفظ البيانات تلقائياً
+  useEffect(() => {
+    localStorage.setItem("pos_products", JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem("pos_customers", JSON.stringify(customers));
+  }, [customers]);
+
+  useEffect(() => {
+    localStorage.setItem("pos_orders", JSON.stringify(completedOrders));
+  }, [completedOrders]);
+
+  // Auth States
   const [currentUser, setCurrentUser] = useState(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -68,14 +103,14 @@ export default function SmartPOSApp() {
   const [currentView, setCurrentView] = useState("pos");
   const [isOnline] = useState(navigator.onLine);
   
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS);
   const [cart, setCart] = useState([]);
   const [activeCat, setActiveCat] = useState("hot");
   const [query, setQuery] = useState("");
-  const [ticketNo, setTicketNo] = useState(1060);
-  const [applyTax, setApplyTax] = useState(true);
+  
+  // 📌 1. الضريبة غير مفعلة كخيار افتراضي
+  const [applyTax, setApplyTax] = useState(false);
 
+  // 📌 2. نوع الطلب ومدخلات الدليفري
   const [orderType, setOrderType] = useState("takeaway");
   const [customerPhoneInput, setCustomerPhoneInput] = useState("");
   const [customerNameInput, setCustomerNameInput] = useState("");
@@ -93,9 +128,12 @@ export default function SmartPOSApp() {
   const [newProdStock, setNewProdStock] = useState("");
   const [newProdCat, setNewProdCat] = useState("hot");
 
+  // 📌 3. رقم الفاتورة متتالي يبدأ بناءً على عدد الفواتير المخزنة فعلياً
+  const currentTicketNo = completedOrders.length + 1;
+
   const handleLogin = (e) => {
     e.preventDefault();
-    const user = USERS_DB.find(
+    const user = usersDb.find(
       (u) => u.username.toLowerCase() === usernameInput.trim().toLowerCase() && u.password === passwordInput
     );
     if (user) {
@@ -117,6 +155,7 @@ export default function SmartPOSApp() {
 
   const permissions = currentUser ? ROLE_PERMISSIONS[currentUser.role] : {};
 
+  // Cart Financials
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const tax = applyTax ? subtotal * 0.14 : 0;
   const currentDeliveryFee = orderType === "delivery" ? Number(deliveryFee) || 0 : 0;
@@ -152,14 +191,38 @@ export default function SmartPOSApp() {
 
   const clearCart = () => setCart([]);
 
+  // 💳 إتمام البيع مع حفظ بيانات الفاتورة الحقيقية والتسلسل
   const checkout = () => {
     if (cart.length === 0) return;
+    
+    const newOrder = {
+      id: Date.now(),
+      ticketNo: currentTicketNo,
+      total,
+      subtotal,
+      tax,
+      deliveryFee: currentDeliveryFee,
+      orderType,
+      customerName: customerNameInput || "عميل نقدًا",
+      customerPhone: customerPhoneInput || "",
+      customerAddress: customerAddressInput || "",
+      itemsCount: cart.length,
+      date: new Date().toLocaleDateString("ar-EG"),
+      time: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+      cashier: currentUser.name
+    };
+    
+    setCompletedOrders((prev) => [newOrder, ...prev]);
+
     setProducts((prev) => prev.map((prod) => {
       const cartItem = cart.find((i) => i.id === prod.id);
       return cartItem ? { ...prod, stock: Math.max(0, prod.stock - cartItem.qty) } : prod;
     }));
+
     clearCart();
-    setTicketNo((t) => t + 1);
+    setCustomerNameInput("");
+    setCustomerPhoneInput("");
+    setCustomerAddressInput("");
     setMobileCartOpen(false);
   };
 
@@ -174,19 +237,22 @@ export default function SmartPOSApp() {
       stock: Number(newProdStock) || 10,
       emoji: newProdCat === "hot" ? "☕" : newProdCat === "cold" ? "🧃" : "🥪"
     };
-    setProducts([newProductObj, ...products]);
+    setProducts((prev) => [newProductObj, ...prev]);
     setNewProdName("");
     setNewProdPrice("");
     setNewProdStock("");
     setShowAddProductModal(false);
   };
 
-  // 🔑 1. CLEAN & SECURE LOGIN SCREEN (بدون إظهار الباسوردات)
+  // 📌 4. حساب البيانات الحقيقية للوحة التحكم والتقارير
+  const totalRevenue = completedOrders.reduce((a, b) => a + b.total, 0);
+  const totalTaxesCollected = completedOrders.reduce((a, b) => a + b.tax, 0);
+
+  // 🔑 LOGIN SCREEN
   if (!currentUser) {
     return (
       <div dir="rtl" className="h-screen w-full bg-slate-900 flex items-center justify-center p-4 font-sans select-none">
         <div className="bg-white rounded-3xl max-w-sm w-full p-8 space-y-6 shadow-2xl border border-slate-100">
-          
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto text-xl shadow-lg shadow-indigo-600/30">
               POS
@@ -196,24 +262,13 @@ export default function SmartPOSApp() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {loginError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold text-center">
-                {loginError}
-              </div>
-            )}
+            {loginError && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold text-center">{loginError}</div>}
 
             <div className="space-y-1">
               <label className="text-xs font-black text-slate-600 block">اسم المستخدم</label>
               <div className="relative">
                 <User size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  required
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="اسم المستخدم..."
-                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 transition-all"
-                />
+                <input type="text" required value={usernameInput} onChange={(e) => setUsernameInput(e.target.value)} placeholder="اسم المستخدم..." className="w-full h-11 bg-slate-50 border rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600" />
               </div>
             </div>
 
@@ -221,21 +276,11 @@ export default function SmartPOSApp() {
               <label className="text-xs font-black text-slate-600 block">كلمة السر</label>
               <div className="relative">
                 <Key size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="password"
-                  required
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600 transition-all"
-                />
+                <input type="password" required value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} placeholder="••••••••" className="w-full h-11 bg-slate-50 border rounded-xl pr-10 pl-4 text-xs font-bold outline-none focus:bg-white focus:border-indigo-600" />
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all"
-            >
+            <button type="submit" className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm rounded-xl shadow-lg shadow-indigo-600/30">
               دخول النظام
             </button>
           </form>
@@ -243,24 +288,25 @@ export default function SmartPOSApp() {
           <p className="text-[11px] text-center text-slate-400 font-semibold">
             جميع الحقوق محفوظة © ElHadary FIN
           </p>
-
         </div>
       </div>
     );
   }
 
-  // 2. MAIN APPLICATION AFTER LOGIN
+  // MAIN SYSTEM APPLICATION
   return (
     <div dir="rtl" className="h-screen w-full bg-slate-50 flex flex-col font-sans select-none overflow-hidden text-slate-800">
       
-      {/* Navigation Header */}
+      {/* Header */}
       <header className="min-h-16 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 shrink-0 shadow-xs z-20 gap-2">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md text-sm">POS</div>
             <div>
               <h1 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">النظام المالي الذكي</h1>
-              <p className="text-[10px] text-slate-400 font-semibold">ElHadary FIN Ecosystem</p>
+              <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                <Database size={10} className="text-emerald-500 inline" /> البيانات حقيقية ومحفوظة
+              </p>
             </div>
           </div>
 
@@ -285,7 +331,7 @@ export default function SmartPOSApp() {
             )}
             {permissions.canReports && (
               <button onClick={() => setCurrentView("reports")} className={`px-3 py-1.5 rounded-lg transition-all ${currentView === "reports" ? "bg-white text-indigo-600 shadow-sm font-extrabold" : "text-slate-500"}`}>
-                <FileText size={14} className="inline mr-1" /> التقارير
+                <FileText size={14} className="inline mr-1" /> التقارير ({completedOrders.length})
               </button>
             )}
           </div>
@@ -299,15 +345,29 @@ export default function SmartPOSApp() {
         </div>
       </header>
 
-      {/* DASHBOARD VIEW */}
+      {/* DASHBOARD VIEW (بيانات حقيقية 100%) */}
       {currentView === "dashboard" && permissions.canViewDashboard && (
         <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
-          <h2 className="text-xl font-black text-slate-900">لوحة التحكم والأداء اليومي</h2>
+          <h2 className="text-xl font-black text-slate-900">لوحة التحكم والأداء (مباشر)</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">مبيعات اليوم</p><h3 className="text-2xl font-black text-slate-900 mt-1">11,970.00 ج.م</h3></div>
-            <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">صافي الربح</p><h3 className="text-2xl font-black text-emerald-600 mt-1">8,420.00 ج.م</h3></div>
-            <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">الفواتير</p><h3 className="text-2xl font-black text-slate-900 mt-1">142 فاتورة</h3></div>
-            <div className="bg-white p-5 rounded-2xl border shadow-xs"><p className="text-xs font-semibold text-slate-400">المصروفات</p><h3 className="text-2xl font-black text-rose-600 mt-1">1,200.00 ج.م</h3></div>
+            <div className="bg-white p-5 rounded-2xl border shadow-xs">
+              <p className="text-xs font-semibold text-slate-400">إجمالي المبيعات المحصلة</p>
+              <h3 className="text-2xl font-black text-slate-900 mt-1">{fmt(totalRevenue)} ج.م</h3>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border shadow-xs">
+              <p className="text-xs font-semibold text-slate-400">عدد الفواتير المنفذة</p>
+              <h3 className="text-2xl font-black text-indigo-600 mt-1">{completedOrders.length} فاتورة</h3>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border shadow-xs">
+              <p className="text-xs font-semibold text-slate-400">إجمالي الضرائب المحصلة</p>
+              <h3 className="text-2xl font-black text-emerald-600 mt-1">{fmt(totalTaxesCollected)} ج.م</h3>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border shadow-xs">
+              <p className="text-xs font-semibold text-slate-400">متوسط قيمة الفاتورة</p>
+              <h3 className="text-2xl font-black text-amber-600 mt-1">
+                {completedOrders.length > 0 ? fmt(totalRevenue / completedOrders.length) : "0.00"} ج.م
+              </h3>
+            </div>
           </div>
         </div>
       )}
@@ -353,9 +413,14 @@ export default function SmartPOSApp() {
           <aside className={`w-full md:w-[360px] shrink-0 bg-white flex flex-col shadow-xl border-r fixed md:relative inset-y-0 right-0 z-30 transition-transform ${mobileCartOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"}`}>
             <div className="p-3 border-b bg-slate-50/70 space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-black">فاتورة جديد #{ticketNo}</span>
+                
+                {/* 📌 رقم الفاتورة التسلسلي التلقائي بناءً على الواقع */}
+                <span className="text-xs font-black text-slate-900">فاتورة جديد #{currentTicketNo}</span>
+                
                 {cart.length > 0 && <button onClick={clearCart} className="text-xs text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md font-bold flex items-center gap-1"><Trash2 size={12} /> تصفير</button>}
               </div>
+
+              {/* أزرار نوع الطلب */}
               <div className="grid grid-cols-3 gap-1 bg-slate-200/60 p-1 rounded-xl">
                 {ORDER_TYPES.map((t) => (
                   <button key={t.id} onClick={() => setOrderType(t.id)} className={`py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1 ${orderType === t.id ? "bg-indigo-600 text-white shadow-xs" : "text-slate-600"}`}>
@@ -363,6 +428,24 @@ export default function SmartPOSApp() {
                   </button>
                 ))}
               </div>
+
+              {/* 📌 إظهار حقول بيانات الدليفري بشكل دائم عند اختيار دليفري */}
+              {orderType === "delivery" && (
+                <div className="p-2.5 bg-indigo-50/80 border border-indigo-100 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Phone size={13} className="text-indigo-600" />
+                    <input value={customerPhoneInput} onChange={(e) => setCustomerPhoneInput(e.target.value)} placeholder="رقم الهاتف..." className="flex-1 h-7 rounded-lg border px-2 font-mono bg-white outline-none" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <User size={13} className="text-indigo-600" />
+                    <input value={customerNameInput} onChange={(e) => setCustomerNameInput(e.target.value)} placeholder="اسم العميل..." className="flex-1 h-7 rounded-lg border px-2 bg-white outline-none" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={13} className="text-indigo-600" />
+                    <input value={customerAddressInput} onChange={(e) => setCustomerAddressInput(e.target.value)} placeholder="العنوان..." className="flex-1 h-7 rounded-lg border px-2 bg-white outline-none" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
@@ -380,13 +463,17 @@ export default function SmartPOSApp() {
             <div className="p-4 border-t bg-slate-50/50 space-y-3">
               <div className="space-y-1 text-xs font-semibold text-slate-500">
                 <div className="flex justify-between"><span>الفرعي:</span><span>{fmt(subtotal)} ج.م</span></div>
+                
+                {/* 📌 الضريبة غير مفعلة كخيار افتراضي */}
                 <div className="flex justify-between items-center text-xs">
                   <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-700">
                     <input type="checkbox" checked={applyTax} onChange={(e) => setApplyTax(e.target.checked)} className="rounded text-indigo-600" />
                     <span>الضريبة (14%):</span>
                   </label>
-                  <span>{fmt(tax)} ج.م</span>
+                  <span className={applyTax ? "text-slate-900" : "text-slate-400 line-through"}>{fmt(tax)} ج.م</span>
                 </div>
+
+                {orderType === "delivery" && <div className="flex justify-between text-indigo-700 font-bold"><span>التوصيل:</span><span>{fmt(currentDeliveryFee)} ج.م</span></div>}
                 <div className="flex justify-between text-slate-900 font-black text-sm pt-1 border-t"><span>الإجمالي:</span><span className="text-indigo-600">{fmt(total)} ج.م</span></div>
               </div>
               <button onClick={checkout} disabled={cart.length === 0} className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white font-black text-xs rounded-xl shadow-md">إتمام البيع والطباعة</button>
@@ -447,14 +534,33 @@ export default function SmartPOSApp() {
         </div>
       )}
 
-      {/* REPORTS VIEW */}
+      {/* 📌 REPORTS & REAL SAVED ORDERS HISTORY */}
       {currentView === "reports" && (
-        <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-4">
-          <h2 className="text-xl font-black text-slate-900">التقارير المالية وحركة المبيعات</h2>
-          <div className="bg-white p-6 rounded-2xl border shadow-xs space-y-3 font-bold text-xs">
-            <div className="flex justify-between border-b pb-2"><span>إجمالي الإيرادات:</span><span className="text-indigo-600">11,970.00 ج.م</span></div>
-            <div className="flex justify-between border-b pb-2"><span>إجمالي المصروفات:</span><span className="text-rose-600">1,200.00 ج.م</span></div>
-            <div className="flex justify-between font-black text-sm pt-2 text-slate-900"><span>صافي الربح:</span><span className="text-emerald-600">8,420.00 ج.م</span></div>
+        <div className="flex-1 bg-slate-50 p-6 overflow-y-auto space-y-6">
+          <h2 className="text-xl font-black text-slate-900">سجل الفواتير والتقارير الحقيقية ({completedOrders.length})</h2>
+          
+          <div className="bg-white rounded-2xl border shadow-xs overflow-hidden">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-50 border-b font-black text-slate-600">
+                <tr><th className="p-3">رقم الفاتورة</th><th className="p-3">التاريخ والوقت</th><th className="p-3">النوع</th><th className="p-3">العميل</th><th className="p-3">الكاشير</th><th className="p-3">الإجمالي</th></tr>
+              </thead>
+              <tbody className="divide-y font-bold">
+                {completedOrders.length === 0 ? (
+                  <tr><td colSpan={6} className="p-6 text-center text-slate-400">لا توجد فواتير منفذة بعد. قم بعملية بيع لتظهر الفواتير هنا تلقائياً!</td></tr>
+                ) : (
+                  completedOrders.map((o) => (
+                    <tr key={o.id}>
+                      <td className="p-3 font-mono font-black text-indigo-600">#{o.ticketNo}</td>
+                      <td className="p-3 text-slate-500">{o.date} - {o.time}</td>
+                      <td className="p-3">{o.orderType}</td>
+                      <td className="p-3">{o.customerName}</td>
+                      <td className="p-3">{o.cashier}</td>
+                      <td className="p-3 font-black text-emerald-600">{fmt(o.total)} ج.م</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -464,7 +570,7 @@ export default function SmartPOSApp() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <form onSubmit={handleAddNewProduct} className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b pb-3 font-black text-slate-900">
-              <span>إضافة صنف جديد</span>
+              <span>إضافة صنف جديد (دائم)</span>
               <button type="button" onClick={() => setShowAddProductModal(false)}><X size={18} /></button>
             </div>
             <div className="space-y-3 text-xs">
