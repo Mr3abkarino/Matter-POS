@@ -7,9 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        // اقتصار البحث على الملفات الأساسية المضمون وجودها لتفادي تحذيرات globPatterns
+        globPatterns: ['**/*.{js,css,html}']
       },
       manifest: {
         name: 'دريم كورنر POS',
@@ -17,19 +17,7 @@ export default defineConfig({
         description: 'نظام إدارة نقاط البيع والمبيعات',
         theme_color: '#4f46e5',
         background_color: '#f8fafc',
-        display: 'standalone',
-        icons: [
-          {
-            src: '/pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: '/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
+        display: 'standalone'
       }
     })
   ]
