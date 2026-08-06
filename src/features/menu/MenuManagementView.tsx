@@ -18,11 +18,11 @@ export function MenuManagementView() {
   // 🔄 المزامنة اللحظية للأصناف والأقسام مع Firebase
   useEffect(() => {
     const unsubCats = onSnapshot(collection(dbCloud, "categories"), (snapshot) => {
-      setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setCategories(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
     return () => {
@@ -31,12 +31,12 @@ export function MenuManagementView() {
     };
   }, []);
 
-  // 🚀 دالة رفع المنيو والمناطق الأساسية للسحابة
+  // 🚀 دالة ضخ المنيو الافتراضي ومناطق الدليفري لسحابة Firebase
   const seedInitialData = async () => {
     try {
       const catSnap = await getDocs(collection(dbCloud, "categories"));
       if (!catSnap.empty) {
-        if (!confirm("البيانات موجودة بالفعل على السحابة، هل تريد إضافة المنيو الافتراضي مرة أخرى؟")) {
+        if (!confirm("البيانات موجودة بالفعل على السحابة، هل تريد إعادة إدخال المنيو الافتراضي؟")) {
           return;
         }
       }
@@ -71,25 +71,25 @@ export function MenuManagementView() {
       alert("تم رفع المنيو ومناطق الدليفري بنجاح إلى Firebase! 🚀");
     } catch (error) {
       console.error(error);
-      alert("حدث خطأ أثناء الرفع، تأكد من إعدادات Firebase");
+      alert("حدث خطأ أثناء الرفع، تأكد من إعدادات القواعد في Firebase Firestore.");
     }
   };
 
   const handleAddCategory = async () => {
-    if (!newCatLabel) return;
+    if (!newCatLabel.trim()) return;
     await addDoc(collection(dbCloud, "categories"), {
-      label: newCatLabel,
-      emoji: newCatEmoji || '🍕'
+      label: newCatLabel.trim(),
+      emoji: newCatEmoji.trim() || '🍕'
     });
     setNewCatLabel('');
   };
 
   const handleAddProduct = async () => {
-    if (!prodName || !prodCat || !prodPrice) return;
+    if (!prodName.trim() || !prodCat || !prodPrice) return;
     await addDoc(collection(dbCloud, "products"), {
       catId: prodCat,
-      name: prodName,
-      emoji: prodEmoji,
+      name: prodName.trim(),
+      emoji: prodEmoji.trim() || '🍕',
       price: parseFloat(prodPrice),
       sizes: []
     });
@@ -111,7 +111,6 @@ export function MenuManagementView() {
           <span>إدارة المنيو السحابي</span>
         </h1>
 
-        {/* 🔘 زرار الرفع الأخضر */}
         <button
           onClick={seedInitialData}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95"
@@ -130,7 +129,7 @@ export function MenuManagementView() {
           </h3>
           <input
             type="text"
-            placeholder="اسم القسم (مثل: بيتزا)"
+            placeholder="اسم القسم (مثلاً: بيتزا)"
             value={newCatLabel}
             onChange={(e) => setNewCatLabel(e.target.value)}
             className="bg-slate-50 p-2.5 rounded-xl border text-xs font-bold focus:outline-none"
@@ -144,7 +143,7 @@ export function MenuManagementView() {
           />
           <button
             onClick={handleAddCategory}
-            className="bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs shadow-md"
+            className="bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs shadow-md hover:bg-indigo-700 transition-all"
           >
             حفظ القسم أونلاين
           </button>
@@ -189,7 +188,7 @@ export function MenuManagementView() {
           </div>
           <button
             onClick={handleAddProduct}
-            className="bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs shadow-md"
+            className="bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-xs shadow-md hover:bg-indigo-700 transition-all"
           >
             رفع الصنف للسحابة
           </button>
@@ -211,7 +210,7 @@ export function MenuManagementView() {
                 </div>
                 <button
                   onClick={() => handleDeleteProduct(p.id)}
-                  className="text-rose-600 bg-rose-50 p-2 rounded-xl hover:bg-rose-100"
+                  className="text-rose-600 bg-rose-50 p-2 rounded-xl hover:bg-rose-100 transition-all"
                 >
                   <Trash2 size={16} />
                 </button>
