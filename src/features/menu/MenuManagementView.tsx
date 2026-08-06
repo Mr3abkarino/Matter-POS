@@ -15,7 +15,7 @@ export function MenuManagementView() {
   const [prodPrice, setProdPrice] = useState('');
   const [prodEmoji, setProdEmoji] = useState('🍕');
 
-  // الاستماع المباشر للتغيرات السحابية
+  // 🔄 المزامنة اللحظية للأصناف والأقسام مع Firebase
   useEffect(() => {
     const unsubCats = onSnapshot(collection(dbCloud, "categories"), (snapshot) => {
       setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -31,42 +31,48 @@ export function MenuManagementView() {
     };
   }, []);
 
-  // دالة ضخ المنيو الافتراضي بضغطة زر للسحابة
+  // 🚀 دالة رفع المنيو والمناطق الأساسية للسحابة
   const seedInitialData = async () => {
-    const catSnap = await getDocs(collection(dbCloud, "categories"));
-    if (!catSnap.empty) {
-      alert("البيانات موجودة بالفعل على السحابة!");
-      return;
-    }
+    try {
+      const catSnap = await getDocs(collection(dbCloud, "categories"));
+      if (!catSnap.empty) {
+        if (!confirm("البيانات موجودة بالفعل على السحابة، هل تريد إضافة المنيو الافتراضي مرة أخرى؟")) {
+          return;
+        }
+      }
 
-    // 1. الأقسام
-    const defaultCats = [
-      { label: 'البيتزا', emoji: '🍕' },
-      { label: 'السندوتشات', label: 'السندوتشات', emoji: '🥪' },
-      { label: 'البرجر', emoji: '🍔' },
-      { label: 'التوست', emoji: '🍞' },
-      { label: 'الأصناف الجانبية', emoji: '🍟' },
-      { label: 'المشروبات', emoji: '🥤' }
-    ];
-    for (const c of defaultCats) {
-      await addDoc(collection(dbCloud, "categories"), c);
-    }
+      // 1. الأقسام
+      const defaultCats = [
+        { label: 'البيتزا', emoji: '🍕' },
+        { label: 'السندوتشات', emoji: '🥪' },
+        { label: 'البرجر', emoji: '🍔' },
+        { label: 'التوست', emoji: '🍞' },
+        { label: 'الأصناف الجانبية', emoji: '🍟' },
+        { label: 'المشروبات', emoji: '🥤' }
+      ];
+      for (const c of defaultCats) {
+        await addDoc(collection(dbCloud, "categories"), c);
+      }
 
-    // 2. مناطق الدليفري
-    const defaultZones = [
-      { name: 'البرامون (داخل البلد)', fee: 10 },
-      { name: 'البرامون (بر الترعة)', fee: 20 },
-      { name: 'سرسو البرامون', fee: 30 },
-      { name: 'كفر بدواي', fee: 50 },
-      { name: 'الخيارية', fee: 50 },
-      { name: 'كفر البرامون', fee: 40 },
-      { name: 'البدالة', fee: 40 }
-    ];
-    for (const z of defaultZones) {
-      await addDoc(collection(dbCloud, "deliveryZones"), z);
-    }
+      // 2. مناطق الدليفري
+      const defaultZones = [
+        { name: 'البرامون (داخل البلد)', fee: 10 },
+        { name: 'البرامون (بر الترعة)', fee: 20 },
+        { name: 'سرسو البرامون', fee: 30 },
+        { name: 'كفر بدواي', fee: 50 },
+        { name: 'الخيارية', fee: 50 },
+        { name: 'كفر البرامون', fee: 40 },
+        { name: 'البدالة', fee: 40 }
+      ];
+      for (const z of defaultZones) {
+        await addDoc(collection(dbCloud, "deliveryZones"), z);
+      }
 
-    alert("تم رفع المنيو ومناطق الدليفري بنجاح إلى Firebase! 🚀");
+      alert("تم رفع المنيو ومناطق الدليفري بنجاح إلى Firebase! 🚀");
+    } catch (error) {
+      console.error(error);
+      alert("حدث خطأ أثناء الرفع، تأكد من إعدادات Firebase");
+    }
   };
 
   const handleAddCategory = async () => {
@@ -99,17 +105,18 @@ export function MenuManagementView() {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
           <Utensils className="text-indigo-600" size={28} />
           <span>إدارة المنيو السحابي</span>
         </h1>
 
+        {/* 🔘 زرار الرفع الأخضر */}
         <button
           onClick={seedInitialData}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-md transition-all active:scale-95"
         >
-          <CloudUpload size={16} />
+          <CloudUpload size={18} />
           <span>رفع المنيو والمناطق الأساسية للسحابة</span>
         </button>
       </div>
@@ -123,7 +130,7 @@ export function MenuManagementView() {
           </h3>
           <input
             type="text"
-            placeholder="اسم القسم"
+            placeholder="اسم القسم (مثل: بيتزا)"
             value={newCatLabel}
             onChange={(e) => setNewCatLabel(e.target.value)}
             className="bg-slate-50 p-2.5 rounded-xl border text-xs font-bold focus:outline-none"
@@ -191,23 +198,27 @@ export function MenuManagementView() {
 
       {/* عرض الأصناف المزامنة */}
       <div className="mt-6 bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
-        <h3 className="font-bold text-slate-800 text-sm mb-4">الأصناف الحالية على السيرفر السحابي</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {products.map(p => (
-            <div key={p.id} className="p-3 bg-slate-50 rounded-2xl border flex justify-between items-center">
-              <div>
-                <span className="font-bold text-xs text-slate-900">{p.emoji} {p.name}</span>
-                <p className="text-[10px] text-slate-400">{p.catId} - {p.price} ج.م</p>
+        <h3 className="font-bold text-slate-800 text-sm mb-4">الأصناف الحالية على السيرفر السحابي ({products.length})</h3>
+        {products.length === 0 ? (
+          <p className="text-slate-400 text-center py-6 text-xs font-bold">لا توجد أصناف في السحابة حتى الآن، اضغط على زر الرفع أعلى اليسار.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {products.map(p => (
+              <div key={p.id} className="p-3 bg-slate-50 rounded-2xl border flex justify-between items-center">
+                <div>
+                  <span className="font-bold text-xs text-slate-900">{p.emoji} {p.name}</span>
+                  <p className="text-[10px] text-slate-400">{p.catId} - {p.price} ج.م</p>
+                </div>
+                <button
+                  onClick={() => handleDeleteProduct(p.id)}
+                  className="text-rose-600 bg-rose-50 p-2 rounded-xl hover:bg-rose-100"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <button
-                onClick={() => handleDeleteProduct(p.id)}
-                className="text-rose-600 bg-rose-50 p-2 rounded-xl hover:bg-rose-100"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
