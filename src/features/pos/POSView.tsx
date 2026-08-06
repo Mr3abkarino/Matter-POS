@@ -173,37 +173,188 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ طباعة الفاتورة شاملة اللوجو في أعلى الفاتورة الحرارية
+  // 🖨️ تصميم احترافي وجذاب للفاتورة الحرارية
   const printInvoiceWindow = (inv: any) => {
-    const printWindow = window.open('', '_blank', 'width=350,height=600');
+    const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
       const logoUrl = window.location.origin + '/logo.png';
 
       printWindow.document.write(`
-        <html dir="rtl"><head>
-        <style>
-          body { font-family: Tahoma, sans-serif; width: 280px; margin: auto; font-weight: bold; font-size: 12px; }
-          .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
-          .logo { width: 75px; height: 75px; margin: 0 auto 6px auto; display: block; filter: grayscale(100%) contrast(200%); }
-          .item { display: flex; justify-content: space-between; margin-bottom: 4px; }
-          .divider { border-top: 1px dashed #000; margin: 6px 0; }
-          .total { font-size: 14px; border: 2px solid #000; padding: 6px; text-align: center; margin-top: 8px; }
-        </style></head>
+        <html dir="rtl">
+        <head>
+          <meta charset="utf-8" />
+          <title>فاتورة ${inv.orderType}</title>
+          <style>
+            @media print {
+              @page { margin: 0; size: auto; }
+              body { margin: 0; padding: 8px; }
+            }
+            body {
+              font-family: 'Courier New', Courier, Tahoma, Arial, sans-serif;
+              width: 270px;
+              margin: auto;
+              padding: 10px;
+              color: #000;
+              background: #fff;
+              direction: rtl;
+              text-align: right;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px solid #000;
+              padding-bottom: 10px;
+              margin-bottom: 10px;
+            }
+            .logo {
+              width: 80px;
+              height: 80px;
+              margin: 0 auto 6px auto;
+              display: block;
+              filter: grayscale(100%) contrast(200%);
+            }
+            .brand-name {
+              font-size: 18px;
+              font-weight: 900;
+              letter-spacing: 1px;
+              margin: 2px 0;
+            }
+            .tagline {
+              font-size: 10px;
+              font-weight: bold;
+              margin-bottom: 6px;
+            }
+            .order-type-badge {
+              display: inline-block;
+              border: 2px solid #000;
+              padding: 3px 12px;
+              font-size: 14px;
+              font-weight: 900;
+              border-radius: 4px;
+              margin-top: 4px;
+            }
+            .info-block {
+              font-size: 11px;
+              font-weight: bold;
+              margin-bottom: 8px;
+              border-bottom: 1px dashed #000;
+              padding-bottom: 8px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 3px;
+            }
+            .items-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 8px;
+            }
+            .items-table th {
+              border-bottom: 2px solid #000;
+              font-size: 11px;
+              font-weight: 900;
+              padding-bottom: 4px;
+              text-align: right;
+            }
+            .items-table td {
+              font-size: 11px;
+              font-weight: bold;
+              padding: 4px 0;
+              vertical-align: top;
+            }
+            .item-qty {
+              font-weight: 900;
+              font-size: 12px;
+            }
+            .divider {
+              border-top: 2px dashed #000;
+              margin: 8px 0;
+            }
+            .totals-section {
+              font-size: 12px;
+              font-weight: bold;
+            }
+            .grand-total {
+              font-size: 16px;
+              font-weight: 900;
+              border: 2px solid #000;
+              text-align: center;
+              padding: 6px;
+              margin-top: 6px;
+              background-color: #f9f9f9;
+            }
+            .footer {
+              text-align: center;
+              font-size: 10px;
+              font-weight: bold;
+              margin-top: 12px;
+              border-top: 1px dashed #000;
+              padding-top: 8px;
+            }
+          </style>
+        </head>
         <body>
           <div class="header">
             <img src="${logoUrl}" class="logo" alt="DC Logo" />
-            <h2 style="margin:0; font-size:16px;">DREAM CORNER</h2>
-            <p style="margin:2px 0">نوع الطلب: ${inv.orderType}</p>
-            ${inv.driverName ? `<p style="margin:2px 0">الطيار: ${inv.driverName}</p>` : ''}
-            ${inv.customerName ? `<p style="margin:2px 0">العميل: ${inv.customerName}</p>` : ''}
-            ${inv.customerPhone ? `<p style="margin:2px 0">الهاتف: ${inv.customerPhone}</p>` : ''}
-            ${inv.customerAddress ? `<p style="margin:2px 0">العنوان: ${inv.customerAddress}</p>` : ''}
+            <div class="brand-name">DREAM CORNER</div>
+            <div class="tagline">بيتزا - برجر - كريب</div>
+            <div class="order-type-badge">*** ${inv.orderType} ***</div>
           </div>
-          ${inv.items.map((i: any) => `<div class="item"><span>${i.name} × ${i.quantity}</span><span>${i.price * i.quantity} ج.م</span></div>`).join('')}
-          ${inv.deliveryFee > 0 ? `<div class="item"><span>خدمة التوصيل (${inv.zoneName || ''})</span><span>${inv.deliveryFee} ج.م</span></div>` : ''}
+
+          <div class="info-block">
+            <div class="info-row">
+              <span>التاريخ: ${new Date(inv.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+              <span>الوقت: ${new Date(inv.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            ${inv.driverName ? `<div class="info-row"><span>🛵 الطيار:</span><span>${inv.driverName}</span></div>` : ''}
+            ${inv.customerName ? `<div class="info-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
+            ${inv.customerPhone ? `<div class="info-row"><span>📞 التليفون:</span><span>${inv.customerPhone}</span></div>` : ''}
+            ${inv.customerAddress ? `<div style="margin-top:2px;">🏠 العنوان: <b>${inv.customerAddress}</b></div>` : ''}
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 55%;">الصنف</th>
+                <th style="width: 15%; text-align: center;">العدد</th>
+                <th style="width: 30%; text-align: left;">المبلغ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${inv.items.map((i: any) => `
+                <tr style="border-bottom: 1px #eee solid;">
+                  <td>${i.name}</td>
+                  <td style="text-align: center;" class="item-qty">${i.quantity}</td>
+                  <td style="text-align: left;">${i.price * i.quantity} ج.م</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
           <div class="divider"></div>
-          <div class="total">الإجمالي الكلي: ${inv.total} ج.م</div>
-        </body></html>
+
+          <div class="totals-section">
+            ${inv.deliveryFee > 0 ? `
+              <div class="info-row">
+                <span>المجموع:</span>
+                <span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span>
+              </div>
+              <div class="info-row">
+                <span>خدمة التوصيل (${inv.zoneName || ''}):</span>
+                <span>${inv.deliveryFee} ج.م</span>
+              </div>
+            ` : ''}
+            <div class="grand-total">
+              الإجمالي الكلي: ${inv.total} ج.م
+            </div>
+          </div>
+
+          <div class="footer">
+            طعم يفرق .. جودة تليق بيك ❤️<br/>
+            شكراً لطلبكم من DREAM CORNER
+          </div>
+        </body>
+        </html>
       `);
       printWindow.document.close();
       setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
@@ -273,7 +424,7 @@ export function POSView() {
     }
   };
 
-  // 🛒 مكون السلة السلس بدون تهنيج للكيبورد
+  // 🛒 مكون السلة السلس
   const CartContent = () => (
     <div className="flex flex-col h-full justify-between">
       <div>
@@ -443,7 +594,7 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🍕 شبكة الأصناف المنسقة والملمومة (h-28 و content-start) */}
+        {/* 🍕 شبكة الأصناف المنسقة بدون تمدد عمودي (content-start) */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.map(p => (
             <div
