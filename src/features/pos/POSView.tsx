@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff, X, ChevronUp } from 'lucide-react';
 
@@ -173,22 +173,26 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ طباعة الفاتورة
+  // 🖨️ طباعة الفاتورة شاملة اللوجو في أعلى الفاتورة الحرارية
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
+      const logoUrl = window.location.origin + '/logo.png';
+
       printWindow.document.write(`
         <html dir="rtl"><head>
         <style>
           body { font-family: Tahoma, sans-serif; width: 280px; margin: auto; font-weight: bold; font-size: 12px; }
           .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
+          .logo { width: 75px; height: 75px; margin: 0 auto 6px auto; display: block; filter: grayscale(100%) contrast(200%); }
           .item { display: flex; justify-content: space-between; margin-bottom: 4px; }
           .divider { border-top: 1px dashed #000; margin: 6px 0; }
           .total { font-size: 14px; border: 2px solid #000; padding: 6px; text-align: center; margin-top: 8px; }
         </style></head>
         <body>
           <div class="header">
-            <h2 style="margin:0">DREAM CORNER</h2>
+            <img src="${logoUrl}" class="logo" alt="DC Logo" />
+            <h2 style="margin:0; font-size:16px;">DREAM CORNER</h2>
             <p style="margin:2px 0">نوع الطلب: ${inv.orderType}</p>
             ${inv.driverName ? `<p style="margin:2px 0">الطيار: ${inv.driverName}</p>` : ''}
             ${inv.customerName ? `<p style="margin:2px 0">العميل: ${inv.customerName}</p>` : ''}
@@ -439,7 +443,7 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🍕 شبكة الأصناف المنسقة بدون تمدد عمودي (content-start) */}
+        {/* 🍕 شبكة الأصناف المنسقة والملمومة (h-28 و content-start) */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.map(p => (
             <div
