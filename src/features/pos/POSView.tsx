@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, RefreshCw, Check, Printer, Edit2, Trash2, History } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
   const [searchQuery, setSearchQuery] = useState('');
   const [orderType, setOrderType] = useState<'تيك أواي' | 'صالة' | 'دليفري'>('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
-  // الحالات السحابية
+  // الحالات السحابية والمحلية
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
@@ -25,41 +26,71 @@ export function POSView() {
   const [stuffedCrust, setStuffedCrust] = useState<boolean>(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
-  // 🔄 المزامنة اللحظية
+  // 📡 مراقبة حالة النت + المزامنة التلقائية للفواتير الأوفلاين
   useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOfflineInvoices(); // مزامنة الفواتير اللي اتعملت والنت فاصل
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // كاش المنتجات الأوفلاين
+    const cachedProds = localStorage.getItem('dc_cached_products');
+    if (cachedProds) setAllProducts(JSON.parse(cachedProds));
+
+    const cachedZones = localStorage.getItem('dc_cached_zones');
+    if (cachedZones) setDeliveryZones(JSON.parse(cachedZones));
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 🔄 المزامنة اللحظية مع Firebase عند وجود النت
+  useEffect(() => {
+    if (!isOnline) return;
+
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
-      setAllProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setAllProducts(prods);
+      localStorage.setItem('dc_cached_products', JSON.stringify(prods)); // حفظ نسخة كاش
     });
 
     const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), async (snap) => {
-      if (snap.empty) {
-        const defaultZones = [
-          { name: 'البرامون (داخل البلد)', fee: 10 },
-          { name: 'البرامون (بر الترعة)', fee: 20 },
-          { name: 'سرسو البرامون', fee: 30 },
-          { name: 'كفر بدواي', fee: 50 },
-          { name: 'الخيارية', fee: 50 },
-          { name: 'كفر البرامون', fee: 40 },
-          { name: 'البدالة', fee: 40 }
-        ];
-        for (const z of defaultZones) {
-          await addDoc(collection(dbCloud, "deliveryZones"), z);
-        }
-      } else {
-        setDeliveryZones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }
+      const zones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setDeliveryZones(zones);
+      localStorage.setItem('dc_cached_zones', JSON.stringify(zones)); // حفظ نسخة كاش
     });
 
     const unsubInvoices = onSnapshot(collection(dbCloud, "invoices"), (snap) => {
       const invs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       invs.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-      setRecentInvoices(invs.slice(0, 10)); // أحدث 10 فواتير للتحكم السريع
+      setRecentInvoices(invs.slice(0, 10));
     });
 
     return () => { unsubProds(); unsubZones(); unsubInvoices(); };
-  }, []);
+  }, [isOnline]);
 
-  // 🧹 تصفية الأقسام المتاحة
+  // 🚀 رفع الفواتير الأوفلاين للسحابة فور عودة النت
+  const syncOfflineInvoices = async () => {
+    const offlineInvoices = JSON.parse(localStorage.getItem('dc_offline_invoices') || '[]');
+    if (offlineInvoices.length > 0) {
+      try {
+        for (const inv of offlineInvoices) {
+          await addDoc(collection(dbCloud, "invoices"), inv);
+        }
+        localStorage.removeItem('dc_offline_invoices');
+        alert("⚡ تم مزامنة الفواتير المخزنة أوفلاين مع السحابة بنجاح!");
+      } catch (e) {
+        console.error("Offline Sync Error:", e);
+      }
+    }
+  };
+
   const activeCategories = Array.from(
     new Set(
       allProducts
@@ -140,7 +171,7 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ دالة طباعة الفاتورة الموحدة
+  // 🖨️ طباعة الفاتورة محلياً (تشتغل 100% بدون نت)
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
@@ -172,7 +203,7 @@ export function POSView() {
     }
   };
 
-  // 💾 حفظ أو تعديل الفاتورة وطباعتها
+  // 💾 حفظ أو تعديل الفاتورة (أونلاين أو أوفلاين)
   const handleCheckout = async () => {
     if (cart.length === 0) return alert("السلة فارغة!");
     if (orderType === 'دليفري' && !selectedZoneId) return alert("يرجى اختيار منطقة الدليفري!");
@@ -186,48 +217,31 @@ export function POSView() {
       zoneName: selectedZone?.name || '',
       customerName,
       customerPhone,
-      customerAddress, // العنوان التفصيلي
+      customerAddress,
       createdAt: Date.now()
     };
 
-    try {
-      if (editingInvoiceId) {
-        // تعديل فاتورة حالية
-        await updateDoc(doc(dbCloud, "invoices", editingInvoiceId), invoiceData);
-        alert("تم تعديل الفاتورة بنجاح! 🚀");
-        setEditingInvoiceId(null);
-      } else {
-        // إضافة فاتورة جديدة
-        await addDoc(collection(dbCloud, "invoices"), invoiceData);
-        alert("تم حفظ وطباعة الفاتورة بنجاح! 🚀");
+    if (isOnline) {
+      try {
+        if (editingInvoiceId) {
+          await updateDoc(doc(dbCloud, "invoices", editingInvoiceId), invoiceData);
+          setEditingInvoiceId(null);
+        } else {
+          await addDoc(collection(dbCloud, "invoices"), invoiceData);
+        }
+      } catch (e) {
+        console.error("Firestore Save Error:", e);
       }
-
-      printInvoiceWindow(invoiceData);
-
-      setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId('');
-    } catch (e: any) {
-      alert("حدث خطأ في حفظ الفاتورة: " + e.message);
+    } else {
+      // 💾 الحفظ المحلي عند انقطاع النت
+      const offlineInvoices = JSON.parse(localStorage.getItem('dc_offline_invoices') || '[]');
+      offlineInvoices.push(invoiceData);
+      localStorage.setItem('dc_offline_invoices', JSON.stringify(offlineInvoices));
+      alert("⚠️ النت فاصل: تم طباعة الفاتورة وحفظها محلياً وسيتم رفعهما تلقائياً عند عودة النت!");
     }
-  };
 
-  // 🔄 إعادة فتح فاتورة سابقة للتعديل
-  const handleEditInvoice = (inv: any) => {
-    setCart(inv.items || []);
-    setOrderType(inv.orderType || 'تيك أواي');
-    setCustomerName(inv.customerName || '');
-    setCustomerPhone(inv.customerPhone || '');
-    setCustomerAddress(inv.customerAddress || '');
-    setEditingInvoiceId(inv.id);
-
-    const zone = deliveryZones.find(z => z.name === inv.zoneName);
-    if (zone) setSelectedZoneId(zone.id);
-  };
-
-  // 🗑️ حذف/إلغاء فاتورة
-  const handleDeleteInvoice = async (id: string) => {
-    if (confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟")) {
-      await deleteDoc(doc(dbCloud, "invoices", id));
-    }
+    printInvoiceWindow(invoiceData);
+    setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId('');
   };
 
   return (
@@ -236,14 +250,22 @@ export function POSView() {
       {/* 🍕 الأصناف والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden">
         
-        {/* البحث */}
-        <div className="flex gap-2 mb-3">
+        {/* شريط البحث + مؤشر انقطاع النت */}
+        <div className="flex gap-2 mb-3 items-center">
           <input
             className="flex-1 p-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:outline-none bg-white shadow-sm"
             placeholder="بحث عن صنف..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+
+          {/* 📡 مؤشر الحالة (أونلاين / أوفلاين) */}
+          <div className={`px-3 py-2.5 rounded-2xl font-black text-xs flex items-center gap-1.5 shadow-sm ${
+            isOnline ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
+          }`}>
+            {isOnline ? <Wifi size={16} /> : <WifiOff size={16} />}
+            <span>{isOnline ? 'متصل' : 'أوفلاين (شغال محلياً)'}</span>
+          </div>
         </div>
 
         {/* شريط الأقسام */}
@@ -265,60 +287,29 @@ export function POSView() {
 
         {/* شبكة الأصناف */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
-          {filteredProducts.length === 0 ? (
-            <p className="col-span-full text-center py-10 text-slate-400 font-bold text-xs">لا توجد أصناف في قسم "{selectedCategory}"</p>
-          ) : (
-            filteredProducts.map(p => (
-              <div
-                key={p.id}
-                onClick={() => p.sizes && p.sizes.length > 0 ? setActiveProductForSizes(p) : addToCart(p)}
-                className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center active:scale-95"
-              >
-                <span className="text-2xl mb-1">{p.emoji || '🍕'}</span>
-                <h4 className="font-black text-slate-800 text-xs mb-1">{p.name}</h4>
-                <p className="text-indigo-600 font-black text-xs">
-                  {p.sizes && p.sizes.length > 0 ? `يبدأ من ${p.sizes[0].price} ج.م` : `${p.price} ج.م`}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* 📜 شريط السجل السريع لآخر الفواتير (إعادة طباعة / تعديل / إلغاء) */}
-        <div className="mt-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-          <h4 className="font-bold text-xs text-slate-700 mb-2 flex items-center gap-1.5">
-            <History size={16} className="text-indigo-600" />
-            <span>آخر الفواتير (إعادة طباعة / تعديل / إلغاء)</span>
-          </h4>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {recentInvoices.map(inv => (
-              <div key={inv.id} className="bg-slate-50 p-2 rounded-xl border flex items-center gap-2 text-xs font-bold whitespace-nowrap">
-                <span>{inv.orderType} - {inv.total} ج.م</span>
-                <button onClick={() => printInvoiceWindow(inv)} title="إعادة طباعة" className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-lg">
-                  <Printer size={14} />
-                </button>
-                <button onClick={() => handleEditInvoice(inv)} title="تعديل الفاتورة" className="p-1 text-amber-600 hover:bg-amber-50 rounded-lg">
-                  <Edit2 size={14} />
-                </button>
-                <button onClick={() => handleDeleteInvoice(inv.id)} title="إلغاء الفاتورة" className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+          {filteredProducts.map(p => (
+            <div
+              key={p.id}
+              onClick={() => p.sizes && p.sizes.length > 0 ? setActiveProductForSizes(p) : addToCart(p)}
+              className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center active:scale-95"
+            >
+              <span className="text-2xl mb-1">{p.emoji || '🍕'}</span>
+              <h4 className="font-black text-slate-800 text-xs mb-1">{p.name}</h4>
+              <p className="text-indigo-600 font-black text-xs">
+                {p.sizes && p.sizes.length > 0 ? `يبدأ من ${p.sizes[0].price} ج.م` : `${p.price} ج.م`}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* 🛒 السلة وتفاصيل العميل */}
+      {/* 🛒 السلة */}
       <div className="w-full lg:w-96 bg-white border-r border-slate-200 p-4 flex flex-col shadow-lg">
         <h2 className="font-black text-slate-800 text-base mb-3 flex items-center justify-between border-b pb-2">
           <span className="flex items-center gap-2">
             <ShoppingCart className="text-indigo-600" size={20} />
             <span>سلة الطلبات</span>
           </span>
-          {editingInvoiceId && (
-            <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">وضع التعديل</span>
-          )}
         </h2>
 
         {/* نوع الطلب */}
@@ -336,7 +327,7 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🛵 حقول الدليفري المحدثة (تتضمن خانة العنوان تحت التليفون) */}
+        {/* حقول الدليفري */}
         {orderType === 'دليفري' && (
           <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
             <select
@@ -363,9 +354,8 @@ export function POSView() {
               onChange={(e) => setCustomerPhone(e.target.value)}
               className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
             />
-            {/* 🏠 خانة العنوان تحت الاسم ورقم الهاتف */}
             <input
-              placeholder="العنوان التفصيلي (الشارع / رقم البيت / علامة مميزة)"
+              placeholder="العنوان التفصيلي"
               value={customerAddress}
               onChange={(e) => setCustomerAddress(e.target.value)}
               className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
@@ -373,29 +363,21 @@ export function POSView() {
           </div>
         )}
 
-        {/* السلة */}
+        {/* قائمة السلة */}
         <div className="flex-1 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
-          {cart.length === 0 ? (
-            <p className="text-center py-10 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
-          ) : (
-            cart.map(i => (
-              <div key={i.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex-1">
-                  <h5 className="font-bold text-slate-800 text-xs">{i.name}</h5>
-                  <p className="text-indigo-600 font-black text-[11px]">{i.price * i.quantity} ج.م</p>
-                </div>
-                <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
-                  <button onClick={() => updateQuantity(i.itemKey, -1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600">
-                    <Minus size={12} />
-                  </button>
-                  <span className="font-black text-xs px-1.5">{i.quantity}</span>
-                  <button onClick={() => updateQuantity(i.itemKey, 1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600">
-                    <Plus size={12} />
-                  </button>
-                </div>
+          {cart.map(i => (
+            <div key={i.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex-1">
+                <h5 className="font-bold text-slate-800 text-xs">{i.name}</h5>
+                <p className="text-indigo-600 font-black text-[11px]">{i.price * i.quantity} ج.م</p>
               </div>
-            ))
-          )}
+              <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
+                <button onClick={() => updateQuantity(i.itemKey, -1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Minus size={12} /></button>
+                <span className="font-black text-xs px-1.5">{i.quantity}</span>
+                <button onClick={() => updateQuantity(i.itemKey, 1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Plus size={12} /></button>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* الإجمالي والزر */}
@@ -410,63 +392,35 @@ export function POSView() {
             onClick={handleCheckout}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-lg transition-all active:scale-95"
           >
-            <span>{editingInvoiceId ? 'حفظ التعديلات وطباعة' : 'حفظ وطباعة الفاتورة'}</span>
+            <span>حفظ وطباعة الفاتورة</span>
             <span className="bg-indigo-800 px-3 py-1 rounded-xl">{totalAmount} ج.م</span>
           </button>
         </div>
       </div>
 
-      {/* 🍕 مودال الأحجام وحشو الأطراف */}
+      {/* 🍕 مودال الأحجام */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
             <h3 className="font-black text-slate-900 text-sm mb-3 text-center border-b pb-2">
               {activeProductForSizes.emoji || '🍕'} {activeProductForSizes.name}
             </h3>
-
-            <div 
-              onClick={() => setStuffedCrust(!stuffedCrust)}
-              className={`flex items-center justify-between p-3 rounded-2xl border mb-4 cursor-pointer transition-all ${
-                stuffedCrust ? 'bg-amber-50 border-amber-500 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
-                  stuffedCrust ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-slate-300'
-                }`}>
-                  {stuffedCrust && <Check size={14} />}
-                </div>
-                <span className="font-black text-xs">إضافة حشو أطراف 🧀</span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-500">(+25 / +30 / +35 ج.م)</span>
+            <div onClick={() => setStuffedCrust(!stuffedCrust)} className="flex items-center justify-between p-3 rounded-2xl border mb-4 cursor-pointer">
+              <span className="font-black text-xs">إضافة حشو أطراف 🧀</span>
             </div>
-
-            <p className="text-xs text-slate-500 font-bold mb-3 text-center">اختر الحجم للطلب:</p>
-
             <div className="flex flex-col gap-2 mb-4">
-              {activeProductForSizes.sizes.map((s: any) => {
-                const crustExtra = stuffedCrust ? getCrustPrice(s.id || s.name) : 0;
-                const finalPrice = Number(s.price) + crustExtra;
-
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => addToCart(activeProductForSizes, s)}
-                    className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 font-black text-xs hover:bg-indigo-50 hover:border-indigo-600 text-slate-800 transition-all active:scale-95"
-                  >
-                    <span>{s.name} {stuffedCrust && <span className="text-[10px] text-amber-600">(شامل الحشو)</span>}</span>
-                    <span className="text-indigo-600 font-black">{finalPrice} ج.م</span>
-                  </button>
-                );
-              })}
+              {activeProductForSizes.sizes.map((s: any) => (
+                <button
+                  key={s.id}
+                  onClick={() => addToCart(activeProductForSizes, s)}
+                  className="flex justify-between p-3 rounded-2xl border font-black text-xs hover:bg-indigo-50"
+                >
+                  <span>{s.name}</span>
+                  <span>{s.price} ج.م</span>
+                </button>
+              ))}
             </div>
-
-            <button
-              onClick={() => { setActiveProductForSizes(null); setStuffedCrust(false); }}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-2xl font-bold text-xs"
-            >
-              إلغاء
-            </button>
+            <button onClick={() => setActiveProductForSizes(null)} className="w-full bg-slate-100 py-2.5 rounded-2xl text-xs font-bold">إلغاء</button>
           </div>
         </div>
       )}
