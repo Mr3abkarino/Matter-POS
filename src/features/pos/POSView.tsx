@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, RefreshCw, Check } from 'lucide-react';
 
 export function POSView() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
   const [searchQuery, setSearchQuery] = useState('');
   const [orderType, setOrderType] = useState<'تيك أواي' | 'صالة' | 'دليفري'>('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
 
   // الحالات السحابية
-  const [rawCategories, setRawCategories] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
 
@@ -20,15 +19,12 @@ export function POSView() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
   
-  // مودال الأحجام
+  // مودال الأحجام وحشو الأطراف
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
+  const [stuffedCrust, setStuffedCrust] = useState<boolean>(false);
 
   // 🔄 المزامنة اللحظية
   useEffect(() => {
-    const unsubCats = onSnapshot(collection(dbCloud, "categories"), (snap) => {
-      setRawCategories(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
       const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setAllProducts(prods);
@@ -53,41 +49,69 @@ export function POSView() {
       }
     });
 
-    return () => { unsubCats(); unsubProds(); unsubZones(); };
+    return () => { unsubProds(); unsubZones(); };
   }, []);
 
-  // 🧹 تجميع واستخراج كافة الأقسام الموجودة فعلياً في المنتجات مع الأقسام الرئيسية
-  const productCatNames = allProducts.map(p => (p.catId || p.category || '').toString().trim()).filter(Boolean);
-  const dbCatNames = rawCategories.map(c => (c.label || c.name || '').toString().trim()).filter(Boolean);
-  const allCategoriesList = Array.from(new Set([...dbCatNames, ...productCatNames]));
+  // 🧹 تصفية واستبعاد قسم "السندوتشات" الفارغ نهائياً وإظهار الأقسام النشطة فقط
+  const activeCategories = Array.from(
+    new Set(
+      allProducts
+        .map(p => (p.catId || p.category || '').toString().trim())
+        .filter(cat => cat && cat !== 'السندوتشات') // إلغاء كلمة السندوتشات العامة
+    )
+  );
 
-  // تحديد القسم الأول تلقائياً عند التحميل
+  // الضبط الافتراضي للقسم الأول
   useEffect(() => {
-    if (!selectedCategory && allCategoriesList.length > 0) {
-      setSelectedCategory(allCategoriesList[0]);
+    if (activeCategories.length > 0 && (!selectedCategory || !activeCategories.includes(selectedCategory))) {
+      setSelectedCategory(activeCategories[0]);
     }
-  }, [allCategoriesList]);
+  }, [allProducts]);
 
-  // 🧹 مناطق الدليفري
+  // مناطق التوصيل
   const uniqueDeliveryZones = Array.from(new Set(deliveryZones.map(z => z.name)))
     .map(name => deliveryZones.find(z => z.name === name));
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
-  // فلترة مرنة للأصناف بدون التأثر بالمسافات
+  // فلترة الأصناف حسب القسم والبحث
   const filteredProducts = allProducts.filter(p => {
     const prodCat = (p.catId || p.category || '').toString().trim();
     const matchCategory = prodCat === selectedCategory.trim();
     const matchSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return (selectedCategory ? matchCategory : true) && matchSearch;
+    return matchCategory && matchSearch;
   });
 
-  // إضافة صنف للسلة
+  // 🍕 تحديد سعر حشو الأطراف بناءً على الحجم المختار
+  const getCrustPrice = (sizeId: string) => {
+    if (sizeId === 's' || sizeId === 'صغير') return 25;
+    if (sizeId === 'm' || sizeId === 'وسط') return 30;
+    if (sizeId === 'l' || sizeId === 'كبير') return 35;
+    return 30;
+  };
+
+  // 🛒 إضافة صنف للسلة مع معالجة حشو الأطراف
   const addToCart = (product: any, size?: any) => {
-    const itemKey = size ? `${product.id}-${size.id}` : `${product.id}`;
-    const itemName = size ? `${product.name} (${size.name})` : product.name;
-    const itemPrice = size ? Number(size.price) : Number(product.price);
+    let crustFee = 0;
+    let extraTitle = '';
+
+    if (size && stuffedCrust) {
+      crustFee = getCrustPrice(size.id || size.name);
+      extraTitle = ' + حشو أطراف';
+    }
+
+    const itemKey = size 
+      ? `${product.id}-${size.id}-${stuffedCrust ? 'crust' : 'normal'}` 
+      : `${product.id}`;
+      
+    const itemName = size 
+      ? `${product.name} (${size.name}${extraTitle})` 
+      : product.name;
+      
+    const itemPrice = size 
+      ? Number(size.price) + crustFee 
+      : Number(product.price);
 
     setCart(prev => {
       const existing = prev.find(i => i.itemKey === itemKey);
@@ -96,7 +120,10 @@ export function POSView() {
       }
       return [...prev, { itemKey, productId: product.id, name: itemName, price: itemPrice, quantity: 1 }];
     });
+
+    // إعادة التعيين والإغلاق
     setActiveProductForSizes(null);
+    setStuffedCrust(false);
   };
 
   const updateQuantity = (itemKey: string, delta: number) => {
@@ -112,7 +139,7 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 💾 طباعة وحفظ
+  // 💾 حفظ وطباعة الفاتورة
   const handleCheckout = async () => {
     if (cart.length === 0) return alert("السلة فارغة!");
     if (orderType === 'دليفري' && !selectedZoneId) return alert("يرجى اختيار منطقة الدليفري!");
@@ -168,19 +195,6 @@ export function POSView() {
     }
   };
 
-  // 🧹 إعادة المنيو وتصفية البيانات
-  const resetDatabase = async () => {
-    if (!confirm("هل تريد مسح البيانات القديمة بالكامل وإعادة تنظيف المنيو؟")) return;
-    
-    const prodsSnap = await getDocs(collection(dbCloud, "products"));
-    for (const d of prodsSnap.docs) await deleteDoc(doc(dbCloud, "products", d.id));
-    
-    const catsSnap = await getDocs(collection(dbCloud, "categories"));
-    for (const d of catsSnap.docs) await deleteDoc(doc(dbCloud, "categories", d.id));
-
-    alert("تم مسح السحابة بنجاح! يمكنك الآن الذهاب لصفحة إدارة المنيو ورفع المنيو الحقيقي بضغطة واحدة 🚀");
-  };
-
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl font-sans">
       
@@ -195,15 +209,11 @@ export function POSView() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button onClick={resetDatabase} title="إعادة ضبط السحابة" className="bg-rose-50 text-rose-600 p-2.5 rounded-2xl border border-rose-200 font-bold text-xs flex items-center gap-1 hover:bg-rose-100 transition-all">
-            <RefreshCw size={16} />
-            <span>تنظيف السحابة</span>
-          </button>
         </div>
 
-        {/* شريط الأقسام السليم والمضمون */}
+        {/* شريط الأقسام (بدون قسم السندوتشات العام) */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
-          {allCategoriesList.map((catName) => (
+          {activeCategories.map((catName) => (
             <button
               key={catName}
               onClick={() => setSelectedCategory(catName)}
@@ -335,28 +345,54 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 🍕 مودال الأحجام */}
+      {/* 🍕 مودال الأحجام وحشو الأطراف للبيتزا */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
+          <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl animate-in fade-in zoom-in duration-150">
             <h3 className="font-black text-slate-900 text-sm mb-3 text-center border-b pb-2">
               {activeProductForSizes.emoji || '🍕'} {activeProductForSizes.name}
             </h3>
-            <p className="text-xs text-slate-500 font-bold mb-3 text-center">اختر الحجم المطلوب:</p>
-            <div className="flex flex-col gap-2 mb-4">
-              {activeProductForSizes.sizes.map((s: any) => (
-                <button
-                  key={s.id}
-                  onClick={() => addToCart(activeProductForSizes, s)}
-                  className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 font-black text-xs hover:bg-indigo-50 hover:border-indigo-600 text-slate-800 transition-all active:scale-95"
-                >
-                  <span>{s.name}</span>
-                  <span className="text-indigo-600 font-black">{s.price} ج.م</span>
-                </button>
-              ))}
+
+            {/* 🧀 خيار إضافة حشو الأطراف تحت اسم البيتزا مباشرة */}
+            <div 
+              onClick={() => setStuffedCrust(!stuffedCrust)}
+              className={`flex items-center justify-between p-3 rounded-2xl border mb-4 cursor-pointer transition-all ${
+                stuffedCrust ? 'bg-amber-50 border-amber-500 text-amber-900' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                  stuffedCrust ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-slate-300'
+                }`}>
+                  {stuffedCrust && <Check size={14} />}
+                </div>
+                <span className="font-black text-xs">إضافة حشو أطراف 🧀</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500">(+25 / +30 / +35 ج.م)</span>
             </div>
+
+            <p className="text-xs text-slate-500 font-bold mb-3 text-center">اختر الحجم للطلب:</p>
+
+            <div className="flex flex-col gap-2 mb-4">
+              {activeProductForSizes.sizes.map((s: any) => {
+                const crustExtra = stuffedCrust ? getCrustPrice(s.id || s.name) : 0;
+                const finalPrice = Number(s.price) + crustExtra;
+
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => addToCart(activeProductForSizes, s)}
+                    className="flex justify-between items-center p-3 rounded-2xl border border-slate-200 font-black text-xs hover:bg-indigo-50 hover:border-indigo-600 text-slate-800 transition-all active:scale-95"
+                  >
+                    <span>{s.name} {stuffedCrust && <span className="text-[10px] text-amber-600">(شامل الحشو)</span>}</span>
+                    <span className="text-indigo-600 font-black">{finalPrice} ج.م</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <button
-              onClick={() => setActiveProductForSizes(null)}
+              onClick={() => { setActiveProductForSizes(null); setStuffedCrust(false); }}
               className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-2xl font-bold text-xs"
             >
               إلغاء
