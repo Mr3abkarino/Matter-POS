@@ -177,7 +177,7 @@ export function POSView() {
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=350,height=600');
     if (printWindow) {
-      const logoUrl = window.location.origin + 'puplic/logoo.png';
+      const logoUrl = window.location.origin + '/logo.png';
 
       printWindow.document.write(`
         <html dir="rtl"><head>
@@ -191,7 +191,7 @@ export function POSView() {
         </style></head>
         <body>
           <div class="header">
-            <img src="${logoUrl}" class="logoo" alt="DC Logo" />
+            <img src="${logoUrl}" class="logo" alt="DC Logo" />
             <h2 style="margin:0; font-size:16px;">DREAM CORNER</h2>
             <p style="margin:2px 0">نوع الطلب: ${inv.orderType}</p>
             ${inv.driverName ? `<p style="margin:2px 0">الطيار: ${inv.driverName}</p>` : ''}
