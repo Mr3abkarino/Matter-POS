@@ -85,7 +85,7 @@ export function POSView() {
           await addDoc(collection(dbCloud, "invoices"), inv);
         }
         localStorage.removeItem('dc_offline_invoices');
-        alert("⚡ تم مزامنة الفواتير المخزنة أوفلاين مع السحابة بنجاح!");
+        alert("⚡ تم مزامنة الفواتير المخزنة أوفلاين بنجاح!");
       } catch (e) {
         console.error("Offline Sync Error:", e);
       }
@@ -228,7 +228,7 @@ export function POSView() {
     if (isOnline) {
       try {
         if (editingInvoiceId) {
-          await updateDoc(doc(dbCloud, "invoices", editingInvoiceId), invoiceData);
+          await updateDoc(doc(doc(dbCloud, "invoices", editingInvoiceId).path), invoiceData);
           setEditingInvoiceId(null);
         } else {
           await addDoc(collection(dbCloud, "invoices"), invoiceData);
@@ -269,7 +269,7 @@ export function POSView() {
     }
   };
 
-  // مكون السلة (يستخدم في الموبايل والكمبيوتر)
+  // 🛒 مكون السلة السلس بدون تهنيج للكيبورد
   const CartContent = () => (
     <div className="flex flex-col h-full justify-between">
       <div>
@@ -303,7 +303,7 @@ export function POSView() {
           ))}
         </div>
 
-        {/* حقول الدليفري */}
+        {/* 🛵 حقول الدليفري المحسنة ضد التهنيج */}
         {orderType === 'دليفري' && (
           <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
             <select
@@ -331,28 +331,35 @@ export function POSView() {
             </select>
 
             <input
+              type="text"
+              autoComplete="off"
               placeholder="اسم العميل"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
             />
             <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
               placeholder="رقم الهاتف"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
             />
             <input
+              type="text"
+              autoComplete="off"
               placeholder="العنوان التفصيلي"
               value={customerAddress}
               onChange={(e) => setCustomerAddress(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none"
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
             />
           </div>
         )}
 
         {/* قائمة عناصر السلة */}
-        <div className="max-h-48 lg:max-h-64 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
+        <div className="max-h-36 lg:max-h-56 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
           {cart.length === 0 ? (
             <p className="text-center py-6 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
           ) : (
@@ -395,7 +402,7 @@ export function POSView() {
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl font-sans relative">
       
-      {/* 🍕 الأصناف والأقسام (تأخذ الشاشة كاملة في الموبايل) */}
+      {/* 🍕 الأصناف والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden pb-20 lg:pb-3">
         
         {/* شريط البحث والاتصال */}
@@ -432,17 +439,17 @@ export function POSView() {
           ))}
         </div>
 
-        {/* شبكة الأصناف */}
+        {/* 🍕 شبكة الأصناف (تم ضبط ارتفاع الكروت بالكامل h-32 وتنسيق المربع) */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
           {filteredProducts.map(p => (
             <div
               key={p.id}
               onClick={() => p.sizes && p.sizes.length > 0 ? setActiveProductForSizes(p) : addToCart(p)}
-              className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center active:scale-95"
+              className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center h-32 active:scale-95"
             >
-              <span className="text-2xl mb-1">{p.emoji || '🍕'}</span>
-              <h4 className="font-black text-slate-800 text-xs mb-1">{p.name}</h4>
-              <p className="text-indigo-600 font-black text-xs">
+              <span className="text-2xl mb-0.5">{p.emoji || '🍕'}</span>
+              <h4 className="font-black text-slate-800 text-xs line-clamp-2 px-1">{p.name}</h4>
+              <p className="text-indigo-600 font-black text-[11px] bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">
                 {p.sizes && p.sizes.length > 0 ? `يبدأ من ${p.sizes[0].price} ج.م` : `${p.price} ج.م`}
               </p>
             </div>
@@ -468,12 +475,12 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 🛒 السلة في الشاشات الكبيرة (الكمبيوتر / التابلت) */}
+      {/* 🛒 السلة للشاشات الكبيرة */}
       <div className="hidden lg:flex w-96 bg-white border-r border-slate-200 p-4 flex-col shadow-lg">
         <CartContent />
       </div>
 
-      {/* 🛒 زر السلة العائم المخصص للموبايل */}
+      {/* 🛒 زر السلة العائم للموبايل */}
       <div className="lg:hidden fixed bottom-3 left-3 right-3 z-40">
         <button
           onClick={() => setIsMobileCartOpen(true)}
@@ -483,7 +490,7 @@ export function POSView() {
             <div className="bg-indigo-800 p-1.5 rounded-xl">
               <ShoppingCart size={18} />
             </div>
-            <span>عرض سلة الطلبات ({totalItemsCount})</span>
+            <span>عرض السلة ({totalItemsCount})</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="font-black text-base">{totalAmount} ج.م</span>
@@ -492,7 +499,7 @@ export function POSView() {
         </button>
       </div>
 
-      {/* 🛒 نافذة السلة المنبثقة للموبايل (Modal Drawer) */}
+      {/* 🛒 نافذة السلة المنبثقة للموبايل */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 shadow-2xl">
