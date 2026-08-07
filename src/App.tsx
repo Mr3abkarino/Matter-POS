@@ -5,7 +5,7 @@ import { ReportsView } from './features/reports/ReportsView';
 import { SettingsView } from './features/settings/SettingsView';
 import { KitchenView } from './features/kitchen/KitchenView';
 import { DriverSettlementView } from './features/delivery/DriverSettlementView'; 
-import { RecentInvoicesView } from './features/invoices/RecentInvoicesView'; // 📜 شاشة سجل الفواتير
+import { RecentInvoicesView } from './features/invoices/RecentInvoicesView'; 
 import { 
   ShoppingCart, 
   LogOut, 
@@ -25,7 +25,9 @@ export default function App() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  // 💾 الاستعادة التلقائية للجلسة عند الـ Refresh لمنع الخروج
+  // ✏️ حالة الفاتورة الجاري تعديلها لنقلها إلى POSView
+  const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
+
   useEffect(() => {
     const savedLogin = localStorage.getItem('dc_is_logged_in');
     const savedRole = localStorage.getItem('dc_user_role') as 'admin' | 'cashier';
@@ -35,7 +37,6 @@ export default function App() {
     }
   }, []);
 
-  // ⚡ استماع اختصارات الكيبورد السريعة للتنقل بين الشاشات (F1 - F2 - F3 - F4)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
@@ -61,7 +62,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // 🔐 تسجيل الدخول برمز PIN
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === '0000') {
@@ -88,12 +88,16 @@ export default function App() {
     localStorage.removeItem('dc_user_role');
   };
 
-  // 🔒 شاشة تسجيل الدخول باللوجو الرسمي
+  // ✏️ دالة فتح الفاتورة وتعديلها داخل الكاشير
+  const handleEditInvoiceFromList = (inv: any) => {
+    setEditingInvoice(inv);
+    setCurrentTab('pos');
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 dir-rtl font-sans">
         <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl text-center">
-          {/* 🍔 اللوجو الأساسي */}
           <div className="bg-black w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl p-2 border-2 border-indigo-500 overflow-hidden">
             <img src="/logo.png" alt="Dream Corner Logo" className="w-full h-full object-contain" />
           </div>
@@ -127,10 +131,8 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden dir-rtl font-sans">
-      {/* 📌 الشريط الجانبي */}
       <aside className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col justify-between p-4 shadow-xl shrink-0">
         <div>
-          {/* 🍔 اللوجو في أعلى القائمة الجانبية */}
           <div className="flex items-center gap-3 mb-8 px-2">
             <div className="bg-black p-1 rounded-2xl border border-slate-700 w-11 h-11 flex items-center justify-center overflow-hidden shrink-0">
               <img src="/logo.png" alt="DC Logo" className="w-full h-full object-contain" />
@@ -145,7 +147,6 @@ export default function App() {
           </div>
 
           <nav className="flex flex-col gap-2">
-            {/* 🛒 زر الكاشير */}
             <button
               onClick={() => setCurrentTab('pos')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -156,7 +157,6 @@ export default function App() {
               <span className="hidden lg:block">الكاشير (F1)</span>
             </button>
 
-            {/* 👨‍🍳 زر شاشة المطبخ */}
             <button
               onClick={() => setCurrentTab('kitchen')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -167,7 +167,6 @@ export default function App() {
               <span className="hidden lg:block">شاشة المطبخ (F2)</span>
             </button>
 
-            {/* 🛵 زر تقفيل الطيارين */}
             <button
               onClick={() => setCurrentTab('delivery')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -178,7 +177,6 @@ export default function App() {
               <span className="hidden lg:block">تقفيل الطيارين (F3)</span>
             </button>
 
-            {/* 📜 زر سجل الفواتير الجديد */}
             <button
               onClick={() => setCurrentTab('invoices')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -189,7 +187,6 @@ export default function App() {
               <span className="hidden lg:block">سجل الفواتير (F4)</span>
             </button>
 
-            {/* 🔒 أزرار الأدمن فقط */}
             {role === 'admin' && (
               <>
                 <button
@@ -235,16 +232,18 @@ export default function App() {
         </button>
       </aside>
 
-      {/* 🖥️ العرض الرئيسي حسب التبويب */}
       <main className="flex-1 flex overflow-hidden">
         {currentTab === 'pos' ? (
-          <POSView />
+          <POSView 
+            initialEditingInvoice={editingInvoice} 
+            onClearEditingInvoice={() => setEditingInvoice(null)} 
+          />
         ) : currentTab === 'kitchen' ? (
           <KitchenView />
         ) : currentTab === 'delivery' ? (
           <DriverSettlementView />
         ) : currentTab === 'invoices' ? (
-          <RecentInvoicesView />
+          <RecentInvoicesView onEditInvoice={handleEditInvoiceFromList} />
         ) : currentTab === 'reports' ? (
           <ReportsView />
         ) : currentTab === 'menu' ? (
