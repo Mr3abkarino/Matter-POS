@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff, X, ChevronUp } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
@@ -24,6 +24,9 @@ export function POSView() {
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
   const [selectedDriver, setSelectedDriver] = useState<string>('');
   
+  // ⏸️ نظام تعليق واسترجاع الطلبات (Hold Orders)
+  const [heldOrders, setHeldOrders] = useState<any[]>([]);
+
   // مودال الأحجام وحشو الأطراف
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
   const [stuffedCrust, setStuffedCrust] = useState<boolean>(false);
@@ -45,6 +48,10 @@ export function POSView() {
 
     const savedDrivers = localStorage.getItem('dc_drivers');
     if (savedDrivers) setDriversList(JSON.parse(savedDrivers));
+
+    // استعادة الطلبات المعلقة المحفوظة
+    const savedHeld = localStorage.getItem('dc_held_orders');
+    if (savedHeld) setHeldOrders(JSON.parse(savedHeld));
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -169,11 +176,54 @@ export function POSView() {
     }).filter(Boolean));
   };
 
+  // ⏸️ دالة تعليق الطلب الحالي
+  const handleHoldOrder = () => {
+    if (cart.length === 0) return alert("السلة فارغة لتعليقها!");
+    const held = {
+      id: Date.now().toString(),
+      cart,
+      orderType,
+      selectedZoneId,
+      selectedDriver,
+      customerName,
+      customerPhone,
+      customerAddress,
+      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    };
+    const updated = [held, ...heldOrders];
+    setHeldOrders(updated);
+    localStorage.setItem('dc_held_orders', JSON.stringify(updated));
+
+    // تفريغ الحقول لطلب جديد
+    setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId(''); setSelectedDriver('');
+  };
+
+  // ▶️ دالة استرجاع طلب معلق
+  const handleRecallOrder = (order: any) => {
+    setCart(order.cart || []);
+    setOrderType(order.orderType || 'تيك أواي');
+    setSelectedZoneId(order.selectedZoneId || '');
+    setSelectedDriver(order.selectedDriver || '');
+    setCustomerName(order.customerName || '');
+    setCustomerPhone(order.customerPhone || '');
+    setCustomerAddress(order.customerAddress || '');
+
+    const updated = heldOrders.filter(o => o.id !== order.id);
+    setHeldOrders(updated);
+    localStorage.setItem('dc_held_orders', JSON.stringify(updated));
+  };
+
+  const handleDeleteHeldOrder = (id: string) => {
+    const updated = heldOrders.filter(o => o.id !== id);
+    setHeldOrders(updated);
+    localStorage.setItem('dc_held_orders', JSON.stringify(updated));
+  };
+
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ تصميم سوبر احترافي وعالي التباين للفاتورة الحرارية
+  // 🖨️ الفاتورة الحرارية
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
@@ -203,121 +253,23 @@ export function POSView() {
               font-size: 11px;
               line-height: 1.3;
             }
-            .header {
-              text-align: center;
-              border-bottom: 2px solid #000;
-              padding-bottom: 8px;
-              margin-bottom: 8px;
-            }
-            .logo {
-              width: 70px;
-              height: 70px;
-              margin: 0 auto 4px auto;
-              display: block;
-              filter: grayscale(100%) contrast(300%);
-            }
-            .brand-title {
-              font-size: 17px;
-              font-weight: 900;
-              letter-spacing: 0.5px;
-              margin: 0;
-              text-transform: uppercase;
-            }
-            .brand-sub {
-              font-size: 9px;
-              font-weight: 800;
-              color: #222;
-              margin-top: 1px;
-            }
-            .badge-wrap {
-              margin-top: 6px;
-            }
-            .badge {
-              display: inline-block;
-              background-color: #000;
-              color: #fff;
-              font-size: 13px;
-              font-weight: 900;
-              padding: 3px 14px;
-              border-radius: 20px;
-              letter-spacing: 0.5px;
-            }
-            .details-box {
-              background: #f8f8f8;
-              border: 1px border-slate-300;
-              border-radius: 6px;
-              padding: 6px 8px;
-              margin-bottom: 8px;
-              font-size: 10px;
-              font-weight: 700;
-            }
-            .details-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 3px;
-            }
-            .details-row:last-child { margin-bottom: 0; }
-            .address-row {
-              border-top: 1px dashed #ccc;
-              margin-top: 4px;
-              padding-top: 4px;
-              font-size: 11px;
-              font-weight: 800;
-            }
-            .table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 6px;
-            }
-            .table th {
-              border-bottom: 2px solid #000;
-              font-size: 10px;
-              font-weight: 900;
-              padding: 4px 2px;
-              text-align: right;
-            }
-            .table td {
-              padding: 5px 2px;
-              border-bottom: 1px #eee solid;
-              font-size: 11px;
-              font-weight: 700;
-            }
-            .qty-pill {
-              display: inline-block;
-              font-weight: 900;
-              font-size: 11px;
-            }
-            .total-box {
-              border: 2px solid #000;
-              border-radius: 6px;
-              padding: 6px;
-              text-align: center;
-              margin-top: 6px;
-            }
-            .total-label {
-              font-size: 10px;
-              font-weight: 800;
-              margin-bottom: 1px;
-            }
-            .total-val {
-              font-size: 18px;
-              font-weight: 900;
-            }
-            .summary-line {
-              display: flex;
-              justify-content: space-between;
-              font-size: 11px;
-              font-weight: 800;
-              margin-bottom: 2px;
-            }
-            .footer {
-              text-align: center;
-              font-size: 9px;
-              font-weight: 800;
-              margin-top: 10px;
-              border-top: 1px dashed #000;
-              padding-top: 6px;
-            }
+            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
+            .logo { width: 70px; height: 70px; margin: 0 auto 4px auto; display: block; filter: grayscale(100%) contrast(300%); }
+            .brand-title { font-size: 17px; font-weight: 900; letter-spacing: 0.5px; margin: 0; text-transform: uppercase; }
+            .brand-sub { font-size: 9px; font-weight: 800; color: #222; margin-top: 1px; }
+            .badge-wrap { margin-top: 6px; }
+            .badge { display: inline-block; background-color: #000; color: #fff; font-size: 13px; font-weight: 900; padding: 3px 14px; border-radius: 20px; letter-spacing: 0.5px; }
+            .details-box { background: #f8f8f8; border: 1px border-slate-300; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; font-size: 10px; font-weight: 700; }
+            .details-row { display: flex; justify-between: space-between; margin-bottom: 3px; }
+            .address-row { border-top: 1px dashed #ccc; margin-top: 4px; padding-top: 4px; font-size: 11px; font-weight: 800; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+            .table th { border-bottom: 2px solid #000; font-size: 10px; font-weight: 900; padding: 4px 2px; text-align: right; }
+            .table td { padding: 5px 2px; border-bottom: 1px #eee solid; font-size: 11px; font-weight: 700; }
+            .total-box { border: 2px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
+            .total-label { font-size: 10px; font-weight: 800; margin-bottom: 1px; }
+            .total-val { font-size: 18px; font-weight: 900; }
+            .summary-line { display: flex; justify-between: space-between; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+            .footer { text-align: center; font-size: 9px; font-weight: 800; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; }
           </style>
         </head>
         <body>
@@ -325,22 +277,18 @@ export function POSView() {
             <img src="${logoUrl}" class="logo" alt="DC Logo" />
             <h1 class="brand-title">DREAM CORNER</h1>
             <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
-            <div class="badge-wrap">
-              <span class="badge">${inv.orderType}</span>
-            </div>
+            <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
           </div>
-
           <div class="details-box">
             <div class="details-row">
               <span>التاريخ: ${new Date(inv.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
               <span>الوقت: ${new Date(inv.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            ${inv.driverName ? `<div class="details-row"><span>🛵 الطيار المسؤول:</span><span><b>${inv.driverName}</b></span></div>` : ''}
+            ${inv.driverName ? `<div class="details-row"><span>🛵 الطيار:</span><span><b>${inv.driverName}</b></span></div>` : ''}
             ${inv.customerName ? `<div class="details-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
             ${inv.customerPhone ? `<div class="details-row"><span>📞 الهاتف:</span><span>${inv.customerPhone}</span></div>` : ''}
             ${inv.customerAddress ? `<div class="address-row">🏠 العنوان: ${inv.customerAddress}</div>` : ''}
           </div>
-
           <table class="table">
             <thead>
               <tr>
@@ -353,33 +301,21 @@ export function POSView() {
               ${inv.items.map((i: any) => `
                 <tr>
                   <td>${i.name}</td>
-                  <td style="text-align: center;"><span class="qty-pill">${i.quantity}</span></td>
+                  <td style="text-align: center;">${i.quantity}</td>
                   <td style="text-align: left; font-weight:900;">${i.price * i.quantity} ج.م</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-
           ${inv.deliveryFee > 0 ? `
-            <div class="summary-line">
-              <span>إجمالي الطلبات:</span>
-              <span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span>
-            </div>
-            <div class="summary-line">
-              <span>خدمة التوصيل (${inv.zoneName || ''}):</span>
-              <span>${inv.deliveryFee} ج.م</span>
-            </div>
+            <div class="summary-line"><span>إجمالي الطلبات:</span><span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span></div>
+            <div class="summary-line"><span>خدمة التوصيل (${inv.zoneName || ''}):</span><span>${inv.deliveryFee} ج.م</span></div>
           ` : ''}
-
           <div class="total-box">
             <div class="total-label">الإجمالي النهائي المطلوب</div>
             <div class="total-val">${inv.total} ج.م</div>
           </div>
-
-          <div class="footer">
-            طعم يفرق .. جودة تليق بيك ❤️<br/>
-            شكراً لتسوقكم من DREAM CORNER
-          </div>
+          <div class="footer">طعم يفرق .. جودة تليق بيك ❤️<br/>شكراً لتسوقكم من DREAM CORNER</div>
         </body>
         </html>
       `);
@@ -460,7 +396,19 @@ export function POSView() {
             <ShoppingCart className="text-indigo-600" size={20} />
             <span>سلة الطلبات</span>
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {/* ⏸️ زر تعليق الطلب */}
+            {cart.length > 0 && (
+              <button
+                onClick={handleHoldOrder}
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 border border-amber-200 transition-all active:scale-95"
+                title="تعليق الطلب لحين عودة العميل"
+              >
+                <PauseCircle size={14} />
+                <span>تعليق</span>
+              </button>
+            )}
+
             {editingInvoiceId && (
               <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">تعديل فاتورة</span>
             )}
@@ -469,6 +417,22 @@ export function POSView() {
             </button>
           </div>
         </h2>
+
+        {/* ⏸️ عرض الطلبات المعلقة إن وجدت */}
+        {heldOrders.length > 0 && (
+          <div className="bg-amber-50/70 border border-amber-200 p-2 rounded-2xl mb-3">
+            <span className="text-[10px] font-black text-amber-900 block mb-1">⏸️ طلبات معلقة ({heldOrders.length}):</span>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {heldOrders.map((h) => (
+                <div key={h.id} className="bg-white px-2 py-1 rounded-xl border border-amber-300 text-[10px] font-bold flex items-center gap-1.5 shrink-0 shadow-sm">
+                  <span>{h.time} ({h.cart.length} أصناف)</span>
+                  <button onClick={() => handleRecallOrder(h)} className="text-emerald-600 font-black hover:bg-emerald-50 p-0.5 rounded" title="استرجاع"><PlayCircle size={12} /></button>
+                  <button onClick={() => handleDeleteHeldOrder(h.id)} className="text-rose-600 hover:bg-rose-50 p-0.5 rounded" title="حذف"><X size={12} /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* نوع الطلب */}
         <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl mb-3">
