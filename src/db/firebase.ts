@@ -1,14 +1,13 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBon8v_7LmhdsXyfWViaavAiLBDV96lhO8",
-  authDomain: "dream-corner-pos.firebaseapp.com",
-  projectId: "dream-corner-pos",
-  storageBucket: "dream-corner-pos.firebasestorage.app",
-  messagingSenderId: "591340960109",
-  appId: "1:591340960109:web:ae0272e3e0a447970dc264",
-  measurementId: "G-LJ82P6PFWR"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
