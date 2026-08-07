@@ -4,7 +4,8 @@ import { MenuManagementView } from './features/menu/MenuManagementView';
 import { ReportsView } from './features/reports/ReportsView';
 import { SettingsView } from './features/settings/SettingsView';
 import { KitchenView } from './features/kitchen/KitchenView';
-import { DriverSettlementView } from './features/delivery/DriverSettlementView'; // 🛵 شاشة تصفية الطيارين
+import { DriverSettlementView } from './features/delivery/DriverSettlementView'; 
+import { RecentInvoicesView } from './features/invoices/RecentInvoicesView'; // 📜 شاشة سجل الفواتير
 import { 
   ShoppingCart, 
   LogOut, 
@@ -13,13 +14,14 @@ import {
   TrendingUp, 
   Settings,
   ChefHat,
-  Bike
+  Bike,
+  History
 } from 'lucide-react';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'cashier'>('cashier');
-  const [currentTab, setCurrentTab] = useState<'pos' | 'kitchen' | 'delivery' | 'reports' | 'menu' | 'settings'>('pos');
+  const [currentTab, setCurrentTab] = useState<'pos' | 'kitchen' | 'delivery' | 'invoices' | 'reports' | 'menu' | 'settings'>('pos');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
@@ -33,10 +35,9 @@ export default function App() {
     }
   }, []);
 
-  // ⚡ استماع اختصارات الكيبورد السريعة للتنقل بين الشاشات (F1 - F2 - F3)
+  // ⚡ استماع اختصارات الكيبورد السريعة للتنقل بين الشاشات (F1 - F2 - F3 - F4)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // عدم تفعيل الاختصارات أثناء كتابة رمز الـ PIN أو في حقول المدخلات
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
         return;
       }
@@ -50,6 +51,9 @@ export default function App() {
       } else if (e.key === 'F3') {
         e.preventDefault();
         setCurrentTab('delivery');
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        setCurrentTab('invoices');
       }
     };
 
@@ -163,7 +167,7 @@ export default function App() {
               <span className="hidden lg:block">شاشة المطبخ (F2)</span>
             </button>
 
-            {/* 🛵 زر تقفيل الطيارين (متاح للكاشير والأدمن) */}
+            {/* 🛵 زر تقفيل الطيارين */}
             <button
               onClick={() => setCurrentTab('delivery')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -172,6 +176,17 @@ export default function App() {
             >
               <Bike size={20} />
               <span className="hidden lg:block">تقفيل الطيارين (F3)</span>
+            </button>
+
+            {/* 📜 زر سجل الفواتير الجديد */}
+            <button
+              onClick={() => setCurrentTab('invoices')}
+              className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
+                currentTab === 'invoices' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <History size={20} />
+              <span className="hidden lg:block">سجل الفواتير (F4)</span>
             </button>
 
             {/* 🔒 أزرار الأدمن فقط */}
@@ -228,6 +243,8 @@ export default function App() {
           <KitchenView />
         ) : currentTab === 'delivery' ? (
           <DriverSettlementView />
+        ) : currentTab === 'invoices' ? (
+          <RecentInvoicesView />
         ) : currentTab === 'reports' ? (
           <ReportsView />
         ) : currentTab === 'menu' ? (
