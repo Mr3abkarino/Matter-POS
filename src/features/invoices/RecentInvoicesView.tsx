@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { History, Printer, Trash2, Edit2, Search } from 'lucide-react';
+import { History, Printer, Trash2, Edit2, Search, Eye, X, User, Phone, MapPin, Bike } from 'lucide-react';
 
-export function RecentInvoicesView() {
+export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: any) => void }) {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedInvoiceForModal, setSelectedInvoiceForModal] = useState<any | null>(null);
 
   useEffect(() => {
     const q = query(collection(dbCloud, "invoices"), orderBy("createdAt", "desc"));
@@ -19,6 +20,7 @@ export function RecentInvoicesView() {
   const handleDeleteInvoice = async (id: string) => {
     if (confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة من السجلات؟")) {
       await deleteDoc(doc(dbCloud, "invoices", id));
+      if (selectedInvoiceForModal?.id === id) setSelectedInvoiceForModal(null);
     }
   };
 
@@ -44,11 +46,13 @@ export function RecentInvoicesView() {
             .badge { display: inline-block; background-color: #000; color: #fff; font-size: 13px; font-weight: 900; padding: 3px 14px; border-radius: 20px; }
             .details-box { background: #f8f8f8; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; font-size: 10px; font-weight: 700; }
             .details-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+            .address-row { border-top: 1px dashed #ccc; margin-top: 4px; padding-top: 4px; font-size: 11px; font-weight: 800; }
             .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
             .table th { border-bottom: 2px solid #000; font-size: 10px; font-weight: 900; padding: 4px 2px; text-align: right; }
             .table td { padding: 5px 2px; border-bottom: 1px #eee solid; font-size: 11px; font-weight: 700; }
             .total-box { border: 2px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
             .total-val { font-size: 18px; font-weight: 900; }
+            .summary-line { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
             .footer { text-align: center; font-size: 9px; font-weight: 800; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; }
           </style>
         </head>
@@ -64,6 +68,7 @@ export function RecentInvoicesView() {
             ${inv.driverName ? `<div class="details-row"><span>🛵 الطيار:</span><span><b>${inv.driverName}</b></span></div>` : ''}
             ${inv.customerName ? `<div class="details-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
             ${inv.customerPhone ? `<div class="details-row"><span>📞 الهاتف:</span><span>${inv.customerPhone}</span></div>` : ''}
+            ${inv.customerAddress ? `<div class="address-row">🏠 العنوان: ${inv.customerAddress}</div>` : ''}
           </div>
           <table class="table">
             <thead>
@@ -75,6 +80,10 @@ export function RecentInvoicesView() {
               `).join('')}
             </tbody>
           </table>
+          ${inv.deliveryFee > 0 ? `
+            <div class="summary-line"><span>إجمالي الطلبات:</span><span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span></div>
+            <div class="summary-line"><span>خدمة التوصيل (${inv.zoneName || ''}):</span><span>${inv.deliveryFee} ج.م</span></div>
+          ` : ''}
           <div class="total-box"><div class="total-val">${inv.total} ج.م</div></div>
           <div class="footer">طعم يفرق .. جودة تليق بيك ❤️<br/>شكراً لتسوقكم من DREAM CORNER</div>
         </body>
@@ -97,18 +106,17 @@ export function RecentInvoicesView() {
   return (
     <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto bg-slate-100 dir-rtl font-sans">
       
-      {/* الهيدر */}
+      {/* الهيدر والبحث */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2">
             <History className="text-indigo-600" size={28} />
             <span>سجل آخر الفواتير</span>
           </h1>
-          <p className="text-xs text-slate-500 font-bold mt-1">مراجعة وإعادة طباعة أو إلغاء الفواتير المسجلة</p>
+          <p className="text-xs text-slate-500 font-bold mt-1">عرض تفاصيل الفاتورة، إعادة الطباعة، التعديل أو الإلغاء</p>
         </div>
 
-        {/* بحث */}
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-72">
           <input
             type="text"
             placeholder="بحث باسم العميل، الهاتف، أو الطيار..."
@@ -171,6 +179,27 @@ export function RecentInvoicesView() {
                     </td>
                     <td className="p-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        {/* 👁️ زر عرض كافة التفاصيل */}
+                        <button
+                          onClick={() => setSelectedInvoiceForModal(inv)}
+                          title="عرض تفاصيل الفاتورة الكاملة"
+                          className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <Eye size={16} />
+                        </button>
+
+                        {/* ✏️ زر تعديل الفاتورة */}
+                        {onEditInvoice && (
+                          <button
+                            onClick={() => onEditInvoice(inv)}
+                            title="تعديل الفاتورة في الكاشير"
+                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+
+                        {/* 🖨️ طباعة */}
                         <button
                           onClick={() => printInvoiceWindow(inv)}
                           title="إعادة طباعة الفاتورة"
@@ -178,6 +207,8 @@ export function RecentInvoicesView() {
                         >
                           <Printer size={16} />
                         </button>
+
+                        {/* 🗑️ حذف */}
                         <button
                           onClick={() => handleDeleteInvoice(inv.id)}
                           title="حذف الفاتورة"
@@ -194,6 +225,101 @@ export function RecentInvoicesView() {
           </div>
         )}
       </div>
+
+      {/* 🔍 Modal تفاصيل الفاتورة الكاملة */}
+      {selectedInvoiceForModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-5 w-full max-w-md dir-rtl shadow-2xl">
+            <div className="flex justify-between items-center border-b pb-3 mb-3">
+              <div>
+                <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                  <span>تفاصيل الفاتورة</span>
+                  <span className="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-xl">
+                    {selectedInvoiceForModal.orderType}
+                  </span>
+                </h3>
+                <span className="text-[10px] text-slate-400 font-bold">
+                  {new Date(selectedInvoiceForModal.createdAt || Date.now()).toLocaleString('ar-EG')}
+                </span>
+              </div>
+              <button onClick={() => setSelectedInvoiceForModal(null)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* بيانات العميل والتوصيل */}
+            {(selectedInvoiceForModal.customerName || selectedInvoiceForModal.driverName || selectedInvoiceForModal.customerPhone) && (
+              <div className="bg-slate-50 p-3 rounded-2xl border text-xs font-bold space-y-1.5 mb-3 text-slate-700">
+                {selectedInvoiceForModal.customerName && (
+                  <div className="flex items-center gap-1.5"><User size={14} className="text-indigo-600" /><span>العميل: {selectedInvoiceForModal.customerName}</span></div>
+                )}
+                {selectedInvoiceForModal.customerPhone && (
+                  <div className="flex items-center gap-1.5"><Phone size={14} className="text-indigo-600" /><span>الهاتف: {selectedInvoiceForModal.customerPhone}</span></div>
+                )}
+                {selectedInvoiceForModal.customerAddress && (
+                  <div className="flex items-center gap-1.5"><MapPin size={14} className="text-indigo-600" /><span>العنوان: {selectedInvoiceForModal.customerAddress}</span></div>
+                )}
+                {selectedInvoiceForModal.driverName && (
+                  <div className="flex items-center gap-1.5 text-indigo-900"><Bike size={14} className="text-indigo-600" /><span>الطيار المسؤول: {selectedInvoiceForModal.driverName}</span></div>
+                )}
+              </div>
+            )}
+
+            {/* جدول الأصناف والكميات */}
+            <div className="max-h-52 overflow-y-auto border rounded-2xl p-2 mb-3 bg-slate-50/50">
+              <table className="w-full text-xs font-bold text-right">
+                <thead>
+                  <tr className="border-b text-slate-400 pb-1">
+                    <th className="py-1">الصنف</th>
+                    <th className="py-1 text-center">العدد</th>
+                    <th className="py-1 text-left">السعر</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200/60">
+                  {(selectedInvoiceForModal.items || []).map((item: any, idx: number) => (
+                    <tr key={idx} className="text-slate-800">
+                      <td className="py-2">{item.name}</td>
+                      <td className="py-2 text-center text-indigo-600">{item.quantity}</td>
+                      <td className="py-2 text-left">{item.price * item.quantity} ج.م</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* الإجمالي */}
+            <div className="flex justify-between items-center bg-indigo-50 p-3 rounded-2xl font-black text-indigo-900 text-sm mb-4">
+              <span>الإجمالي الكلي:</span>
+              <span className="text-base text-indigo-600">{selectedInvoiceForModal.total} ج.م</span>
+            </div>
+
+            {/* الأزرار بالأسفل */}
+            <div className="flex gap-2">
+              {onEditInvoice && (
+                <button
+                  onClick={() => {
+                    const inv = selectedInvoiceForModal;
+                    setSelectedInvoiceForModal(null);
+                    onEditInvoice(inv);
+                  }}
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white p-2.5 rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Edit2 size={16} />
+                  <span>تعديل الفاتورة</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => printInvoiceWindow(selectedInvoiceForModal)}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-2xl font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+              >
+                <Printer size={16} />
+                <span>طباعة</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
