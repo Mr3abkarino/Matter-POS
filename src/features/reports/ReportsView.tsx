@@ -12,7 +12,8 @@ import {
   Percent,
   UserCheck,
   PieChart as PieChartIcon,
-  Printer
+  Printer,
+  Download
 } from 'lucide-react';
 
 export function ReportsView() {
@@ -52,6 +53,37 @@ export function ReportsView() {
   const totalOrders = filteredInvoices.length;
   const avgOrderValue = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
   const totalDeliveryFees = filteredInvoices.reduce((sum, inv) => sum + Number(inv.deliveryFee || 0), 0);
+
+  // 📊 دالة تصدير البيانات إلى شيت Excel (CSV مع دعم العربي BOM)
+  const handleExportExcel = () => {
+    if (filteredInvoices.length === 0) {
+      alert("لا توجد فواتير لتصديرها في هذه الفترة!");
+      return;
+    }
+
+    const headers = ['رقم الفاتورة', 'التاريخ والوقت', 'نوع الطلب', 'الطيار / العميل', 'الإجمالي (ج.م)', 'خدمة التوصيل (ج.م)'];
+    
+    const rows = filteredInvoices.map(inv => [
+      inv.id,
+      new Date(inv.createdAt).toLocaleString('ar-EG'),
+      inv.orderType || 'تيك أواي',
+      inv.driverName ? `الطيار: ${inv.driverName}` : inv.customerName || 'عميل مباشر',
+      inv.total || 0,
+      inv.deliveryFee || 0
+    ]);
+
+    const BOM = '\uFEFF';
+    const csvContent = BOM + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `تقارير_مبيعات_دريم_كورنر_${filterPeriod}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // 🛵 تجميع وتقفيل حسابات الطيارين
   const driverSummary = filteredInvoices
@@ -114,18 +146,27 @@ export function ReportsView() {
           <p className="text-xs text-slate-500 font-bold mt-1">تابع المبيعات وتقفيل الطيارين لمطعم Dream Corner</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 📊 زر تصدير Excel */}
+          <button
+            onClick={handleExportExcel}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-2xl font-black text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+          >
+            <Download size={16} />
+            <span>تصدير Excel</span>
+          </button>
+
           {/* 🖨️ زر تقفيل الشيفت اليومي */}
           <button
             onClick={() => setIsShiftModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl font-black text-xs flex items-center gap-2 shadow-lg transition-all active:scale-95"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-2xl font-black text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95"
           >
-            <Printer size={18} />
+            <Printer size={16} />
             <span>تقفيل الشيفت (Z-Report)</span>
           </button>
 
           {/* فلاتر الفترة الزمنية */}
-          <div className="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex flex-wrap gap-1 bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
             {(['today', 'week', 'month', 'all'] as const).map(period => (
               <button
                 key={period}
