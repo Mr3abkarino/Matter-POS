@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
-import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
-// 🛒 1. فصل مكون السلة بالكامل خارج المكون الرئيسي لمنع إعادة البناء وفقدان التركيز (Focus Loss)
+// 🛒 1. مكون السلة المستقل لمنع فقدان التركيز (Focus Loss) أثناء الكتابة
 function CartContent({
   cart,
   orderType,
@@ -193,7 +193,6 @@ export function POSView() {
 
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
-  const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [driversList, setDriversList] = useState<string[]>([]);
 
   const [customerName, setCustomerName] = useState('');
@@ -248,13 +247,7 @@ export function POSView() {
       localStorage.setItem('dc_cached_zones', JSON.stringify(zones));
     });
 
-    const unsubInvoices = onSnapshot(collection(dbCloud, "invoices"), (snap) => {
-      const invs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      invs.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-      setRecentInvoices(invs.slice(0, 10));
-    });
-
-    return () => { unsubProds(); unsubZones(); unsubInvoices(); };
+    return () => { unsubProds(); unsubZones(); };
   }, [isOnline]);
 
   const syncOfflineInvoices = async () => {
@@ -534,28 +527,6 @@ export function POSView() {
     setIsMobileCartOpen(false);
   };
 
-  const handleEditInvoice = (inv: any) => {
-    setCart(inv.items || []);
-    setOrderType(inv.orderType || 'تيك أواي');
-    setCustomerName(inv.customerName || '');
-    setCustomerPhone(inv.customerPhone || '');
-    setCustomerAddress(inv.customerAddress || '');
-    setSelectedDriver(inv.driverName || '');
-    setEditingInvoiceId(inv.id);
-
-    const zone = deliveryZones.find(z => z.name === inv.zoneName);
-    if (zone) setSelectedZoneId(zone.id);
-
-    setIsMobileCartOpen(true);
-  };
-
-  const handleDeleteInvoice = async (id: string) => {
-    if (confirm("هل أنت متأكد من إلغاء وحذف هذه الفاتورة؟")) {
-      await deleteDoc(doc(dbCloud, "invoices", id));
-    }
-  };
-
-  // حزمة الـ props لمكون CartContent
   const cartProps = {
     cart,
     orderType,
@@ -619,6 +590,7 @@ export function POSView() {
           ))}
         </div>
 
+        {/* 🍕 شبكة الأصناف المنسقة والمفتوحة بدون أي عناصر زحمة تحتها */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.map(p => (
             <div
@@ -634,30 +606,14 @@ export function POSView() {
             </div>
           ))}
         </div>
-
-        <div className="mt-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-          <h4 className="font-bold text-xs text-slate-700 mb-2 flex items-center gap-1.5">
-            <History size={16} className="text-indigo-600" />
-            <span>آخر الفواتير</span>
-          </h4>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {recentInvoices.map(inv => (
-              <div key={inv.id} className="bg-slate-50 p-2 rounded-xl border flex items-center gap-2 text-xs font-bold whitespace-nowrap">
-                <span>{inv.orderType} - {inv.total} ج.م</span>
-                <button onClick={() => printInvoiceWindow(inv)} title="طباعة" className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-lg"><Printer size={14} /></button>
-                <button onClick={() => handleEditInvoice(inv)} title="تعديل" className="p-1 text-amber-600 hover:bg-amber-50 rounded-lg"><Edit2 size={14} /></button>
-                <button onClick={() => handleDeleteInvoice(inv.id)} title="إلغاء" className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg"><Trash2 size={14} /></button>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* 🛒 2. استدعاء السلة كـ Component مستقل في الديسك توب */}
+      {/* 🛒 السلة للشاشات الكبيرة */}
       <div className="hidden lg:flex w-96 bg-white border-r border-slate-200 p-4 flex-col shadow-lg">
         <CartContent {...cartProps} />
       </div>
 
+      {/* 🛒 زر السلة العائم للموبايل */}
       <div className="lg:hidden fixed bottom-3 left-3 right-3 z-40">
         <button
           onClick={() => setIsMobileCartOpen(true)}
@@ -676,7 +632,7 @@ export function POSView() {
         </button>
       </div>
 
-      {/* 🛒 3. استدعاء السلة كـ Component مستقل في الموبايل */}
+      {/* 🛒 نافذة السلة المنبثقة للموبايل */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 shadow-2xl">
@@ -685,6 +641,7 @@ export function POSView() {
         </div>
       )}
 
+      {/* 🍕 مودال الأحجام وحشو الأطراف */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
