@@ -3,19 +3,21 @@ import { POSView } from './features/pos/POSView';
 import { MenuManagementView } from './features/menu/MenuManagementView';
 import { ReportsView } from './features/reports/ReportsView';
 import { SettingsView } from './features/settings/SettingsView';
+import { KitchenView } from './features/kitchen/KitchenView'; // 👨‍🍳 استدعاء شاشة المطبخ
 import { 
   ShoppingCart, 
   LogOut, 
   ShieldAlert, 
   UserCheck, 
   TrendingUp, 
-  Settings 
+  Settings,
+  ChefHat
 } from 'lucide-react';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'cashier'>('cashier');
-  const [currentTab, setCurrentTab] = useState<'pos' | 'reports' | 'menu' | 'settings'>('pos');
+  const [currentTab, setCurrentTab] = useState<'pos' | 'kitchen' | 'reports' | 'menu' | 'settings'>('pos');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
@@ -113,6 +115,7 @@ export default function App() {
           </div>
 
           <nav className="flex flex-col gap-2">
+            {/* زر الكاشير */}
             <button
               onClick={() => setCurrentTab('pos')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -123,6 +126,18 @@ export default function App() {
               <span className="hidden lg:block">الكاشير (POS)</span>
             </button>
 
+            {/* 👨‍🍳 زر شاشة المطبخ (متاح للكاشير والأدمن) */}
+            <button
+              onClick={() => setCurrentTab('kitchen')}
+              className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
+                currentTab === 'kitchen' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <ChefHat size={20} />
+              <span className="hidden lg:block">شاشة المطبخ</span>
+            </button>
+
+            {/* أزرار الأدمن فقط */}
             {role === 'admin' && (
               <>
                 <button
@@ -168,9 +183,12 @@ export default function App() {
         </button>
       </aside>
 
+      {/* 🖥️ العرض الرئيسي حسب التبويب */}
       <main className="flex-1 flex overflow-hidden">
         {currentTab === 'pos' ? (
           <POSView />
+        ) : currentTab === 'kitchen' ? (
+          <KitchenView />
         ) : currentTab === 'reports' ? (
           <ReportsView />
         ) : currentTab === 'menu' ? (
