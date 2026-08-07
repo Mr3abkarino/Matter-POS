@@ -3,7 +3,7 @@ import { POSView } from './features/pos/POSView';
 import { MenuManagementView } from './features/menu/MenuManagementView';
 import { ReportsView } from './features/reports/ReportsView';
 import { SettingsView } from './features/settings/SettingsView';
-import { KitchenView } from './features/kitchen/KitchenView'; // 👨‍🍳 استدعاء شاشة المطبخ
+import { KitchenView } from './features/kitchen/KitchenView';
 import { 
   ShoppingCart, 
   LogOut, 
@@ -29,6 +29,27 @@ export default function App() {
       setIsLoggedIn(true);
       setRole(savedRole);
     }
+  }, []);
+
+  // ⚡ استماع اختصارات الكيبورد السريعة للتنقل بين الشاشات
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // عدم تفعيل الاختصارات أثناء كتابة رمز الـ PIN أو في حقول المدخلات
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setCurrentTab('pos');
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        setCurrentTab('kitchen');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // 🔐 تسجيل الدخول برمز PIN
@@ -98,7 +119,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden dir-rtl font-sans">
       {/* 📌 الشريط الجانبي */}
-      <aside className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col justify-between p-4 shadow-xl">
+      <aside className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col justify-between p-4 shadow-xl shrink-0">
         <div>
           {/* 🍔 اللوجو في أعلى القائمة الجانبية */}
           <div className="flex items-center gap-3 mb-8 px-2">
@@ -123,10 +144,10 @@ export default function App() {
               }`}
             >
               <ShoppingCart size={20} />
-              <span className="hidden lg:block">الكاشير (POS)</span>
+              <span className="hidden lg:block">الكاشير (F1)</span>
             </button>
 
-            {/* 👨‍🍳 زر شاشة المطبخ (متاح للكاشير والأدمن) */}
+            {/* 👨‍🍳 زر شاشة المطبخ */}
             <button
               onClick={() => setCurrentTab('kitchen')}
               className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -134,7 +155,7 @@ export default function App() {
               }`}
             >
               <ChefHat size={20} />
-              <span className="hidden lg:block">شاشة المطبخ</span>
+              <span className="hidden lg:block">شاشة المطبخ (F2)</span>
             </button>
 
             {/* أزرار الأدمن فقط */}
