@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
+import { ShiftReportModal } from './ShiftReportModal';
 import {
   TrendingUp,
   Receipt,
@@ -10,13 +11,15 @@ import {
   Trash2,
   Percent,
   UserCheck,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Printer
 } from 'lucide-react';
 
 export function ReportsView() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [selectedOrderType, setSelectedOrderType] = useState<string>('all');
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 
   useEffect(() => {
     const q = query(collection(dbCloud, "invoices"), orderBy("createdAt", "desc"));
@@ -111,18 +114,30 @@ export function ReportsView() {
           <p className="text-xs text-slate-500 font-bold mt-1">تابع المبيعات وتقفيل الطيارين لمطعم Dream Corner</p>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
-          {(['today', 'week', 'month', 'all'] as const).map(period => (
-            <button
-              key={period}
-              onClick={() => setFilterPeriod(period)}
-              className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${
-                filterPeriod === period ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {period === 'today' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : period === 'month' ? 'هذا الشهر' : 'الكل'}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* 🖨️ زر تقفيل الشيفت اليومي */}
+          <button
+            onClick={() => setIsShiftModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl font-black text-xs flex items-center gap-2 shadow-lg transition-all active:scale-95"
+          >
+            <Printer size={18} />
+            <span>تقفيل الشيفت (Z-Report)</span>
+          </button>
+
+          {/* فلاتر الفترة الزمنية */}
+          <div className="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+            {(['today', 'week', 'month', 'all'] as const).map(period => (
+              <button
+                key={period}
+                onClick={() => setFilterPeriod(period)}
+                className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all ${
+                  filterPeriod === period ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {period === 'today' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : period === 'month' ? 'هذا الشهر' : 'الكل'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -261,6 +276,12 @@ export function ReportsView() {
           </table>
         </div>
       </div>
+
+      {/* النافذة المنبثقة لتقرير Z-Report الحراري */}
+      <ShiftReportModal
+        isOpen={isShiftModalOpen}
+        onClose={() => setIsShiftModalOpen(false)}
+      />
 
     </div>
   );
