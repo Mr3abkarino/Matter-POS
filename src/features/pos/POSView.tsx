@@ -3,6 +3,186 @@ import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'fireb
 import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, History, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
+// 🛒 1. فصل مكون السلة بالكامل خارج المكون الرئيسي لمنع إعادة البناء وفقدان التركيز (Focus Loss)
+function CartContent({
+  cart,
+  orderType,
+  setOrderType,
+  heldOrders,
+  editingInvoiceId,
+  setIsMobileCartOpen,
+  handleHoldOrder,
+  handleRecallOrder,
+  handleDeleteHeldOrder,
+  selectedZoneId,
+  setSelectedZoneId,
+  uniqueDeliveryZones,
+  selectedDriver,
+  setSelectedDriver,
+  driversList,
+  customerName,
+  setCustomerName,
+  customerPhone,
+  setCustomerPhone,
+  customerAddress,
+  setCustomerAddress,
+  updateQuantity,
+  deliveryFee,
+  handleCheckout,
+  totalAmount
+}: any) {
+  return (
+    <div className="flex flex-col h-full justify-between">
+      <div>
+        <h2 className="font-black text-slate-800 text-base mb-3 flex items-center justify-between border-b pb-2">
+          <span className="flex items-center gap-2">
+            <ShoppingCart className="text-indigo-600" size={20} />
+            <span>سلة الطلبات</span>
+          </span>
+          <div className="flex items-center gap-1.5">
+            {cart.length > 0 && (
+              <button
+                onClick={handleHoldOrder}
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 border border-amber-200 transition-all active:scale-95"
+                title="تعليق الطلب لحين عودة العميل"
+              >
+                <PauseCircle size={14} />
+                <span>تعليق</span>
+              </button>
+            )}
+
+            {editingInvoiceId && (
+              <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">تعديل فاتورة</span>
+            )}
+            <button onClick={() => setIsMobileCartOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600">
+              <X size={20} />
+            </button>
+          </div>
+        </h2>
+
+        {heldOrders.length > 0 && (
+          <div className="bg-amber-50/70 border border-amber-200 p-2 rounded-2xl mb-3">
+            <span className="text-[10px] font-black text-amber-900 block mb-1">⏸️ طلبات معلقة ({heldOrders.length}):</span>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {heldOrders.map((h: any) => (
+                <div key={h.id} className="bg-white px-2 py-1 rounded-xl border border-amber-300 text-[10px] font-bold flex items-center gap-1.5 shrink-0 shadow-sm">
+                  <span>{h.time} ({h.cart.length} أصناف)</span>
+                  <button onClick={() => handleRecallOrder(h)} className="text-emerald-600 font-black hover:bg-emerald-50 p-0.5 rounded" title="استرجاع"><PlayCircle size={12} /></button>
+                  <button onClick={() => handleDeleteHeldOrder(h.id)} className="text-rose-600 hover:bg-rose-50 p-0.5 rounded" title="حذف"><X size={12} /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl mb-3">
+          {(['تيك أواي', 'صالة', 'دليفري'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setOrderType(t)}
+              className={`py-1.5 rounded-xl font-black text-[11px] transition-all ${
+                orderType === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {orderType === 'دليفري' && (
+          <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+            <select
+              value={selectedZoneId}
+              onChange={(e) => setSelectedZoneId(e.target.value)}
+              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
+            >
+              <option value="">اختر منطقة التوصيل...</option>
+              {uniqueDeliveryZones.map((z: any) => z && (
+                <option key={z.id || z.name} value={z.id}>
+                  {z.name} (+{z.fee} ج.م)
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedDriver}
+              onChange={(e) => setSelectedDriver(e.target.value)}
+              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
+            >
+              <option value="">اختر الطيار المسؤول...</option>
+              {driversList.map((d: string) => (
+                <option key={d} value={d}>🛵 الطيار: {d}</option>
+              ))}
+            </select>
+
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="اسم العميل"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
+            />
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              placeholder="رقم الهاتف"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
+            />
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="العنوان التفصيلي"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
+            />
+          </div>
+        )}
+
+        <div className="max-h-36 lg:max-h-56 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
+          {cart.length === 0 ? (
+            <p className="text-center py-6 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
+          ) : (
+            cart.map((i: any) => (
+              <div key={i.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex-1">
+                  <h5 className="font-bold text-slate-800 text-xs">{i.name}</h5>
+                  <p className="text-indigo-600 font-black text-[11px]">{i.price * i.quantity} ج.م</p>
+                </div>
+                <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
+                  <button onClick={() => updateQuantity(i.itemKey, -1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Minus size={12} /></button>
+                  <span className="font-black text-xs px-1.5">{i.quantity}</span>
+                  <button onClick={() => updateQuantity(i.itemKey, 1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Plus size={12} /></button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="border-t pt-3 flex flex-col gap-2 bg-white">
+        {deliveryFee > 0 && (
+          <div className="flex justify-between text-xs font-bold text-slate-500">
+            <span>خدمة التوصيل:</span>
+            <span>{deliveryFee} ج.م</span>
+          </div>
+        )}
+        <button
+          onClick={handleCheckout}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-lg transition-all active:scale-95"
+        >
+          <span>{editingInvoiceId ? 'حفظ التعديلات وطباعة' : 'حفظ وطباعة الفاتورة'}</span>
+          <span className="bg-indigo-800 px-3 py-1 rounded-xl">{totalAmount} ج.م</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function POSView() {
   const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,28 +191,23 @@ export function POSView() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState<boolean>(false);
 
-  // الحالات السحابية والمحلية
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [driversList, setDriversList] = useState<string[]>([]);
 
-  // بيانات العميل والدليفري
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
   const [selectedDriver, setSelectedDriver] = useState<string>('');
   
-  // ⏸️ نظام تعليق واسترجاع الطلبات (Hold Orders)
   const [heldOrders, setHeldOrders] = useState<any[]>([]);
 
-  // مودال الأحجام وحشو الأطراف
   const [activeProductForSizes, setActiveProductForSizes] = useState<any>(null);
   const [stuffedCrust, setStuffedCrust] = useState<boolean>(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
-  // 📡 مراقبة حالة النت
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); syncOfflineInvoices(); };
     const handleOffline = () => setIsOnline(false);
@@ -49,7 +224,6 @@ export function POSView() {
     const savedDrivers = localStorage.getItem('dc_drivers');
     if (savedDrivers) setDriversList(JSON.parse(savedDrivers));
 
-    // استعادة الطلبات المعلقة المحفوظة
     const savedHeld = localStorage.getItem('dc_held_orders');
     if (savedHeld) setHeldOrders(JSON.parse(savedHeld));
 
@@ -59,7 +233,6 @@ export function POSView() {
     };
   }, []);
 
-  // 🔄 المزامنة اللحظية
   useEffect(() => {
     if (!isOnline) return;
 
@@ -176,7 +349,6 @@ export function POSView() {
     }).filter(Boolean));
   };
 
-  // ⏸️ دالة تعليق الطلب الحالي
   const handleHoldOrder = () => {
     if (cart.length === 0) return alert("السلة فارغة لتعليقها!");
     const held = {
@@ -194,11 +366,9 @@ export function POSView() {
     setHeldOrders(updated);
     localStorage.setItem('dc_held_orders', JSON.stringify(updated));
 
-    // تفريغ الحقول لطلب جديد
     setCart([]); setCustomerName(''); setCustomerPhone(''); setCustomerAddress(''); setSelectedZoneId(''); setSelectedDriver('');
   };
 
-  // ▶️ دالة استرجاع طلب معلق
   const handleRecallOrder = (order: any) => {
     setCart(order.cart || []);
     setOrderType(order.orderType || 'تيك أواي');
@@ -223,7 +393,6 @@ export function POSView() {
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ الفاتورة الحرارية
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
@@ -324,7 +493,6 @@ export function POSView() {
     }
   };
 
-  // 💾 حفظ أو تعديل الفاتورة
   const handleCheckout = async () => {
     if (cart.length === 0) return alert("السلة فارغة!");
     if (orderType === 'دليفري' && !selectedZoneId) return alert("يرجى اختيار منطقة الدليفري!");
@@ -387,171 +555,38 @@ export function POSView() {
     }
   };
 
-  // 🛒 مكون السلة السلس
-  const CartContent = () => (
-    <div className="flex flex-col h-full justify-between">
-      <div>
-        <h2 className="font-black text-slate-800 text-base mb-3 flex items-center justify-between border-b pb-2">
-          <span className="flex items-center gap-2">
-            <ShoppingCart className="text-indigo-600" size={20} />
-            <span>سلة الطلبات</span>
-          </span>
-          <div className="flex items-center gap-1.5">
-            {/* ⏸️ زر تعليق الطلب */}
-            {cart.length > 0 && (
-              <button
-                onClick={handleHoldOrder}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 border border-amber-200 transition-all active:scale-95"
-                title="تعليق الطلب لحين عودة العميل"
-              >
-                <PauseCircle size={14} />
-                <span>تعليق</span>
-              </button>
-            )}
-
-            {editingInvoiceId && (
-              <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-lg font-bold">تعديل فاتورة</span>
-            )}
-            <button onClick={() => setIsMobileCartOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600">
-              <X size={20} />
-            </button>
-          </div>
-        </h2>
-
-        {/* ⏸️ عرض الطلبات المعلقة إن وجدت */}
-        {heldOrders.length > 0 && (
-          <div className="bg-amber-50/70 border border-amber-200 p-2 rounded-2xl mb-3">
-            <span className="text-[10px] font-black text-amber-900 block mb-1">⏸️ طلبات معلقة ({heldOrders.length}):</span>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {heldOrders.map((h) => (
-                <div key={h.id} className="bg-white px-2 py-1 rounded-xl border border-amber-300 text-[10px] font-bold flex items-center gap-1.5 shrink-0 shadow-sm">
-                  <span>{h.time} ({h.cart.length} أصناف)</span>
-                  <button onClick={() => handleRecallOrder(h)} className="text-emerald-600 font-black hover:bg-emerald-50 p-0.5 rounded" title="استرجاع"><PlayCircle size={12} /></button>
-                  <button onClick={() => handleDeleteHeldOrder(h.id)} className="text-rose-600 hover:bg-rose-50 p-0.5 rounded" title="حذف"><X size={12} /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* نوع الطلب */}
-        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl mb-3">
-          {(['تيك أواي', 'صالة', 'دليفري'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setOrderType(t)}
-              className={`py-1.5 rounded-xl font-black text-[11px] transition-all ${
-                orderType === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {/* 🛵 حقول الدليفري */}
-        {orderType === 'دليفري' && (
-          <div className="flex flex-col gap-2 mb-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-            <select
-              value={selectedZoneId}
-              onChange={(e) => setSelectedZoneId(e.target.value)}
-              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
-            >
-              <option value="">اختر منطقة التوصيل...</option>
-              {uniqueDeliveryZones.map(z => z && (
-                <option key={z.id || z.name} value={z.id}>
-                  {z.name} (+{z.fee} ج.م)
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedDriver}
-              onChange={(e) => setSelectedDriver(e.target.value)}
-              className="w-full p-2.5 rounded-xl border text-xs font-bold bg-white text-slate-800 focus:outline-none"
-            >
-              <option value="">اختر الطيار المسؤول...</option>
-              {driversList.map(d => (
-                <option key={d} value={d}>🛵 الطيار: {d}</option>
-              ))}
-            </select>
-
-            <input
-              type="text"
-              autoComplete="off"
-              placeholder="اسم العميل"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
-            />
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              placeholder="رقم الهاتف"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
-            />
-            <input
-              type="text"
-              autoComplete="off"
-              placeholder="العنوان التفصيلي"
-              value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
-            />
-          </div>
-        )}
-
-        {/* قائمة عناصر السلة */}
-        <div className="max-h-36 lg:max-h-56 overflow-y-auto flex flex-col gap-2 my-2 pr-1">
-          {cart.length === 0 ? (
-            <p className="text-center py-6 text-slate-400 font-bold text-xs">السلة فارغة، اضغط على صنف لإضافته</p>
-          ) : (
-            cart.map(i => (
-              <div key={i.itemKey} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex-1">
-                  <h5 className="font-bold text-slate-800 text-xs">{i.name}</h5>
-                  <p className="text-indigo-600 font-black text-[11px]">{i.price * i.quantity} ج.م</p>
-                </div>
-                <div className="flex items-center gap-1 bg-white border rounded-xl p-1 shadow-sm">
-                  <button onClick={() => updateQuantity(i.itemKey, -1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Minus size={12} /></button>
-                  <span className="font-black text-xs px-1.5">{i.quantity}</span>
-                  <button onClick={() => updateQuantity(i.itemKey, 1)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-600"><Plus size={12} /></button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* الإجمالي والزر */}
-      <div className="border-t pt-3 flex flex-col gap-2 bg-white">
-        {deliveryFee > 0 && (
-          <div className="flex justify-between text-xs font-bold text-slate-500">
-            <span>خدمة التوصيل:</span>
-            <span>{deliveryFee} ج.م</span>
-          </div>
-        )}
-        <button
-          onClick={handleCheckout}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm flex justify-between items-center shadow-lg transition-all active:scale-95"
-        >
-          <span>{editingInvoiceId ? 'حفظ التعديلات وطباعة' : 'حفظ وطباعة الفاتورة'}</span>
-          <span className="bg-indigo-800 px-3 py-1 rounded-xl">{totalAmount} ج.م</span>
-        </button>
-      </div>
-    </div>
-  );
+  // حزمة الـ props لمكون CartContent
+  const cartProps = {
+    cart,
+    orderType,
+    setOrderType,
+    heldOrders,
+    editingInvoiceId,
+    setIsMobileCartOpen,
+    handleHoldOrder,
+    handleRecallOrder,
+    handleDeleteHeldOrder,
+    selectedZoneId,
+    setSelectedZoneId,
+    uniqueDeliveryZones,
+    selectedDriver,
+    setSelectedDriver,
+    driversList,
+    customerName,
+    setCustomerName,
+    customerPhone,
+    setCustomerPhone,
+    customerAddress,
+    setCustomerAddress,
+    updateQuantity,
+    deliveryFee,
+    handleCheckout,
+    totalAmount
+  };
 
   return (
     <div className="flex flex-col lg:flex-row flex-1 h-full overflow-hidden bg-slate-100 dir-rtl font-sans relative">
-      
-      {/* 🍕 الأصناف والأقسام */}
       <div className="flex-1 flex flex-col p-3 overflow-hidden pb-20 lg:pb-3">
-        
-        {/* شريط البحث والاتصال */}
         <div className="flex gap-2 mb-3 items-center">
           <input
             className="flex-1 p-2.5 rounded-2xl border border-slate-200 text-xs font-bold focus:outline-none bg-white shadow-sm"
@@ -568,7 +603,6 @@ export function POSView() {
           </div>
         </div>
 
-        {/* شريط الأقسام */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
           {activeCategories.map((catName) => (
             <button
@@ -585,7 +619,6 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🍕 شبكة الأصناف المنسقة بدون تمدد عمودي (content-start) */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.map(p => (
             <div
@@ -602,7 +635,6 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 📜 سجل آخر الفواتير */}
         <div className="mt-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
           <h4 className="font-bold text-xs text-slate-700 mb-2 flex items-center gap-1.5">
             <History size={16} className="text-indigo-600" />
@@ -621,12 +653,11 @@ export function POSView() {
         </div>
       </div>
 
-      {/* 🛒 السلة للشاشات الكبيرة */}
+      {/* 🛒 2. استدعاء السلة كـ Component مستقل في الديسك توب */}
       <div className="hidden lg:flex w-96 bg-white border-r border-slate-200 p-4 flex-col shadow-lg">
-        <CartContent />
+        <CartContent {...cartProps} />
       </div>
 
-      {/* 🛒 زر السلة العائم للموبايل */}
       <div className="lg:hidden fixed bottom-3 left-3 right-3 z-40">
         <button
           onClick={() => setIsMobileCartOpen(true)}
@@ -645,16 +676,15 @@ export function POSView() {
         </button>
       </div>
 
-      {/* 🛒 نافذة السلة المنبثقة للموبايل */}
+      {/* 🛒 3. استدعاء السلة كـ Component مستقل في الموبايل */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 shadow-2xl">
-            <CartContent />
+            <CartContent {...cartProps} />
           </div>
         </div>
       )}
 
-      {/* 🍕 مودال الأحجام وحشو الأطراف */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
