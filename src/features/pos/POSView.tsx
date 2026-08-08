@@ -183,8 +183,8 @@ function CartContent({
   );
 }
 
-export function POSView() {
-  const [selectedCategory, setSelectedCategory] = useState<string>('البيتزا');
+export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { initialEditingInvoice?: any; onClearEditingInvoice?: () => void }) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [orderType, setOrderType] = useState<'تيك أواي' | 'صالة' | 'دليفري'>('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
@@ -250,6 +250,14 @@ export function POSView() {
     return () => { unsubProds(); unsubZones(); };
   }, [isOnline]);
 
+  // ✏️ الاستماع لأي فاتورة قادمة للتعديل من "سجل الفواتير"
+  useEffect(() => {
+    if (initialEditingInvoice) {
+      handleEditInvoice(initialEditingInvoice);
+      if (onClearEditingInvoice) onClearEditingInvoice();
+    }
+  }, [initialEditingInvoice]);
+
   const syncOfflineInvoices = async () => {
     const offlineInvoices = JSON.parse(localStorage.getItem('dc_offline_invoices') || '[]');
     if (offlineInvoices.length > 0) {
@@ -265,11 +273,12 @@ export function POSView() {
     }
   };
 
+  // 🍕 1. جلب جميع الأقسام المتاحة بدون أي استثناءات
   const activeCategories = Array.from(
     new Set(
       allProducts
-        .map(p => (p.catId || p.category || '').toString().trim())
-        .filter(cat => cat && cat !== 'السندوتشات')
+        .map(p => (p.catId || p.category || 'عام').toString().trim())
+        .filter(Boolean)
     )
   );
 
@@ -285,8 +294,9 @@ export function POSView() {
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
+  // 🍕 2. فلترة المنتجات حسب القسم المحدد والبحث
   const filteredProducts = allProducts.filter(p => {
-    const prodCat = (p.catId || p.category || '').toString().trim();
+    const prodCat = (p.catId || p.category || 'عام').toString().trim();
     const matchCategory = prodCat === selectedCategory.trim();
     const matchSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
@@ -380,6 +390,21 @@ export function POSView() {
     const updated = heldOrders.filter(o => o.id !== id);
     setHeldOrders(updated);
     localStorage.setItem('dc_held_orders', JSON.stringify(updated));
+  };
+
+  const handleEditInvoice = (inv: any) => {
+    setCart(inv.items || []);
+    setOrderType(inv.orderType || 'تيك أواي');
+    setCustomerName(inv.customerName || '');
+    setCustomerPhone(inv.customerPhone || '');
+    setCustomerAddress(inv.customerAddress || '');
+    setSelectedDriver(inv.driverName || '');
+    setEditingInvoiceId(inv.id);
+
+    const zone = deliveryZones.find(z => z.name === inv.zoneName);
+    if (zone) setSelectedZoneId(zone.id);
+
+    setIsMobileCartOpen(true);
   };
 
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -574,6 +599,7 @@ export function POSView() {
           </div>
         </div>
 
+        {/* شريط الأقسام المتاحة */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
           {activeCategories.map((catName) => (
             <button
@@ -590,21 +616,27 @@ export function POSView() {
           ))}
         </div>
 
-        {/* 🍕 شبكة الأصناف المنسقة والمفتوحة بدون أي عناصر زحمة تحتها */}
+        {/* 🍕 شبكة الأصناف المنسقة */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
-          {filteredProducts.map(p => (
-            <div
-              key={p.id}
-              onClick={() => p.sizes && p.sizes.length > 0 ? setActiveProductForSizes(p) : addToCart(p)}
-              className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center h-28 active:scale-95"
-            >
-              <span className="text-xl mb-0.5">{p.emoji || '🍕'}</span>
-              <h4 className="font-black text-slate-800 text-[11px] line-clamp-2 px-1 leading-snug">{p.name}</h4>
-              <p className="text-indigo-600 font-black text-[10px] bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 mt-1">
-                {p.sizes && p.sizes.length > 0 ? `يبدأ من ${p.sizes[0].price} ج.م` : `${p.price} ج.م`}
-              </p>
-            </div>
-          ))}
+          {filteredProducts.length === 0 ? (
+            <p className="col-span-full text-center py-12 text-slate-400 font-bold text-xs">
+              لا توجد منتجات في هذا القسم حالياً
+            </p>
+          ) : (
+            filteredProducts.map(p => (
+              <div
+                key={p.id}
+                onClick={() => p.sizes && p.sizes.length > 0 ? setActiveProductForSizes(p) : addToCart(p)}
+                className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col justify-between items-center text-center h-28 active:scale-95"
+              >
+                <span className="text-xl mb-0.5">{p.emoji || '🍕'}</span>
+                <h4 className="font-black text-slate-800 text-[11px] line-clamp-2 px-1 leading-snug">{p.name}</h4>
+                <p className="text-indigo-600 font-black text-[10px] bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100 mt-1">
+                  {p.sizes && p.sizes.length > 0 ? `يبدأ من ${p.sizes[0].price} ج.م` : `${p.price} ج.م`}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
