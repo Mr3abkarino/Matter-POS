@@ -234,7 +234,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     };
   }, []);
 
-  // 🔄 جلب لحظي للمنتجات ومناطق التوصيل متطابق تماماً مع لوحة التحكم
   useEffect(() => {
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
       const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -301,9 +300,15 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
 
   const activeCategories = ['الكل', ...Array.from(new Set(rawCategories))];
 
-  // 📍 تصفية المناطق لضمان عدم وجود تكرار وعرض كل جديد فوراً
+  // 📍 تصفية مانعة للتكرار بشكل قاطع للقائمة المنسدلة
   const uniqueDeliveryZones = Array.from(
-    new Map(deliveryZones.map(z => [(z.name || '').trim(), z])).values()
+    deliveryZones.reduce((map, zone) => {
+      const name = (zone.name || '').trim();
+      if (name && !map.has(name)) {
+        map.set(name, zone);
+      }
+      return map;
+    }, new Map()).values()
   );
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
