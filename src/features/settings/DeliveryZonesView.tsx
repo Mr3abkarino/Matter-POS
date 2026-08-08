@@ -10,7 +10,6 @@ export function DeliveryZonesView() {
   const [name, setName] = useState('');
   const [fee, setFee] = useState('');
 
-  // 🔄 جلب مناطق التوصيل لحظياً من السحابة
   useEffect(() => {
     const unsub = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -112,7 +111,7 @@ export function DeliveryZonesView() {
                         </button>
                         <button
                           onClick={() => handleDelete(z.id)}
-                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                          className="p-2 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-all"
                           title="حذف"
                         >
                           <Trash2 size={16} />
@@ -127,7 +126,6 @@ export function DeliveryZonesView() {
         )}
       </div>
 
-      {/* Modal الإضافة والتعديل */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm dir-rtl shadow-2xl">
@@ -185,7 +183,6 @@ export function DeliveryZonesView() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
