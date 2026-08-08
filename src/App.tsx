@@ -6,7 +6,7 @@ import { SettingsView } from './features/settings/SettingsView';
 import { KitchenView } from './features/kitchen/KitchenView';
 import { DriverSettlementView } from './features/delivery/DriverSettlementView'; 
 import { RecentInvoicesView } from './features/invoices/RecentInvoicesView'; 
-import { DeliveryZonesView } from './features/settings/DeliveryZonesView'; // 📍 استيراد شاشة مناطق التوصيل
+import { DeliveryZonesView } from './features/settings/DeliveryZonesView'; 
 import { 
   ShoppingCart, 
   LogOut, 
@@ -17,17 +17,19 @@ import {
   ChefHat,
   Bike,
   History,
-  MapPin // 📍 أيقونة مناطق التوصيل
+  MapPin 
 } from 'lucide-react';
+
+// تعريف الأنواع المتاحة للتبويبات
+type TabType = 'pos' | 'kitchen' | 'delivery' | 'invoices' | 'reports' | 'menu' | 'deliveryZones' | 'settings';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'cashier'>('cashier');
-  const [currentTab, setCurrentTab] = useState<'pos' | 'kitchen' | 'delivery' | 'invoices' | 'reports' | 'menu' | 'deliveryZones' | 'settings'>('pos');
+  const [currentTab, setCurrentTab] = useState<TabType>('pos');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  // ✏️ حالة الفاتورة الجاري تعديلها لنقلها إلى POSView
   const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
 
   useEffect(() => {
@@ -44,35 +46,20 @@ export default function App() {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
         return;
       }
-
-      if (e.key === 'F1') {
-        e.preventDefault();
-        setCurrentTab('pos');
-      } else if (e.key === 'F2') {
-        e.preventDefault();
-        setCurrentTab('kitchen');
-      } else if (e.key === 'F3') {
-        e.preventDefault();
-        setCurrentTab('delivery');
-      } else if (e.key === 'F4') {
-        e.preventDefault();
-        setCurrentTab('invoices');
-      }
+      if (e.key === 'F1') { e.preventDefault(); setCurrentTab('pos'); }
+      else if (e.key === 'F2') { e.preventDefault(); setCurrentTab('kitchen'); }
+      else if (e.key === 'F3') { e.preventDefault(); setCurrentTab('delivery'); }
+      else if (e.key === 'F4') { e.preventDefault(); setCurrentTab('invoices'); }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === '0000') {
-      loginUser('cashier');
-    } else if (pin === '8888') {
-      loginUser('admin');
-    } else {
-      setError('رمز PIN غير صحيح!');
-    }
+    if (pin === '0000') loginUser('cashier');
+    else if (pin === '8888') loginUser('admin');
+    else setError('رمز PIN غير صحيح!');
   };
 
   const loginUser = (userRole: 'admin' | 'cashier') => {
@@ -90,7 +77,6 @@ export default function App() {
     localStorage.removeItem('dc_user_role');
   };
 
-  // ✏️ دالة فتح الفاتورة وتعديلها داخل الكاشير
   const handleEditInvoiceFromList = (inv: any) => {
     setEditingInvoice(inv);
     setCurrentTab('pos');
@@ -105,26 +91,17 @@ export default function App() {
           </div>
           <h1 className="text-2xl font-black text-slate-900 mb-1">دريم كورنر POS</h1>
           <p className="text-slate-500 text-xs font-bold mb-6">نظام إدارة المبيعات ونقاط البيع</p>
-
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <div>
-              <input
-                type="password"
-                maxLength={4}
-                placeholder="أدخل رمز PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                className="w-full text-center text-2xl font-black tracking-widest p-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
-              />
-              {error && <p className="text-rose-600 text-xs font-bold mt-2">{error}</p>}
-            </div>
-
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm shadow-lg transition-all active:scale-95"
-            >
-              دخول النظام
-            </button>
+            <input
+              type="password"
+              maxLength={4}
+              placeholder="أدخل رمز PIN"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              className="w-full text-center text-2xl font-black tracking-widest p-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+            />
+            {error && <p className="text-rose-600 text-xs font-bold">{error}</p>}
+            <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-2xl font-black text-sm shadow-lg transition-all active:scale-95">دخول النظام</button>
           </form>
         </div>
       </div>
@@ -149,123 +126,49 @@ export default function App() {
           </div>
 
           <nav className="flex flex-col gap-2">
-            <button
-              onClick={() => setCurrentTab('pos')}
-              className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                currentTab === 'pos' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <ShoppingCart size={20} />
-              <span className="hidden lg:block">الكاشير (F1)</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('kitchen')}
-              className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                currentTab === 'kitchen' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <ChefHat size={20} />
-              <span className="hidden lg:block">شاشة المطبخ (F2)</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('delivery')}
-              className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                currentTab === 'delivery' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <Bike size={20} />
-              <span className="hidden lg:block">تقفيل الطيارين (F3)</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('invoices')}
-              className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                currentTab === 'invoices' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <History size={20} />
-              <span className="hidden lg:block">سجل الفواتير (F4)</span>
-            </button>
+            {[
+              { id: 'pos', icon: ShoppingCart, label: 'الكاشير (F1)' },
+              { id: 'kitchen', icon: ChefHat, label: 'شاشة المطبخ (F2)' },
+              { id: 'delivery', icon: Bike, label: 'تقفيل الطيارين (F3)' },
+              { id: 'invoices', icon: History, label: 'سجل الفواتير (F4)' }
+            ].map(item => (
+              <button key={item.id} onClick={() => setCurrentTab(item.id as TabType)} className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${currentTab === item.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+                <item.icon size={20} /> <span className="hidden lg:block">{item.label}</span>
+              </button>
+            ))}
 
             {role === 'admin' && (
               <>
-                <button
-                  onClick={() => setCurrentTab('reports')}
-                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                    currentTab === 'reports' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-                  }`}
-                >
-                  <TrendingUp size={20} />
-                  <span className="hidden lg:block">التقارير الشاملة</span>
+                <button onClick={() => setCurrentTab('reports')} className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${currentTab === 'reports' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  <TrendingUp size={20} /> <span className="hidden lg:block">التقارير الشاملة</span>
                 </button>
-
-                <button
-                  onClick={() => setCurrentTab('menu')}
-                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                    currentTab === 'menu' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-                  }`}
-                >
-                  <span className="text-base">🍔</span>
-                  <span className="hidden lg:block">إدارة المنيو</span>
+                <button onClick={() => setCurrentTab('menu')} className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${currentTab === 'menu' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  <span className="text-base">🍔</span> <span className="hidden lg:block">إدارة المنيو</span>
                 </button>
-
-                {/* 📍 زر مناطق التوصيل والأسعار الجديد */}
-                <button
-                  onClick={() => setCurrentTab('deliveryZones')}
-                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                    currentTab === 'deliveryZones' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-                  }`}
-                >
-                  <MapPin size={20} />
-                  <span className="hidden lg:block">مناطق التوصيل</span>
+                <button onClick={() => setCurrentTab('deliveryZones')} className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${currentTab === 'deliveryZones' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  <MapPin size={20} /> <span className="hidden lg:block">مناطق التوصيل</span>
                 </button>
-
-                <button
-                  onClick={() => setCurrentTab('settings')}
-                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
-                    currentTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
-                  }`}
-                >
-                  <Settings size={20} />
-                  <span className="hidden lg:block">الإعدادات والطابعة</span>
+                <button onClick={() => setCurrentTab('settings')} className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${currentTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  <Settings size={20} /> <span className="hidden lg:block">الإعدادات والطابعة</span>
                 </button>
               </>
             )}
           </nav>
         </div>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 p-3 text-rose-400 hover:bg-rose-500/10 rounded-2xl font-bold text-xs transition-all"
-        >
-          <LogOut size={20} />
-          <span className="hidden lg:block">تسجيل الخروج</span>
+        <button onClick={handleLogout} className="flex items-center gap-3 p-3 text-rose-400 hover:bg-rose-500/10 rounded-2xl font-bold text-xs transition-all">
+          <LogOut size={20} /> <span className="hidden lg:block">تسجيل الخروج</span>
         </button>
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        {currentTab === 'pos' ? (
-          <POSView 
-            initialEditingInvoice={editingInvoice} 
-            onClearEditingInvoice={() => setEditingInvoice(null)} 
-          />
-        ) : currentTab === 'kitchen' ? (
-          <KitchenView />
-        ) : currentTab === 'delivery' ? (
-          <DriverSettlementView />
-        ) : currentTab === 'invoices' ? (
-          <RecentInvoicesView onEditInvoice={handleEditInvoiceFromList} />
-        ) : currentTab === 'reports' ? (
-          <ReportsView />
-        ) : currentTab === 'menu' ? (
-          <MenuManagementView />
-        ) : currentTab === 'deliveryZones' ? (
-          <DeliveryZonesView /> // 📍 عرض شاشة مناطق التوصيل هنا
-        ) : (
-          <SettingsView />
-        )}
+        {currentTab === 'pos' ? <POSView initialEditingInvoice={editingInvoice} onClearEditingInvoice={() => setEditingInvoice(null)} />
+         : currentTab === 'kitchen' ? <KitchenView />
+         : currentTab === 'delivery' ? <DriverSettlementView />
+         : currentTab === 'invoices' ? <RecentInvoicesView onEditInvoice={handleEditInvoiceFromList} />
+         : currentTab === 'reports' ? <ReportsView />
+         : currentTab === 'menu' ? <MenuManagementView />
+         : currentTab === 'deliveryZones' ? <DeliveryZonesView />
+         : <SettingsView />}
       </main>
     </div>
   );
