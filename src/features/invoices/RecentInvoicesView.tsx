@@ -24,10 +24,12 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
     }
   };
 
+  // 🖨️ دالة طباعة الفاتورة الحرارية المباشرة والمعالجة بالكامل
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
       const logoUrl = window.location.origin + '/logo.png';
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
@@ -35,36 +37,89 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
           <meta charset="utf-8" />
           <title>فاتورة ${inv.orderType}</title>
           <style>
-            @media print { @page { margin: 0; size: auto; } body { margin: 0; padding: 4px; } }
+            @media print {
+              @page { margin: 0; size: auto; }
+              body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
             * { box-sizing: border-box; }
-            body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; width: 270px; margin: 0 auto; padding: 8px; color: #000; background: #fff; direction: rtl; text-align: right; font-size: 11px; line-height: 1.3; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
-            .logo { width: 70px; height: 70px; margin: 0 auto 4px auto; display: block; filter: grayscale(100%) contrast(300%); }
-            .brand-title { font-size: 17px; font-weight: 900; margin: 0; text-transform: uppercase; }
-            .brand-sub { font-size: 9px; font-weight: 800; color: #222; margin-top: 1px; }
-            .badge-wrap { margin-top: 6px; }
-            .badge { display: inline-block; background-color: #000; color: #fff; font-size: 13px; font-weight: 900; padding: 3px 14px; border-radius: 20px; }
-            .details-box { background: #f8f8f8; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; font-size: 10px; font-weight: 700; }
-            .details-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-            .address-row { border-top: 1px dashed #ccc; margin-top: 4px; padding-top: 4px; font-size: 11px; font-weight: 800; }
+            body {
+              font-family: 'Tahoma', 'Arial', sans-serif;
+              width: 270px;
+              margin: 0 auto;
+              padding: 4px;
+              color: #000;
+              background: #fff;
+              direction: rtl;
+              text-align: right;
+              font-size: 12px;
+              line-height: 1.3;
+              font-weight: 900;
+              -webkit-font-smoothing: antialiased;
+              text-shadow: 0.2px 0 0 #000, -0.2px 0 0 #000, 0 0.2px 0 #000, 0 -0.2px 0 #000;
+            }
+            .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 6px; }
+            .logo { 
+              width: 75px; 
+              height: 75px; 
+              margin: 0 auto 4px auto; 
+              display: block; 
+              object-fit: contain;
+              filter: grayscale(100%) contrast(500%);
+              -webkit-filter: grayscale(100%) contrast(500%);
+            }
+            .brand-box {
+              border: 3px solid #000;
+              padding: 5px 2px;
+              margin: 4px 0;
+              border-radius: 6px;
+              background-color: #fff;
+            }
+            .brand-title { 
+              font-size: 21px; 
+              font-weight: 900; 
+              margin: 0; 
+              text-transform: uppercase; 
+              color: #000;
+              text-shadow: 0.5px 0 0 #000, -0.5px 0 0 #000;
+            }
+            .brand-sub { font-size: 10px; font-weight: 900; color: #000; margin-top: 2px; }
+            .badge-wrap { margin-top: 4px; }
+            .badge { 
+              display: inline-block; 
+              border: 3px solid #000; 
+              color: #000; 
+              font-size: 16px; 
+              font-weight: 900; 
+              padding: 2px 16px; 
+              border-radius: 6px; 
+            }
+            .details-box { border: 2px solid #000; border-radius: 6px; padding: 6px; margin-bottom: 6px; font-size: 11px; font-weight: 900; }
+            .details-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+            .address-row { border-top: 2px dashed #000; margin-top: 4px; padding-top: 4px; font-size: 12px; font-weight: 900; }
             .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-            .table th { border-bottom: 2px solid #000; font-size: 10px; font-weight: 900; padding: 4px 2px; text-align: right; }
-            .table td { padding: 5px 2px; border-bottom: 1px #eee solid; font-size: 11px; font-weight: 700; }
-            .total-box { border: 2px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
-            .total-val { font-size: 18px; font-weight: 900; }
-            .summary-line { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
-            .footer { text-align: center; font-size: 9px; font-weight: 800; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; }
+            .table th { border-bottom: 3px solid #000; font-size: 12px; font-weight: 900; padding: 4px 2px; text-align: right; }
+            .table td { padding: 6px 2px; border-bottom: 1.5px dashed #000; font-size: 12px; font-weight: 900; }
+            .total-box { border: 3px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
+            .total-label { font-size: 12px; font-weight: 900; margin-bottom: 1px; }
+            .total-val { font-size: 22px; font-weight: 900; }
+            .summary-line { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; margin-bottom: 2px; }
+            .footer { text-align: center; font-size: 10px; font-weight: 900; margin-top: 8px; border-top: 2px dashed #000; padding-top: 6px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <img src="${logoUrl}" class="logo" alt="DC Logo" />
-            <h1 class="brand-title">DREAM CORNER</h1>
-            <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
+            <img src="${logoUrl}" class="logo" id="invLogo" alt="DC Logo" />
+            <div class="brand-box">
+              <h1 class="brand-title">DREAM CORNER</h1>
+              <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
+            </div>
             <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
           </div>
           <div class="details-box">
-            <div class="details-row"><span>التاريخ: ${new Date(inv.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span><span>الوقت: ${new Date(inv.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span></div>
+            <div class="details-row">
+              <span>التاريخ: ${new Date(inv.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+              <span>الوقت: ${new Date(inv.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
             ${inv.driverName ? `<div class="details-row"><span>🛵 الطيار:</span><span><b>${inv.driverName}</b></span></div>` : ''}
             ${inv.customerName ? `<div class="details-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
             ${inv.customerPhone ? `<div class="details-row"><span>📞 الهاتف:</span><span>${inv.customerPhone}</span></div>` : ''}
@@ -72,11 +127,19 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
           </div>
           <table class="table">
             <thead>
-              <tr><th style="width: 58%;">الصنف</th><th style="width: 14%; text-align: center;">العدد</th><th style="width: 28%; text-align: left;">المبلغ</th></tr>
+              <tr>
+                <th style="width: 58%;">الصنف</th>
+                <th style="width: 14%; text-align: center;">العدد</th>
+                <th style="width: 28%; text-align: left;">المبلغ</th>
+              </tr>
             </thead>
             <tbody>
               ${(inv.items || []).map((i: any) => `
-                <tr><td>${i.name}</td><td style="text-align: center;">${i.quantity}</td><td style="text-align: left; font-weight:900;">${i.price * i.quantity} ج.م</td></tr>
+                <tr>
+                  <td><b>${i.name}</b></td>
+                  <td style="text-align: center;"><b>${i.quantity}</b></td>
+                  <td style="text-align: left; font-weight:900;"><b>${i.price * i.quantity} ج.م</b></td>
+                </tr>
               `).join('')}
             </tbody>
           </table>
@@ -84,13 +147,30 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
             <div class="summary-line"><span>إجمالي الطلبات:</span><span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span></div>
             <div class="summary-line"><span>خدمة التوصيل (${inv.zoneName || ''}):</span><span>${inv.deliveryFee} ج.م</span></div>
           ` : ''}
-          <div class="total-box"><div class="total-val">${inv.total} ج.م</div></div>
+          <div class="total-box">
+            <div class="total-label">الإجمالي النهائي المطلوب</div>
+            <div class="total-val">${inv.total} ج.م</div>
+          </div>
           <div class="footer">طعم يفرق .. جودة تليق بيك ❤️<br/>شكراً لتسوقكم من DREAM CORNER</div>
+
+          <script>
+            function executeDirectPrint() {
+              window.focus();
+              window.print();
+              setTimeout(function() { window.close(); }, 300);
+            }
+            var img = document.getElementById('invLogo');
+            if (img && !img.complete) {
+              img.onload = executeDirectPrint;
+              img.onerror = executeDirectPrint;
+            } else {
+              executeDirectPrint();
+            }
+          </script>
         </body>
         </html>
       `);
       printWindow.document.close();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
     }
   };
 
