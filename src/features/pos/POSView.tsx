@@ -118,7 +118,7 @@ export function InvoicesView() {
           <img src="${logoUrl}" class="logo" id="invLogo" alt="DC Logo" />
           <div class="brand-box">
             <h1 class="brand-title">DREAM CORNER</h1>
-            <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
+            <div class="brand-sub">مطعم دريم كورنر - بيتزا و ساندوتشات</div>
           </div>
           <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
         </div>
