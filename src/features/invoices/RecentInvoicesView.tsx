@@ -44,23 +44,22 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
             * { box-sizing: border-box; }
             body {
               font-family: 'Tahoma', 'Arial', sans-serif;
-              width: 205px; /* ⚡ العرض المظبوط لمقاس 58mm لعدم قص الكلمات */
+              width: 195px; /* ⚡ العرض المضبوط لمقاس 58mm لمنع قص النصوص والأرقام */
               margin: 0 auto;
-              padding: 2px 0px;
+              padding: 2px 2px;
               color: #000;
               background: #fff;
               direction: rtl;
               text-align: right;
-              font-size: 11px;
-              line-height: 1.2;
+              font-size: 10.5px;
+              line-height: 1.25;
               font-weight: 900;
               -webkit-font-smoothing: antialiased;
-              text-shadow: 0.2px 0 0 #000, -0.2px 0 0 #000;
             }
-            .header { text-align: center; border-bottom: 2.5px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
+            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
             .logo { 
-              width: 60px; 
-              height: 60px; 
+              width: 58px; 
+              height: 58px; 
               margin: 0 auto 2px auto; 
               display: block; 
               object-fit: contain;
@@ -69,40 +68,43 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
             }
             .brand-box {
               border: 2px solid #000;
-              padding: 3px 1px;
+              padding: 2px 1px;
               margin: 2px 0;
-              border-radius: 5px;
+              border-radius: 4px;
               background-color: #fff;
             }
             .brand-title { 
-              font-size: 16px; 
+              font-size: 15px; 
               font-weight: 900; 
               margin: 0; 
               text-transform: uppercase; 
               color: #000;
             }
-            .brand-sub { font-size: 8.5px; font-weight: 900; color: #000; margin-top: 1px; }
-            .badge-wrap { margin-top: 3px; }
+            .brand-sub { font-size: 8px; font-weight: 900; color: #000; margin-top: 1px; }
+            .badge-wrap { margin-top: 2px; }
             .badge { 
               display: inline-block; 
               border: 2px solid #000; 
               color: #000; 
-              font-size: 13px; 
+              font-size: 12px; 
               font-weight: 900; 
-              padding: 1px 12px; 
+              padding: 1px 10px; 
               border-radius: 4px; 
             }
-            .details-box { border: 1.5px solid #000; border-radius: 5px; padding: 4px; margin-bottom: 4px; font-size: 10px; font-weight: 900; }
-            .details-row { display: flex; justify-content: space-between; margin-bottom: 1.5px; }
-            .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 10.5px; font-weight: 900; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-            .table th { border-bottom: 2px solid #000; font-size: 10px; font-weight: 900; padding: 3px 1px; text-align: right; }
-            .table td { padding: 4px 1px; border-bottom: 1px dashed #000; font-size: 10.5px; font-weight: 900; }
-            .total-box { border: 2px solid #000; border-radius: 5px; padding: 4px; text-align: center; margin-top: 4px; }
-            .total-label { font-size: 10px; font-weight: 900; margin-bottom: 1px; }
-            .total-val { font-size: 18px; font-weight: 900; }
-            .summary-line { display: flex; justify-content: space-between; font-size: 10px; font-weight: 900; margin-bottom: 1.5px; }
-            .footer { text-align: center; font-size: 8.5px; font-weight: 900; margin-top: 6px; border-top: 1.5px dashed #000; padding-top: 4px; }
+            .details-box { border: 1.5px solid #000; border-radius: 4px; padding: 4px; margin-bottom: 4px; font-size: 9.5px; font-weight: 900; }
+            .details-row { display: flex; justify-content: space-between; margin-bottom: 1.5px; word-break: break-word; }
+            .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 10px; font-weight: 900; }
+            
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
+            .table th { border-bottom: 2px solid #000; font-size: 9.5px; font-weight: 900; padding: 3px 0; text-align: right; }
+            .table td { padding: 3px 0; border-bottom: 1px dashed #000; font-size: 10px; font-weight: 900; word-wrap: break-word; }
+            
+            .total-box { border: 2px solid #000; border-radius: 4px; padding: 3px; text-align: center; margin-top: 4px; }
+            .total-label { font-size: 9.5px; font-weight: 900; margin-bottom: 1px; }
+            .total-val { font-size: 17px; font-weight: 900; }
+            
+            .summary-line { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 900; margin-bottom: 1.5px; }
+            .footer { text-align: center; font-size: 8px; font-weight: 900; margin-top: 5px; border-top: 1.5px dashed #000; padding-top: 3px; }
           </style>
         </head>
         <body>
@@ -127,8 +129,8 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
           <table class="table">
             <thead>
               <tr>
-                <th style="width: 55%;">الصنف</th>
-                <th style="width: 15%; text-align: center;">العدد</th>
+                <th style="width: 52%;">الصنف</th>
+                <th style="width: 18%; text-align: center;">العدد</th>
                 <th style="width: 30%; text-align: left;">المبلغ</th>
               </tr>
             </thead>
@@ -144,7 +146,7 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
           </table>
           ${inv.deliveryFee > 0 ? `
             <div class="summary-line"><span>إجمالي الطلبات:</span><span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span></div>
-            <div class="summary-line"><span>خدمة التوصيل (${inv.zoneName || ''}):</span><span>${inv.deliveryFee} ج.م</span></div>
+            <div class="summary-line"><span>خدمة التوصيل ${inv.zoneName ? `(${inv.zoneName})` : ''}:</span><span>${inv.deliveryFee} ج.م</span></div>
           ` : ''}
           <div class="total-box">
             <div class="total-label">الإجمالي النهائي المطلوب</div>
