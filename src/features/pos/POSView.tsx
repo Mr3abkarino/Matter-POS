@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, getDocs } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
@@ -232,14 +232,31 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     };
   }, []);
 
-  // 🔄 جلب لحظي مباشر يضمن ملء المنتجات فوراً
+  // 🔄 جلب لحظي + جلب مباشر لضمان ملء المنتجات فوراً وتجاوز حظر الـ Listen
   useEffect(() => {
+    const fetchDirectly = async () => {
+      try {
+        const snap = await getDocs(collection(dbCloud, "products"));
+        const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (prods.length > 0) {
+          setAllProducts(prods);
+          localStorage.setItem('dc_cached_products', JSON.stringify(prods));
+        }
+      } catch (err) {
+        console.warn("Direct fetch error", err);
+      }
+    };
+
+    fetchDirectly();
+
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
       const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (prods.length > 0) {
         setAllProducts(prods);
         localStorage.setItem('dc_cached_products', JSON.stringify(prods));
       }
+    }, (err) => {
+      console.warn("Listener timed out", err);
     });
 
     const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
@@ -403,6 +420,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
+  // 🖨️ دالة طباعة الفاتورة الاحترافية المحدثة بالكامل
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
@@ -415,47 +433,75 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           <meta charset="utf-8" />
           <title>فاتورة ${inv.orderType}</title>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
+            
             @media print {
               @page { margin: 0; size: auto; }
               body { margin: 0; padding: 4px; }
             }
             * { box-sizing: border-box; }
             body {
-              font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+              font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
               width: 270px;
               margin: 0 auto;
-              padding: 8px;
+              padding: 6px;
               color: #000;
               background: #fff;
               direction: rtl;
               text-align: right;
               font-size: 11px;
               line-height: 1.3;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
             .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
-            .logo { width: 70px; height: 70px; margin: 0 auto 4px auto; display: block; filter: grayscale(100%) contrast(300%); }
-            .brand-title { font-size: 17px; font-weight: 900; letter-spacing: 0.5px; margin: 0; text-transform: uppercase; }
-            .brand-sub { font-size: 9px; font-weight: 800; color: #222; margin-top: 1px; }
+            
+            /* 🍕 اللوجو عالي الجودة للطباعة الحرارية */
+            .logo { 
+              width: 75px; 
+              height: 75px; 
+              margin: 0 auto 4px auto; 
+              display: block; 
+              object-fit: contain;
+              filter: grayscale(100%) contrast(500%);
+              -webkit-filter: grayscale(100%) contrast(500%);
+            }
+            
+            .brand-title { font-size: 18px; font-weight: 900; letter-spacing: 0.5px; margin: 0; text-transform: uppercase; color: #000; }
+            .brand-sub { font-size: 9px; font-weight: 900; color: #000; margin-top: 1px; }
+            
+            /* 🏷️ شارة نوع الطلب عريضة وبإطار واضح جداً */
             .badge-wrap { margin-top: 6px; }
-            .badge { display: inline-block; background-color: #000; color: #fff; font-size: 13px; font-weight: 900; padding: 3px 14px; border-radius: 20px; letter-spacing: 0.5px; }
-            .details-box { background: #f8f8f8; border: 1px border-slate-300; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; font-size: 10px; font-weight: 700; }
+            .badge { 
+              display: inline-block; 
+              border: 2px solid #000; 
+              color: #000; 
+              font-size: 16px; 
+              font-weight: 900; 
+              padding: 2px 18px; 
+              border-radius: 8px; 
+              letter-spacing: 0.5px;
+              background-color: #fff;
+            }
+
+            .details-box { background: #fff; border: 1.5px solid #000; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; font-size: 11px; font-weight: 900; color: #000; }
             .details-row { display: flex; justify-between: space-between; margin-bottom: 3px; }
-            .address-row { border-top: 1px dashed #ccc; margin-top: 4px; padding-top: 4px; font-size: 11px; font-weight: 800; }
+            .address-row { border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px; font-size: 12px; font-weight: 900; }
             .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-            .table th { border-bottom: 2px solid #000; font-size: 10px; font-weight: 900; padding: 4px 2px; text-align: right; }
-            .table td { padding: 5px 2px; border-bottom: 1px #eee solid; font-size: 11px; font-weight: 700; }
+            .table th { border-bottom: 2px solid #000; font-size: 11px; font-weight: 900; padding: 4px 2px; text-align: right; color: #000; }
+            .table td { padding: 5px 2px; border-bottom: 1px dashed #000; font-size: 11px; font-weight: 900; color: #000; }
             .total-box { border: 2px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
-            .total-label { font-size: 10px; font-weight: 800; margin-bottom: 1px; }
-            .total-val { font-size: 18px; font-weight: 900; }
-            .summary-line { display: flex; justify-between: space-between; font-size: 11px; font-weight: 800; margin-bottom: 2px; }
-            .footer { text-align: center; font-size: 9px; font-weight: 800; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; }
+            .total-label { font-size: 11px; font-weight: 900; margin-bottom: 1px; color: #000; }
+            .total-val { font-size: 21px; font-weight: 900; color: #000; }
+            .summary-line { display: flex; justify-between: space-between; font-size: 11px; font-weight: 900; margin-bottom: 2px; color: #000; }
+            .footer { text-align: center; font-size: 9.5px; font-weight: 900; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; color: #000; }
           </style>
         </head>
         <body>
           <div class="header">
             <img src="${logoUrl}" class="logo" alt="DC Logo" />
             <h1 class="brand-title">DREAM CORNER</h1>
-            <div class="brand-sub">مطعم دريم كورنر - بيتزا وساندوتشات</div>
+            <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
             <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
           </div>
           <div class="details-box">
@@ -499,7 +545,13 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
         </html>
       `);
       printWindow.document.close();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+      
+      // ⏱️ زمن انتظار مخصص لتحميل صورة اللوجو قبل أمر الطباعة
+      setTimeout(() => { 
+        printWindow.focus();
+        printWindow.print(); 
+        printWindow.close(); 
+      }, 400);
     }
   };
 
