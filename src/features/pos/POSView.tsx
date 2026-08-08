@@ -184,7 +184,7 @@ function CartContent({
 }
 
 export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { initialEditingInvoice?: any; onClearEditingInvoice?: () => void }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('الكل');
   const [searchQuery, setSearchQuery] = useState('');
   const [orderType, setOrderType] = useState<'تيك أواي' | 'صالة' | 'دليفري'>('تيك أواي');
   const [cart, setCart] = useState<any[]>([]);
@@ -250,7 +250,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     return () => { unsubProds(); unsubZones(); };
   }, [isOnline]);
 
-  // ✏️ الاستماع لأي فاتورة قادمة للتعديل من "سجل الفواتير"
   useEffect(() => {
     if (initialEditingInvoice) {
       handleEditInvoice(initialEditingInvoice);
@@ -273,18 +272,16 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     }
   };
 
-  // 🍕 1. جلب جميع الأقسام المتاحة بدون أي استثناءات
-  const activeCategories = Array.from(
-    new Set(
-      allProducts
-        .map(p => (p.catId || p.category || 'عام').toString().trim())
-        .filter(Boolean)
-    )
-  );
+  // 🍕 1. تجميع جميع الأقسام مع إضافة زر "الكل" افتراضياً
+  const rawCategories = allProducts
+    .map(p => (p.catId || p.category || p.catName || 'عام').toString().trim())
+    .filter(Boolean);
+
+  const activeCategories = ['الكل', ...Array.from(new Set(rawCategories))];
 
   useEffect(() => {
-    if (activeCategories.length > 0 && (!selectedCategory || !activeCategories.includes(selectedCategory))) {
-      setSelectedCategory(activeCategories[0]);
+    if (!selectedCategory || selectedCategory === '') {
+      setSelectedCategory('الكل');
     }
   }, [allProducts]);
 
@@ -294,10 +291,10 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
-  // 🍕 2. فلترة المنتجات حسب القسم المحدد والبحث
+  // 🍕 2. فلترة المنتجات المرنة (تتيح زر "الكل")
   const filteredProducts = allProducts.filter(p => {
-    const prodCat = (p.catId || p.category || 'عام').toString().trim();
-    const matchCategory = prodCat === selectedCategory.trim();
+    const prodCat = (p.catId || p.category || p.catName || 'عام').toString().trim();
+    const matchCategory = selectedCategory === 'الكل' || prodCat === selectedCategory.trim();
     const matchSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
