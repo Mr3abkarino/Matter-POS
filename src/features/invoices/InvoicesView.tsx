@@ -29,7 +29,7 @@ export function InvoicesView() {
     }
   };
 
-  // 🖨️ إعادة طباعة الفاتورة الحرارية المباشرة والمعايرة لطابعة Xprinter 58mm
+  // 🖨️ إعادة طباعة الفاتورة الحرارية المباشرة والمعايرة لطابعة Xprinter 58mm (إصدار منع القص)
   const handleReprint = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (!printWindow) return;
@@ -50,22 +50,22 @@ export function InvoicesView() {
           * { box-sizing: border-box; }
           body {
             font-family: 'Tahoma', 'Arial', sans-serif;
-            width: 195px; /* ⚡ العرض المظبوط بالملي لمنع قص النصوص والأرقام */
+            width: 175px; /* ⚡ تم التصغير لـ 175px لضمان دخول كافة الحروف داخل حدود الورقة */
             margin: 0 auto;
-            padding: 2px 2px;
+            padding: 2px;
             color: #000;
             background: #fff;
             direction: rtl;
             text-align: right;
-            font-size: 10.5px;
+            font-size: 10px;
             line-height: 1.25;
             font-weight: 900;
             -webkit-font-smoothing: antialiased;
           }
           .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
           .logo { 
-            width: 58px; 
-            height: 58px; 
+            width: 55px; 
+            height: 55px; 
             margin: 0 auto 2px auto; 
             display: block; 
             object-fit: contain;
@@ -80,7 +80,7 @@ export function InvoicesView() {
             background-color: #fff;
           }
           .brand-title { 
-            font-size: 15px; 
+            font-size: 14px; 
             font-weight: 900; 
             margin: 0; 
             text-transform: uppercase; 
@@ -92,24 +92,24 @@ export function InvoicesView() {
             display: inline-block; 
             border: 2px solid #000; 
             color: #000; 
-            font-size: 12px; 
+            font-size: 11px; 
             font-weight: 900; 
-            padding: 1px 10px; 
+            padding: 1px 8px; 
             border-radius: 4px; 
           }
-          .details-box { border: 1.5px solid #000; border-radius: 4px; padding: 4px; margin-bottom: 4px; font-size: 9.5px; font-weight: 900; }
-          .details-row { display: flex; justify-content: space-between; margin-bottom: 1.5px; word-break: break-word; }
-          .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 10px; font-weight: 900; }
+          .details-box { border: 1.5px solid #000; border-radius: 4px; padding: 4px; margin-bottom: 4px; font-size: 9px; font-weight: 900; }
+          .details-row { display: flex; justify-between: space-between; margin-bottom: 1.5px; word-break: break-word; }
+          .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 9.5px; font-weight: 900; }
           
           .table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-          .table th { border-bottom: 2px solid #000; font-size: 9.5px; font-weight: 900; padding: 3px 0; text-align: right; }
-          .table td { padding: 3px 0; border-bottom: 1px dashed #000; font-size: 10px; font-weight: 900; word-wrap: break-word; }
+          .table th { border-bottom: 2px solid #000; font-size: 9px; font-weight: 900; padding: 3px 0; text-align: right; }
+          .table td { padding: 3px 0; border-bottom: 1px dashed #000; font-size: 9.5px; font-weight: 900; word-wrap: break-word; }
           
           .total-box { border: 2px solid #000; border-radius: 4px; padding: 3px; text-align: center; margin-top: 4px; }
-          .total-label { font-size: 9.5px; font-weight: 900; margin-bottom: 1px; }
-          .total-val { font-size: 17px; font-weight: 900; }
+          .total-label { font-size: 9px; font-weight: 900; margin-bottom: 1px; }
+          .total-val { font-size: 16px; font-weight: 900; }
           
-          .summary-line { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 900; margin-bottom: 1.5px; }
+          .summary-line { display: flex; justify-between: space-between; font-size: 9px; font-weight: 900; margin-bottom: 1.5px; }
           .footer { text-align: center; font-size: 8px; font-weight: 900; margin-top: 5px; border-top: 1.5px dashed #000; padding-top: 3px; }
         </style>
       </head>
@@ -118,7 +118,7 @@ export function InvoicesView() {
           <img src="${logoUrl}" class="logo" id="invLogo" alt="DC Logo" />
           <div class="brand-box">
             <h1 class="brand-title">DREAM CORNER</h1>
-            <div class="brand-sub">مطعم دريم كورنر - بيتزا وساندوتشات</div>
+            <div class="brand-sub">مطعم دريم كورنر - بيتزا و ساندوتشات</div>
           </div>
           <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
         </div>
@@ -135,9 +135,9 @@ export function InvoicesView() {
         <table class="table">
           <thead>
             <tr>
-              <th style="width: 52%;">الصنف</th>
-              <th style="width: 18%; text-align: center;">العدد</th>
-              <th style="width: 30%; text-align: left;">المبلغ</th>
+              <th style="width: 50%;">الصنف</th>
+              <th style="width: 15%; text-align: center;">العدد</th>
+              <th style="width: 35%; text-align: left;">المبلغ</th>
             </tr>
           </thead>
           <tbody>
