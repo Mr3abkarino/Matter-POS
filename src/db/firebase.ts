@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -11,4 +11,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const dbCloud = getFirestore(app);
+
+// ⚡ إجبار الفايربيس على استخدام Long-Polling لضمان الاتصال حتى في وجود حظر شبكة أو جدار ناري
+export const dbCloud = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
