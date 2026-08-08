@@ -10,11 +10,21 @@ export function DeliveryZonesView() {
   const [name, setName] = useState('');
   const [fee, setFee] = useState('');
 
-  // 🔄 جلب مناطق التوصيل لحظياً من السحابة
+  // 🔄 جلب مناطق التوصيل لحظياً مع منع أي تكرار بالاسم في العرض
   useEffect(() => {
     const unsub = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setZones(data);
+      
+      // تصفية العناصر بحيث لا تظهر المنطقة المكررة سوى مرة واحدة
+      const uniqueMap = new Map();
+      data.forEach(item => {
+        const cleanName = (item.name || '').trim();
+        if (cleanName && !uniqueMap.has(cleanName)) {
+          uniqueMap.set(cleanName, item);
+        }
+      });
+
+      setZones(Array.from(uniqueMap.values()));
     });
     return () => unsub();
   }, []);
@@ -49,7 +59,7 @@ export function DeliveryZonesView() {
     };
 
     try {
-      // ⚡ استخدام اسم المنطقة كمعرّف (ID) لضمان عدم التكرار والظهور الفوري
+      // ⚡ استخدام اسم المنطقة كمعرّف (ID) لمنع التكرار مستقبلاً في القاعدة
       const zoneRef = doc(dbCloud, "deliveryZones", cleanName);
       await setDoc(zoneRef, zoneData, { merge: true });
 
