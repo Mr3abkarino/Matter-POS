@@ -3,7 +3,7 @@ import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'fireb
 import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
-// 🛒 1. مكون السلة المستقل لمنع فقدان التركيز (Focus Loss) أثناء الكتابة
+// 🛒 1. مكون السلة المستقل
 function CartContent({
   cart,
   orderType,
@@ -232,13 +232,14 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     };
   }, []);
 
+  // 🔄 جلب لحظي مباشر يضمن ملء المنتجات فوراً
   useEffect(() => {
-    if (!isOnline) return;
-
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
       const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAllProducts(prods);
-      localStorage.setItem('dc_cached_products', JSON.stringify(prods));
+      if (prods.length > 0) {
+        setAllProducts(prods);
+        localStorage.setItem('dc_cached_products', JSON.stringify(prods));
+      }
     });
 
     const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
@@ -248,7 +249,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     });
 
     return () => { unsubProds(); unsubZones(); };
-  }, [isOnline]);
+  }, []);
 
   useEffect(() => {
     if (initialEditingInvoice) {
@@ -272,18 +273,12 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     }
   };
 
-  // 🍕 1. تجميع جميع الأقسام مع إضافة زر "الكل" افتراضياً
+  // 🍕 1. جلب الأقسام الديناميكي مع دعم كافة حقول الأقسام
   const rawCategories = allProducts
     .map(p => (p.catId || p.category || p.catName || 'عام').toString().trim())
     .filter(Boolean);
 
   const activeCategories = ['الكل', ...Array.from(new Set(rawCategories))];
-
-  useEffect(() => {
-    if (!selectedCategory || selectedCategory === '') {
-      setSelectedCategory('الكل');
-    }
-  }, [allProducts]);
 
   const uniqueDeliveryZones = Array.from(new Set(deliveryZones.map(z => z.name)))
     .map(name => deliveryZones.find(z => z.name === name));
@@ -291,11 +286,11 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
-  // 🍕 2. فلترة المنتجات المرنة (تتيح زر "الكل")
+  // 🍕 2. الفلترة الفعالة
   const filteredProducts = allProducts.filter(p => {
     const prodCat = (p.catId || p.category || p.catName || 'عام').toString().trim();
     const matchCategory = selectedCategory === 'الكل' || prodCat === selectedCategory.trim();
-    const matchSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
@@ -617,7 +612,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.length === 0 ? (
             <p className="col-span-full text-center py-12 text-slate-400 font-bold text-xs">
-              لا توجد منتجات في هذا القسم حالياً
+              لا توجد منتجات حالياً
             </p>
           ) : (
             filteredProducts.map(p => (
