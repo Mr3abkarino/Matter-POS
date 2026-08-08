@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, getDocs, getDoc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
@@ -234,31 +234,14 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     };
   }, []);
 
-  // 🔄 جلب لحظي + جلب مباشر لضمان ملء المنتجات فوراً وتجاوز حظر الـ Listen
+  // 🔄 جلب لحظي للمنتجات ومناطق التوصيل متطابق تماماً مع لوحة التحكم
   useEffect(() => {
-    const fetchDirectly = async () => {
-      try {
-        const snap = await getDocs(collection(dbCloud, "products"));
-        const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (prods.length > 0) {
-          setAllProducts(prods);
-          localStorage.setItem('dc_cached_products', JSON.stringify(prods));
-        }
-      } catch (err) {
-        console.warn("Direct fetch error", err);
-      }
-    };
-
-    fetchDirectly();
-
     const unsubProds = onSnapshot(collection(dbCloud, "products"), (snap) => {
       const prods = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (prods.length > 0) {
         setAllProducts(prods);
         localStorage.setItem('dc_cached_products', JSON.stringify(prods));
       }
-    }, (err) => {
-      console.warn("Listener timed out", err);
     });
 
     const unsubZones = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
@@ -277,7 +260,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     }
   }, [initialEditingInvoice]);
 
-  // 🔍 دالة البحث اللحظي عن العميل فور إدخال رقم التليفون
   const handleCustomerPhoneChange = async (phone: string) => {
     setCustomerPhone(phone);
     const cleanPhone = phone.trim();
@@ -313,20 +295,20 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     }
   };
 
-  // 🍕 1. جلب الأقسام الديناميكي مع دعم كافة حقول الأقسام
   const rawCategories = allProducts
     .map(p => (p.catId || p.category || p.catName || 'عام').toString().trim())
     .filter(Boolean);
 
   const activeCategories = ['الكل', ...Array.from(new Set(rawCategories))];
 
-  const uniqueDeliveryZones = Array.from(new Set(deliveryZones.map(z => z.name)))
-    .map(name => deliveryZones.find(z => z.name === name));
+  // 📍 تصفية المناطق لضمان عدم وجود تكرار وعرض كل جديد فوراً
+  const uniqueDeliveryZones = Array.from(
+    new Map(deliveryZones.map(z => [(z.name || '').trim(), z])).values()
+  );
 
   const selectedZone = deliveryZones.find(z => z.id === selectedZoneId);
   const deliveryFee = orderType === 'دليفري' && selectedZone ? Number(selectedZone.fee || 0) : 0;
 
-  // 🍕 2. الفلترة الفعالة
   const filteredProducts = allProducts.filter(p => {
     const prodCat = (p.catId || p.category || p.catName || 'عام').toString().trim();
     const matchCategory = selectedCategory === 'الكل' || prodCat === selectedCategory.trim();
@@ -443,7 +425,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ دالة طباعة الفاتورة الحرارية المخصصة الموزونة 100% لطابعة Xprinter 58mm
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
@@ -463,22 +444,22 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
             * { box-sizing: border-box; }
             body {
               font-family: 'Tahoma', 'Arial', sans-serif;
-              width: 195px; /* ⚡ العرض المظبوط بالملي لورق 58mm لمنع قص الهاتف والأرقام */
+              width: 175px;
               margin: 0 auto;
               padding: 2px 2px;
               color: #000;
               background: #fff;
               direction: rtl;
               text-align: right;
-              font-size: 10.5px;
+              font-size: 10px;
               line-height: 1.25;
               font-weight: 900;
               -webkit-font-smoothing: antialiased;
             }
             .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
             .logo { 
-              width: 58px; 
-              height: 58px; 
+              width: 55px; 
+              height: 55px; 
               margin: 0 auto 2px auto; 
               display: block; 
               object-fit: contain;
@@ -493,7 +474,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
               background-color: #fff;
             }
             .brand-title { 
-              font-size: 15px; 
+              font-size: 14px; 
               font-weight: 900; 
               margin: 0; 
               text-transform: uppercase; 
@@ -505,24 +486,24 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
               display: inline-block; 
               border: 2px solid #000; 
               color: #000; 
-              font-size: 12px; 
+              font-size: 11px; 
               font-weight: 900; 
-              padding: 1px 10px; 
+              padding: 1px 8px; 
               border-radius: 4px; 
             }
-            .details-box { border: 1.5px solid #000; border-radius: 4px; padding: 4px; margin-bottom: 4px; font-size: 9.5px; font-weight: 900; }
+            .details-box { border: 1.5px solid #000; border-radius: 4px; padding: 4px; margin-bottom: 4px; font-size: 9px; font-weight: 900; }
             .details-row { display: flex; justify-content: space-between; margin-bottom: 1.5px; word-break: break-word; }
-            .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 10px; font-weight: 900; }
+            .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 9.5px; font-weight: 900; }
             
             .table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-            .table th { border-bottom: 2px solid #000; font-size: 9.5px; font-weight: 900; padding: 3px 0; text-align: right; }
-            .table td { padding: 3px 0; border-bottom: 1px dashed #000; font-size: 10px; font-weight: 900; word-wrap: break-word; }
+            .table th { border-bottom: 2px solid #000; font-size: 9px; font-weight: 900; padding: 3px 0; text-align: right; }
+            .table td { padding: 3px 0; border-bottom: 1px dashed #000; font-size: 9.5px; font-weight: 900; word-wrap: break-word; }
             
             .total-box { border: 2px solid #000; border-radius: 4px; padding: 3px; text-align: center; margin-top: 4px; }
-            .total-label { font-size: 9.5px; font-weight: 900; margin-bottom: 1px; }
-            .total-val { font-size: 17px; font-weight: 900; }
+            .total-label { font-size: 9px; font-weight: 900; margin-bottom: 1px; }
+            .total-val { font-size: 16px; font-weight: 900; }
             
-            .summary-line { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 900; margin-bottom: 1.5px; }
+            .summary-line { display: flex; justify-content: space-between; font-size: 9px; font-weight: 900; margin-bottom: 1.5px; }
             .footer { text-align: center; font-size: 8px; font-weight: 900; margin-top: 5px; border-top: 1.5px dashed #000; padding-top: 3px; }
           </style>
         </head>
@@ -548,13 +529,13 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           <table class="table">
             <thead>
               <tr>
-                <th style="width: 52%;">الصنف</th>
-                <th style="width: 18%; text-align: center;">العدد</th>
-                <th style="width: 30%; text-align: left;">المبلغ</th>
+                <th style="width: 50%;">الصنف</th>
+                <th style="width: 15%; text-align: center;">العدد</th>
+                <th style="width: 35%; text-align: left;">المبلغ</th>
               </tr>
             </thead>
             <tbody>
-              ${(inv.items || []).map((i: any) => `
+               ${(inv.items || []).map((i: any) => `
                 <tr>
                   <td><b>${i.name}</b></td>
                   <td style="text-align: center;"><b>${i.quantity}</b></td>
@@ -621,7 +602,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           await addDoc(collection(dbCloud, "invoices"), invoiceData);
         }
 
-        // 💾 حفظ/تحديث بيانات العميل أوتوماتيكياً في قاعدة بيانات العملاء
         if (customerPhone.trim()) {
           try {
             const customerRef = doc(dbCloud, "customers", customerPhone.trim());
@@ -636,7 +616,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
             console.warn("Auto save customer error", err);
           }
         }
-
       } catch (e) {
         console.error("Firestore Save Error:", e);
       }
@@ -691,7 +670,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-
           <div className={`px-3 py-2.5 rounded-2xl font-black text-xs flex items-center gap-1.5 shadow-sm ${
             isOnline ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
           }`}>
@@ -700,7 +678,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           </div>
         </div>
 
-        {/* شريط الأقسام المتاحة */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
           {activeCategories.map((catName) => (
             <button
@@ -717,7 +694,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           ))}
         </div>
 
-        {/* 🍕 شبكة الأصناف المنسقة */}
         <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 p-1 content-start">
           {filteredProducts.length === 0 ? (
             <p className="col-span-full text-center py-12 text-slate-400 font-bold text-xs">
@@ -741,12 +717,10 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
         </div>
       </div>
 
-      {/* 🛒 السلة للشاشات الكبيرة */}
       <div className="hidden lg:flex w-96 bg-white border-r border-slate-200 p-4 flex-col shadow-lg">
         <CartContent {...cartProps} />
       </div>
 
-      {/* 🛒 زر السلة العائم للموبايل */}
       <div className="lg:hidden fixed bottom-3 left-3 right-3 z-40">
         <button
           onClick={() => setIsMobileCartOpen(true)}
@@ -765,7 +739,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
         </button>
       </div>
 
-      {/* 🛒 نافذة السلة المنبثقة للموبايل */}
       {isMobileCartOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 shadow-2xl">
@@ -774,7 +747,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
         </div>
       )}
 
-      {/* 🍕 مودال الأحجام وحشو الأطراف */}
       {activeProductForSizes && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-right dir-rtl shadow-2xl">
@@ -826,7 +798,6 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           </div>
         </div>
       )}
-
     </div>
   );
 }
