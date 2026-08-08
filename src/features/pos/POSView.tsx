@@ -420,7 +420,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
   const subTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalAmount = subTotal + deliveryFee;
 
-  // 🖨️ دالة طباعة الفاتورة الاحترافية المحدثة بالكامل
+  // 🖨️ دالة طباعة الفاتورة الحرارية المباشرة والشديدة الوضوح
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
@@ -433,30 +433,27 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           <meta charset="utf-8" />
           <title>فاتورة ${inv.orderType}</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&display=swap');
-            
             @media print {
               @page { margin: 0; size: auto; }
-              body { margin: 0; padding: 4px; }
+              body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
             * { box-sizing: border-box; }
             body {
-              font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+              font-family: 'Tahoma', 'Arial', sans-serif;
               width: 270px;
               margin: 0 auto;
-              padding: 6px;
+              padding: 4px;
               color: #000;
               background: #fff;
               direction: rtl;
               text-align: right;
-              font-size: 11px;
+              font-size: 12px;
               line-height: 1.3;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              font-weight: 900;
+              -webkit-font-smoothing: antialiased;
+              text-shadow: 0.2px 0 0 #000, -0.2px 0 0 #000, 0 0.2px 0 #000, 0 -0.2px 0 #000;
             }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
-            
-            /* 🍕 اللوجو عالي الجودة للطباعة الحرارية */
+            .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 6px; }
             .logo { 
               width: 75px; 
               height: 75px; 
@@ -466,42 +463,52 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
               filter: grayscale(100%) contrast(500%);
               -webkit-filter: grayscale(100%) contrast(500%);
             }
-            
-            .brand-title { font-size: 18px; font-weight: 900; letter-spacing: 0.5px; margin: 0; text-transform: uppercase; color: #000; }
-            .brand-sub { font-size: 9px; font-weight: 900; color: #000; margin-top: 1px; }
-            
-            /* 🏷️ شارة نوع الطلب عريضة وبإطار واضح جداً */
-            .badge-wrap { margin-top: 6px; }
+            .brand-box {
+              border: 3px solid #000;
+              padding: 5px 2px;
+              margin: 4px 0;
+              border-radius: 6px;
+              background-color: #fff;
+            }
+            .brand-title { 
+              font-size: 21px; 
+              font-weight: 900; 
+              margin: 0; 
+              text-transform: uppercase; 
+              color: #000;
+              text-shadow: 0.5px 0 0 #000, -0.5px 0 0 #000;
+            }
+            .brand-sub { font-size: 10px; font-weight: 900; color: #000; margin-top: 2px; }
+            .badge-wrap { margin-top: 4px; }
             .badge { 
               display: inline-block; 
-              border: 2px solid #000; 
+              border: 3px solid #000; 
               color: #000; 
               font-size: 16px; 
               font-weight: 900; 
-              padding: 2px 18px; 
-              border-radius: 8px; 
-              letter-spacing: 0.5px;
-              background-color: #fff;
+              padding: 2px 16px; 
+              border-radius: 6px; 
             }
-
-            .details-box { background: #fff; border: 1.5px solid #000; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; font-size: 11px; font-weight: 900; color: #000; }
-            .details-row { display: flex; justify-between: space-between; margin-bottom: 3px; }
-            .address-row { border-top: 1px dashed #000; margin-top: 4px; padding-top: 4px; font-size: 12px; font-weight: 900; }
+            .details-box { border: 2px solid #000; border-radius: 6px; padding: 6px; margin-bottom: 6px; font-size: 11px; font-weight: 900; }
+            .details-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+            .address-row { border-top: 2px dashed #000; margin-top: 4px; padding-top: 4px; font-size: 12px; font-weight: 900; }
             .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-            .table th { border-bottom: 2px solid #000; font-size: 11px; font-weight: 900; padding: 4px 2px; text-align: right; color: #000; }
-            .table td { padding: 5px 2px; border-bottom: 1px dashed #000; font-size: 11px; font-weight: 900; color: #000; }
-            .total-box { border: 2px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
-            .total-label { font-size: 11px; font-weight: 900; margin-bottom: 1px; color: #000; }
-            .total-val { font-size: 21px; font-weight: 900; color: #000; }
-            .summary-line { display: flex; justify-between: space-between; font-size: 11px; font-weight: 900; margin-bottom: 2px; color: #000; }
-            .footer { text-align: center; font-size: 9.5px; font-weight: 900; margin-top: 10px; border-top: 1px dashed #000; padding-top: 6px; color: #000; }
+            .table th { border-bottom: 3px solid #000; font-size: 12px; font-weight: 900; padding: 4px 2px; text-align: right; }
+            .table td { padding: 6px 2px; border-bottom: 1.5px dashed #000; font-size: 12px; font-weight: 900; }
+            .total-box { border: 3px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
+            .total-label { font-size: 12px; font-weight: 900; margin-bottom: 1px; }
+            .total-val { font-size: 22px; font-weight: 900; }
+            .summary-line { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; margin-bottom: 2px; }
+            .footer { text-align: center; font-size: 10px; font-weight: 900; margin-top: 8px; border-top: 2px dashed #000; padding-top: 6px; }
           </style>
         </head>
         <body>
           <div class="header">
-            <img src="${logoUrl}" class="logo" alt="DC Logo" />
-            <h1 class="brand-title">DREAM CORNER</h1>
-            <div class="brand-sub">مطعم دريم كورنر - بيتزا و ساندوتشات</div>
+            <img src="${logoUrl}" class="logo" id="invLogo" alt="DC Logo" />
+            <div class="brand-box">
+              <h1 class="brand-title">DREAM CORNER</h1>
+              <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
+            </div>
             <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
           </div>
           <div class="details-box">
@@ -523,11 +530,11 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
               </tr>
             </thead>
             <tbody>
-              ${inv.items.map((i: any) => `
+              ${(inv.items || []).map((i: any) => `
                 <tr>
-                  <td>${i.name}</td>
-                  <td style="text-align: center;">${i.quantity}</td>
-                  <td style="text-align: left; font-weight:900;">${i.price * i.quantity} ج.م</td>
+                  <td><b>${i.name}</b></td>
+                  <td style="text-align: center;"><b>${i.quantity}</b></td>
+                  <td style="text-align: left; font-weight:900;"><b>${i.price * i.quantity} ج.م</b></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -541,17 +548,26 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
             <div class="total-val">${inv.total} ج.م</div>
           </div>
           <div class="footer">طعم يفرق .. جودة تليق بيك ❤️<br/>شكراً لتسوقكم من DREAM CORNER</div>
+
+          <script>
+            // 🛑 الضمان القاطع للطباعة المباشرة ومنع إخراج ورقة فارغة
+            function executeDirectPrint() {
+              window.focus();
+              window.print();
+              setTimeout(function() { window.close(); }, 300);
+            }
+            var img = document.getElementById('invLogo');
+            if (img && !img.complete) {
+              img.onload = executeDirectPrint;
+              img.onerror = executeDirectPrint;
+            } else {
+              executeDirectPrint();
+            }
+          </script>
         </body>
         </html>
       `);
       printWindow.document.close();
-      
-      // ⏱️ زمن انتظار مخصص لتحميل صورة اللوجو قبل أمر الطباعة
-      setTimeout(() => { 
-        printWindow.focus();
-        printWindow.print(); 
-        printWindow.close(); 
-      }, 400);
     }
   };
 
