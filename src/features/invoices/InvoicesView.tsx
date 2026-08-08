@@ -29,87 +29,154 @@ export function InvoicesView() {
     }
   };
 
-  // إعادة طباعة الفاتورة الحرارية
+  // 🖨️ إعادة طباعة الفاتورة الحرارية المباشرة والمعالجة
   const handleReprint = (inv: any) => {
-    const printWindow = window.open('', '_blank', 'width=350,height=600');
+    const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (!printWindow) return;
 
+    const logoUrl = window.location.origin + '/logo.png';
+
     printWindow.document.write(`
-      <html dir="rtl">
-        <head>
-          <title>فاتورة رقم #${inv.id.slice(-6)}</title>
-          <style>
-            @page { margin: 0; }
-            body { 
-              font-family: 'Tahoma', 'Segoe UI', Arial, sans-serif; 
-              width: 280px; 
-              margin: auto; 
-              padding: 10px 4px; 
-              color: #000; 
-              font-weight: 800;
-              -webkit-print-color-adjust: exact;
-            }
-            .text-center { text-align: center; }
-            .logo { font-size: 18px; font-weight: 900; }
-            .sub-title { font-size: 11px; font-weight: 800; }
-            .divider { border-top: 2px dashed #000; margin: 6px 0; }
-            .solid-divider { border-top: 2px solid #000; margin: 6px 0; }
-            .info-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
-            .item-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: 900; border-bottom: 1.5px solid #000; padding-bottom: 3px; margin-bottom: 4px; }
-            .item-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
-            .delivery-box { border: 2px solid #000; padding: 6px; border-radius: 6px; margin: 6px 0; font-size: 11px; }
-            .total-box { border: 2.5px solid #000; padding: 6px; font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin-top: 6px; }
-            .footer { text-align: center; font-size: 10px; margin-top: 8px; }
-          </style>
-        </head>
-        <body>
-          <div class="text-center">
-            <div class="logo">DREAM CORNER</div>
-            <div class="sub-title">دريم كورنر - بيتزا وسندوتشات</div>
-            <div class="sub-title">(إعادة طباعة)</div>
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="utf-8" />
+        <title>فاتورة #${inv.id.slice(-6)}</title>
+        <style>
+          @media print {
+            @page { margin: 0; size: auto; }
+            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+          * { box-sizing: border-box; }
+          body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            width: 270px;
+            margin: 0 auto;
+            padding: 4px;
+            color: #000;
+            background: #fff;
+            direction: rtl;
+            text-align: right;
+            font-size: 12px;
+            line-height: 1.3;
+            font-weight: 900;
+            -webkit-font-smoothing: antialiased;
+            text-shadow: 0.2px 0 0 #000, -0.2px 0 0 #000, 0 0.2px 0 #000, 0 -0.2px 0 #000;
+          }
+          .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 6px; }
+          .logo { 
+            width: 75px; 
+            height: 75px; 
+            margin: 0 auto 4px auto; 
+            display: block; 
+            object-fit: contain;
+            filter: grayscale(100%) contrast(500%);
+            -webkit-filter: grayscale(100%) contrast(500%);
+          }
+          .brand-box {
+            border: 3px solid #000;
+            padding: 5px 2px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background-color: #fff;
+          }
+          .brand-title { 
+            font-size: 21px; 
+            font-weight: 900; 
+            margin: 0; 
+            text-transform: uppercase; 
+            color: #000;
+            text-shadow: 0.5px 0 0 #000, -0.5px 0 0 #000;
+          }
+          .brand-sub { font-size: 10px; font-weight: 900; color: #000; margin-top: 2px; }
+          .badge-wrap { margin-top: 4px; }
+          .badge { 
+            display: inline-block; 
+            border: 3px solid #000; 
+            color: #000; 
+            font-size: 16px; 
+            font-weight: 900; 
+            padding: 2px 16px; 
+            border-radius: 6px; 
+          }
+          .details-box { border: 2px solid #000; border-radius: 6px; padding: 6px; margin-bottom: 6px; font-size: 11px; font-weight: 900; }
+          .details-row { display: flex; justify-between: space-between; margin-bottom: 2px; }
+          .address-row { border-top: 2px dashed #000; margin-top: 4px; padding-top: 4px; font-size: 12px; font-weight: 900; }
+          .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+          .table th { border-bottom: 3px solid #000; font-size: 12px; font-weight: 900; padding: 4px 2px; text-align: right; }
+          .table td { padding: 6px 2px; border-bottom: 1.5px dashed #000; font-size: 12px; font-weight: 900; }
+          .total-box { border: 3px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
+          .total-label { font-size: 12px; font-weight: 900; margin-bottom: 1px; }
+          .total-val { font-size: 22px; font-weight: 900; }
+          .summary-line { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; margin-bottom: 2px; }
+          .footer { text-align: center; font-size: 10px; font-weight: 900; margin-top: 8px; border-top: 2px dashed #000; padding-top: 6px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${logoUrl}" class="logo" id="invLogo" alt="DC Logo" />
+          <div class="brand-box">
+            <h1 class="brand-title">DREAM CORNER</h1>
+            <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
           </div>
-          <div class="divider"></div>
-          <div class="info-row"><span>رقم الفاتورة:</span> <span>#${inv.id.slice(-6)}</span></div>
-          <div class="info-row"><span>نوع الطلب:</span> <span>${inv.orderType}</span></div>
-          <div class="info-row"><span>التاريخ:</span> <span>${new Date(inv.createdAt).toLocaleString('ar-EG')}</span></div>
-          
-          ${inv.orderType === 'دليفري' ? `
-            <div class="delivery-box">
-              <div><b>العميل:</b> ${inv.customerName || 'غير محدد'}</div>
-              <div><b>الهاتف:</b> ${inv.customerPhone || '-'}</div>
-              <div><b>المنطقة:</b> ${inv.zoneName || '-'}</div>
-              <div><b>العنوان:</b> ${inv.customerAddress || '-'}</div>
-            </div>
-          ` : ''}
+          <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
+        </div>
+        <div class="details-box">
+          <div class="details-row">
+            <span>التاريخ: ${new Date(inv.createdAt || Date.now()).toLocaleDateString('ar-EG')}</span>
+            <span>الوقت: ${new Date(inv.createdAt || Date.now()).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          ${inv.driverName ? `<div class="details-row"><span>🛵 الطيار:</span><span><b>${inv.driverName}</b></span></div>` : ''}
+          ${inv.customerName ? `<div class="details-row"><span>👤 العميل:</span><span>${inv.customerName}</span></div>` : ''}
+          ${inv.customerPhone ? `<div class="details-row"><span>📞 الهاتف:</span><span>${inv.customerPhone}</span></div>` : ''}
+          ${inv.customerAddress ? `<div class="address-row">🏠 العنوان: ${inv.customerAddress}</div>` : ''}
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 58%;">الصنف</th>
+              <th style="width: 14%; text-align: center;">العدد</th>
+              <th style="width: 28%; text-align: left;">المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(inv.items || []).map((i: any) => `
+              <tr>
+                <td><b>${i.name}</b></td>
+                <td style="text-align: center;"><b>${i.quantity}</b></td>
+                <td style="text-align: left; font-weight:900;"><b>${i.price * i.quantity} ج.م</b></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ${inv.deliveryFee > 0 ? `
+          <div class="summary-line"><span>إجمالي الطلبات:</span><span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span></div>
+          <div class="summary-line"><span>خدمة التوصيل (${inv.zoneName || ''}):</span><span>${inv.deliveryFee} ج.م</span></div>
+        ` : ''}
+        <div class="total-box">
+          <div class="total-label">الإجمالي النهائي المطلوب</div>
+          <div class="total-val">${inv.total} ج.م</div>
+        </div>
+        <div class="footer">طعم يفرق .. جودة تليق بيك ❤️<br/>شكراً لتسوقكم من DREAM CORNER</div>
 
-          <div class="divider"></div>
-          <div class="item-header"><span>الصنف</span><span>الإجمالي</span></div>
-
-          ${(inv.items || []).map((i: any) => `
-            <div class="item-row">
-              <span>${i.name} (${i.quantity}x)</span>
-              <span>${i.price * i.quantity} ج.م</span>
-            </div>
-          `).join('')}
-
-          ${inv.deliveryFee ? `
-            <div class="divider"></div>
-            <div class="info-row"><span>المجموع:</span><span>${inv.subTotal || (inv.total - inv.deliveryFee)} ج.م</span></div>
-            <div class="info-row"><span>التوصيل:</span><span>${inv.deliveryFee} ج.م</span></div>
-          ` : ''}
-
-          <div class="total-box"><span>الصافي المطلوب:</span><span>${inv.total} ج.م</span></div>
-          <div class="solid-divider"></div>
-          <div class="footer">شكراً لزيارتكم دريم كورنر! ❤️</div>
-        </body>
+        <script>
+          function executeDirectPrint() {
+            window.focus();
+            window.print();
+            setTimeout(function() { window.close(); }, 300);
+          }
+          var img = document.getElementById('invLogo');
+          if (img && !img.complete) {
+            img.onload = executeDirectPrint;
+            img.onerror = executeDirectPrint;
+          } else {
+            executeDirectPrint();
+          }
+        </script>
+      </body>
       </html>
     `);
     printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 350);
   };
 
   // تصفية الفواتير للبحث
