@@ -10,6 +10,7 @@ export function DeliveryZonesView() {
   const [name, setName] = useState('');
   const [fee, setFee] = useState('');
 
+  // 🔄 جلب مناطق التوصيل لحظياً من السحابة
   useEffect(() => {
     const unsub = onSnapshot(collection(dbCloud, "deliveryZones"), (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -34,11 +35,15 @@ export function DeliveryZonesView() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !fee.trim()) return alert("يرجى إدخال اسم المنطقة وسعر التوصيل!");
+    const cleanName = name.trim();
+    const cleanFee = Number(fee);
+
+    if (!cleanName || !fee) return alert("يرجى إدخال اسم المنطقة وسعر التوصيل!");
 
     const zoneData = {
-      name: name.trim(),
-      fee: Number(fee)
+      name: cleanName,
+      fee: cleanFee,
+      updatedAt: Date.now()
     };
 
     try {
@@ -48,15 +53,21 @@ export function DeliveryZonesView() {
         await addDoc(collection(dbCloud, "deliveryZones"), zoneData);
       }
       setIsModalOpen(false);
+      setName('');
+      setFee('');
     } catch (err) {
       console.error("Error saving zone:", err);
-      alert("حدث خطأ أثناء الحفظ!");
+      alert("حدث خطأ أثناء الحفظ! تأكد من صلاحيات قاعدة البيانات.");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("هل أنت متأكد من حذف هذه المنطقة؟")) {
-      await deleteDoc(doc(dbCloud, "deliveryZones", id));
+    if (confirm("هل أنت متأكد من حذف هذه المنطقة نهائياً؟")) {
+      try {
+        await deleteDoc(doc(dbCloud, "deliveryZones", id));
+      } catch (err) {
+        alert("خطأ أثناء الحذف!");
+      }
     }
   };
 
@@ -111,7 +122,7 @@ export function DeliveryZonesView() {
                         </button>
                         <button
                           onClick={() => handleDelete(z.id)}
-                          className="p-2 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-all"
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                           title="حذف"
                         >
                           <Trash2 size={16} />
