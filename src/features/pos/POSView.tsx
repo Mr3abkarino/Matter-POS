@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
 import { ShoppingCart, Plus, Minus, Check, Printer, Edit2, Trash2, Wifi, WifiOff, X, ChevronUp, PauseCircle, PlayCircle } from 'lucide-react';
 
@@ -23,7 +23,7 @@ function CartContent({
   customerName,
   setCustomerName,
   customerPhone,
-  setCustomerPhone,
+  handleCustomerPhoneChange,
   customerAddress,
   setCustomerAddress,
   updateQuantity,
@@ -116,6 +116,16 @@ function CartContent({
             </select>
 
             <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              placeholder="رقم الهاتف (جلب تلقائي)"
+              value={customerPhone}
+              onChange={(e) => handleCustomerPhoneChange(e.target.value)}
+              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
+            />
+
+            <input
               type="text"
               autoComplete="off"
               placeholder="اسم العميل"
@@ -123,15 +133,7 @@ function CartContent({
               onChange={(e) => setCustomerName(e.target.value)}
               className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
             />
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              placeholder="رقم الهاتف"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className="p-2.5 rounded-xl border text-xs font-bold bg-white focus:outline-none focus:border-indigo-600"
-            />
+
             <input
               type="text"
               autoComplete="off"
@@ -274,6 +276,27 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
       if (onClearEditingInvoice) onClearEditingInvoice();
     }
   }, [initialEditingInvoice]);
+
+  // 🔍 دالة البحث اللحظي عن العميل فور إدخال رقم التليفون
+  const handleCustomerPhoneChange = async (phone: string) => {
+    setCustomerPhone(phone);
+    const cleanPhone = phone.trim();
+
+    if (cleanPhone.length >= 10) {
+      try {
+        const docRef = doc(dbCloud, "customers", cleanPhone);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const cData = docSnap.data();
+          if (cData.name) setCustomerName(cData.name);
+          if (cData.address) setCustomerAddress(cData.address);
+          if (cData.zoneId) setSelectedZoneId(cData.zoneId);
+        }
+      } catch (err) {
+        console.warn("Auto customer fetch error", err);
+      }
+    }
+  };
 
   const syncOfflineInvoices = async () => {
     const offlineInvoices = JSON.parse(localStorage.getItem('dc_offline_invoices') || '[]');
@@ -597,6 +620,23 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
         } else {
           await addDoc(collection(dbCloud, "invoices"), invoiceData);
         }
+
+        // 💾 حفظ/تحديث بيانات العميل أوتوماتيكياً في قاعدة بيانات العملاء
+        if (customerPhone.trim()) {
+          try {
+            const customerRef = doc(dbCloud, "customers", customerPhone.trim());
+            await setDoc(customerRef, {
+              name: customerName.trim(),
+              phone: customerPhone.trim(),
+              address: customerAddress.trim(),
+              zoneId: selectedZoneId,
+              lastOrderAt: Date.now()
+            }, { merge: true });
+          } catch (err) {
+            console.warn("Auto save customer error", err);
+          }
+        }
+
       } catch (e) {
         console.error("Firestore Save Error:", e);
       }
@@ -632,6 +672,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
     setCustomerName,
     customerPhone,
     setCustomerPhone,
+    handleCustomerPhoneChange,
     customerAddress,
     setCustomerAddress,
     updateQuantity,
