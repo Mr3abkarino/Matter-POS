@@ -501,7 +501,7 @@ export function POSView({ initialEditingInvoice, onClearEditingInvoice }: { init
           <div class="header">
             <img src="${logoUrl}" class="logo" alt="DC Logo" />
             <h1 class="brand-title">DREAM CORNER</h1>
-            <div class="brand-sub">مطعم دريم كورنر - بيتزا كريب برجر</div>
+            <div class="brand-sub">مطعم دريم كورنر - بيتزا و ساندوتشات</div>
             <div class="badge-wrap"><span class="badge">${inv.orderType}</span></div>
           </div>
           <div class="details-box">
