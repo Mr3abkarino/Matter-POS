@@ -24,7 +24,7 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
     }
   };
 
-  // 🖨️ دالة طباعة الفاتورة الحرارية المباشرة والمعالجة بالكامل
+  // 🖨️ دالة طباعة الفاتورة الحرارية المباشرة والمعايرة لطابعة Xprinter 58mm
   const printInvoiceWindow = (inv: any) => {
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (printWindow) {
@@ -44,66 +44,65 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
             * { box-sizing: border-box; }
             body {
               font-family: 'Tahoma', 'Arial', sans-serif;
-              width: 270px;
+              width: 205px; /* ⚡ العرض المظبوط لمقاس 58mm لعدم قص الكلمات */
               margin: 0 auto;
-              padding: 4px;
+              padding: 2px 0px;
               color: #000;
               background: #fff;
               direction: rtl;
               text-align: right;
-              font-size: 12px;
-              line-height: 1.3;
+              font-size: 11px;
+              line-height: 1.2;
               font-weight: 900;
               -webkit-font-smoothing: antialiased;
-              text-shadow: 0.2px 0 0 #000, -0.2px 0 0 #000, 0 0.2px 0 #000, 0 -0.2px 0 #000;
+              text-shadow: 0.2px 0 0 #000, -0.2px 0 0 #000;
             }
-            .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 6px; margin-bottom: 6px; }
+            .header { text-align: center; border-bottom: 2.5px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
             .logo { 
-              width: 75px; 
-              height: 75px; 
-              margin: 0 auto 4px auto; 
+              width: 60px; 
+              height: 60px; 
+              margin: 0 auto 2px auto; 
               display: block; 
               object-fit: contain;
               filter: grayscale(100%) contrast(500%);
               -webkit-filter: grayscale(100%) contrast(500%);
             }
             .brand-box {
-              border: 3px solid #000;
-              padding: 5px 2px;
-              margin: 4px 0;
-              border-radius: 6px;
+              border: 2px solid #000;
+              padding: 3px 1px;
+              margin: 2px 0;
+              border-radius: 5px;
               background-color: #fff;
             }
             .brand-title { 
-              font-size: 21px; 
+              font-size: 16px; 
               font-weight: 900; 
               margin: 0; 
               text-transform: uppercase; 
               color: #000;
-              text-shadow: 0.5px 0 0 #000, -0.5px 0 0 #000;
             }
-            .brand-sub { font-size: 10px; font-weight: 900; color: #000; margin-top: 2px; }
-            .badge-wrap { margin-top: 4px; }
+            .brand-sub { font-size: 8.5px; font-weight: 900; color: #000; margin-top: 1px; }
+            .badge-wrap { margin-top: 3px; }
             .badge { 
               display: inline-block; 
-              border: 3px solid #000; 
+              border: 2px solid #000; 
               color: #000; 
-              font-size: 16px; 
+              font-size: 13px; 
               font-weight: 900; 
-              padding: 2px 16px; 
-              border-radius: 6px; 
+              padding: 1px 12px; 
+              border-radius: 4px; 
             }
-            .details-box { border: 2px solid #000; border-radius: 6px; padding: 6px; margin-bottom: 6px; font-size: 11px; font-weight: 900; }
-            .details-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-            .address-row { border-top: 2px dashed #000; margin-top: 4px; padding-top: 4px; font-size: 12px; font-weight: 900; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-            .table th { border-bottom: 3px solid #000; font-size: 12px; font-weight: 900; padding: 4px 2px; text-align: right; }
-            .table td { padding: 6px 2px; border-bottom: 1.5px dashed #000; font-size: 12px; font-weight: 900; }
-            .total-box { border: 3px solid #000; border-radius: 6px; padding: 6px; text-align: center; margin-top: 6px; }
-            .total-label { font-size: 12px; font-weight: 900; margin-bottom: 1px; }
-            .total-val { font-size: 22px; font-weight: 900; }
-            .summary-line { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; margin-bottom: 2px; }
-            .footer { text-align: center; font-size: 10px; font-weight: 900; margin-top: 8px; border-top: 2px dashed #000; padding-top: 6px; }
+            .details-box { border: 1.5px solid #000; border-radius: 5px; padding: 4px; margin-bottom: 4px; font-size: 10px; font-weight: 900; }
+            .details-row { display: flex; justify-content: space-between; margin-bottom: 1.5px; }
+            .address-row { border-top: 1.5px dashed #000; margin-top: 3px; padding-top: 3px; font-size: 10.5px; font-weight: 900; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+            .table th { border-bottom: 2px solid #000; font-size: 10px; font-weight: 900; padding: 3px 1px; text-align: right; }
+            .table td { padding: 4px 1px; border-bottom: 1px dashed #000; font-size: 10.5px; font-weight: 900; }
+            .total-box { border: 2px solid #000; border-radius: 5px; padding: 4px; text-align: center; margin-top: 4px; }
+            .total-label { font-size: 10px; font-weight: 900; margin-bottom: 1px; }
+            .total-val { font-size: 18px; font-weight: 900; }
+            .summary-line { display: flex; justify-content: space-between; font-size: 10px; font-weight: 900; margin-bottom: 1.5px; }
+            .footer { text-align: center; font-size: 8.5px; font-weight: 900; margin-top: 6px; border-top: 1.5px dashed #000; padding-top: 4px; }
           </style>
         </head>
         <body>
@@ -128,9 +127,9 @@ export function RecentInvoicesView({ onEditInvoice }: { onEditInvoice?: (inv: an
           <table class="table">
             <thead>
               <tr>
-                <th style="width: 58%;">الصنف</th>
-                <th style="width: 14%; text-align: center;">العدد</th>
-                <th style="width: 28%; text-align: left;">المبلغ</th>
+                <th style="width: 55%;">الصنف</th>
+                <th style="width: 15%; text-align: center;">العدد</th>
+                <th style="width: 30%; text-align: left;">المبلغ</th>
               </tr>
             </thead>
             <tbody>
