@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, setDoc, deleteDoc, doc } from 'firebase/firestore';
 import { dbCloud } from '../../db/firebase';
 import { MapPin, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 
@@ -38,7 +38,9 @@ export function DeliveryZonesView() {
     const cleanName = name.trim();
     const cleanFee = Number(fee);
 
-    if (!cleanName || !fee) return alert("يرجى إدخال اسم المنطقة وسعر التوصيل!");
+    if (!cleanName || isNaN(cleanFee)) {
+      return alert("يرجى إدخال اسم المنطقة وسعر صحيح للتوصيل!");
+    }
 
     const zoneData = {
       name: cleanName,
@@ -47,14 +49,14 @@ export function DeliveryZonesView() {
     };
 
     try {
-      if (editingZone) {
-        await updateDoc(doc(dbCloud, "deliveryZones", editingZone.id), zoneData);
-      } else {
-        await addDoc(collection(dbCloud, "deliveryZones"), zoneData);
-      }
+      // ⚡ استخدام اسم المنطقة كمعرّف (ID) لضمان عدم التكرار والظهور الفوري
+      const zoneRef = doc(dbCloud, "deliveryZones", cleanName);
+      await setDoc(zoneRef, zoneData, { merge: true });
+
       setIsModalOpen(false);
       setName('');
       setFee('');
+      setEditingZone(null);
     } catch (err) {
       console.error("Error saving zone:", err);
       alert("حدث خطأ أثناء الحفظ! تأكد من صلاحيات قاعدة البيانات.");
