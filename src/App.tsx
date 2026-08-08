@@ -6,6 +6,7 @@ import { SettingsView } from './features/settings/SettingsView';
 import { KitchenView } from './features/kitchen/KitchenView';
 import { DriverSettlementView } from './features/delivery/DriverSettlementView'; 
 import { RecentInvoicesView } from './features/invoices/RecentInvoicesView'; 
+import { DeliveryZonesView } from './features/settings/DeliveryZonesView'; // 📍 استيراد شاشة مناطق التوصيل
 import { 
   ShoppingCart, 
   LogOut, 
@@ -15,13 +16,14 @@ import {
   Settings,
   ChefHat,
   Bike,
-  History
+  History,
+  MapPin // 📍 أيقونة مناطق التوصيل
 } from 'lucide-react';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'cashier'>('cashier');
-  const [currentTab, setCurrentTab] = useState<'pos' | 'kitchen' | 'delivery' | 'invoices' | 'reports' | 'menu' | 'settings'>('pos');
+  const [currentTab, setCurrentTab] = useState<'pos' | 'kitchen' | 'delivery' | 'invoices' | 'reports' | 'menu' | 'deliveryZones' | 'settings'>('pos');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
@@ -209,6 +211,17 @@ export default function App() {
                   <span className="hidden lg:block">إدارة المنيو</span>
                 </button>
 
+                {/* 📍 زر مناطق التوصيل والأسعار الجديد */}
+                <button
+                  onClick={() => setCurrentTab('deliveryZones')}
+                  className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
+                    currentTab === 'deliveryZones' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'
+                  }`}
+                >
+                  <MapPin size={20} />
+                  <span className="hidden lg:block">مناطق التوصيل</span>
+                </button>
+
                 <button
                   onClick={() => setCurrentTab('settings')}
                   className={`flex items-center gap-3 p-3 rounded-2xl font-bold text-xs transition-all ${
@@ -248,6 +261,8 @@ export default function App() {
           <ReportsView />
         ) : currentTab === 'menu' ? (
           <MenuManagementView />
+        ) : currentTab === 'deliveryZones' ? (
+          <DeliveryZonesView /> // 📍 عرض شاشة مناطق التوصيل هنا
         ) : (
           <SettingsView />
         )}
